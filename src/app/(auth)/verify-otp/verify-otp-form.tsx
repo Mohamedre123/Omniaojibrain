@@ -1,128 +1,77 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Mail, RefreshCw, CheckCircle } from "lucide-react";
+import { Mail, RefreshCw, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
 
 export function VerifyOtpForm() {
   const router = useRouter();
   const params = useSearchParams();
   const email = params.get("email") || "";
-  const [pending, startTransition] = useTransition();
   const [resending, setResending] = useState(false);
-  const [cooldown, setCooldown] = useState(60); // عدّاد ابتدائي بعد التسجيل
-  const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [cooldown, setCooldown] = useState(60);
+  const [verified, setVerified] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // عدّاد إعادة الإرسال — يبدأ من 60 ث لأن signup بعت إيميل بالفعل
+  // عدّاد إعادة الإرسال
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
     return () => clearInterval(t);
   }, [cooldown]);
 
-  // التركيز التلقائي على أول حقل
+  // قراءة الجلسة كلَّ 3 ثوانٍ — لاكتشاف التفعيل تلقائياً
   useEffect(() => {
-    inputsRef.current[0]?.focus();
-  }, []);
+    if (!email || verified) return;
+    const supabase = createClient();
 
-  function setDigit(index: number, value: string) {
-    const digit = value.replace(/\D/g, "").slice(-1);
-    const newCode = [...code];
-    newCode[index] = digit;
-    setCode(newCode);
-
-    if (digit && index < 5) {
-      inputsRef.current[index + 1]?.focus();
-    }
-
-    if (newCode.every((d) => d !== "") && index === 5) {
-      void submit(newCode.join(""));
-    }
-  }
-
-  function handleKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Backspace" && !code[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    } else if (e.key === "ArrowLeft" && index < 5) {
-      inputsRef.current[index + 1]?.focus();
-    } else if (e.key === "ArrowRight" && index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    }
-  }
-
-  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted.length === 0) return;
-    const newCode = ["", "", "", "", "", ""];
-    for (let i = 0; i < pasted.length; i++) newCode[i] = pasted[i];
-    setCode(newCode);
-    const last = Math.min(pasted.length, 5);
-    inputsRef.current[last]?.focus();
-    if (pasted.length === 6) void submit(pasted);
-  }
-
-  async function submit(token: string) {
-    if (!email) {
-      toast.error("البريد الإلكتروني مفقود — ارجع لصفحة التسجيل");
-      return;
-    }
-    if (token.length !== 6) {
-      toast.error("الرمزُ يجب أن يكون 6 أرقام");
-      return;
-    }
-
-    startTransition(async () => {
-      const supabase = createClient();
-
-      // جرّب الأنواع المختلفة بالترتيب
-      const types: Array<"signup" | "email" | "magiclink"> = ["signup", "email", "magiclink"];
-      let success = false;
-      let lastError: string | null = null;
-
-      for (const type of types) {
-        const { error } = await supabase.auth.verifyOtp({ email, token, type });
-        if (!error) {
-          success = true;
-          break;
-        }
-        lastError = error.message;
+    async function check() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user.email?.toLowerCase() === email.toLowerCase()) {
+        setVerified(true);
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        toast.success("تمّ تفعيل الحساب 🎉");
+        setTimeout(() => {
+          router.push("/dashboard");
+          router.refresh();
+        }, 1200);
       }
+    }
 
-      if (!success) {
-        toast.error("الرمزُ غيرُ صحيحٍ أو منتهي الصلاحية", {
-          description: lastError || "اطلب رمزاً جديداً واستخدم الأحدث منهم.",
-        });
-        setCode(["", "", "", "", "", ""]);
-        inputsRef.current[0]?.focus();
-        return;
+    // فحص فوري
+    void check();
+
+    // فحص دوري
+    pollIntervalRef.current = setInterval(check, 3000);
+
+    // الاستماع لتغيّر الجلسة في تابات أخرى (لو فتح اللينك في تاب جديد)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        setVerified(true);
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        toast.success("تمّ تفعيل الحساب 🎉");
+        setTimeout(() => {
+          router.push("/dashboard");
+          router.refresh();
+        }, 1200);
       }
-
-      toast.success("تمّ تفعيل الحساب 🎉 أهلاً بك في Oji Brain");
-      router.push("/dashboard");
-      router.refresh();
     });
-  }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    await submit(code.join(""));
-  }
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      subscription.unsubscribe();
+    };
+  }, [email, verified, router]);
 
-  /** إعادة إرسال يدوية بعد طلب المستخدم. */
-  async function resendCode() {
+  async function resendEmail() {
     if (!email || resending || cooldown > 0) return;
     setResending(true);
     const supabase = createClient();
-
     const { error } = await supabase.auth.resend({ type: "signup", email });
-
     setResending(false);
 
     if (error) {
@@ -135,15 +84,13 @@ export function VerifyOtpForm() {
       return;
     }
 
-    toast.success("تمّ إرسالُ رمزٍ جديد", { description: "استخدم الرمز الأحدث فقط" });
+    toast.success("تمّ إرسال رسالةٍ جديدة");
     setCooldown(60);
-    setCode(["", "", "", "", "", ""]);
-    inputsRef.current[0]?.focus();
   }
 
   if (!email) {
     return (
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-4 py-4">
         <p className="text-sm text-muted-foreground">لم نجد بريدَك. أعد التسجيل من البداية.</p>
         <Button asChild variant="gradient" className="w-full">
           <Link href="/signup">صفحة التسجيل</Link>
@@ -152,75 +99,83 @@ export function VerifyOtpForm() {
     );
   }
 
+  if (verified) {
+    return (
+      <div className="text-center space-y-4 py-8">
+        <div className="mx-auto size-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 grid place-items-center">
+          <CheckCircle2 className="size-10 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <h2 className="text-xl font-bold">تمّ تفعيل الحساب</h2>
+        <p className="text-sm text-muted-foreground">جاري التوجيه...</p>
+        <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3 flex items-start gap-2">
-        <CheckCircle className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-        <div className="text-sm">
-          <p className="font-medium text-emerald-900 dark:text-emerald-100">تمّ إرسالُ رمزٍ إلى بريدك</p>
-          <div className="text-emerald-700 dark:text-emerald-300 text-xs mt-0.5 flex items-center gap-1 break-all">
-            <Mail className="size-3 shrink-0" />
-            {email}
+    <div className="space-y-5 py-2">
+      <div className="text-center">
+        <div className="relative mx-auto size-16 rounded-full gradient-brand grid place-items-center mb-4">
+          <Mail className="size-8 text-white" />
+          <span className="absolute -top-1 -right-1 size-4 bg-emerald-400 rounded-full ring-2 ring-background animate-pulse" />
+        </div>
+        <h1 className="text-2xl font-bold">تحقّق من بريدك</h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          أرسلنا رسالة تفعيلٍ إلى
+        </p>
+        <p className="font-medium mt-1 break-all">{email}</p>
+      </div>
+
+      <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="size-8 rounded-full bg-primary/20 text-primary grid place-items-center shrink-0">
+            <ExternalLink className="size-4" />
+          </div>
+          <div className="text-sm">
+            <p className="font-semibold">افتح بريدك واضغط على رابط التفعيل</p>
+            <p className="text-muted-foreground text-xs mt-1">
+              سنُنقلك تلقائياً للداشبورد بمجرّد التفعيل.
+            </p>
           </div>
         </div>
       </div>
 
-      <div>
-        <Label className="block text-center mb-3">أدخل الرمز المكوّنَ من 6 أرقام</Label>
-        <div className="flex justify-center gap-2" dir="ltr">
-          {code.map((digit, i) => (
-            <input
-              key={i}
-              ref={(el) => {
-                inputsRef.current[i] = el;
-              }}
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => setDigit(i, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(i, e)}
-              onPaste={handlePaste}
-              className="w-12 h-14 text-center text-2xl font-bold rounded-lg border border-input bg-background focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-              disabled={pending}
-            />
-          ))}
+      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-3">
+        <Loader2 className="size-4 animate-spin" />
+        <span>بانتظار التفعيل...</span>
+      </div>
+
+      <div className="border-t pt-4 space-y-3">
+        <div className="text-center text-sm">
+          <span className="text-muted-foreground">لم يصلك البريد؟ </span>
+          {cooldown > 0 ? (
+            <span className="text-muted-foreground">إعادة الإرسال بعد {cooldown}ث</span>
+          ) : (
+            <button
+              type="button"
+              onClick={resendEmail}
+              disabled={resending}
+              className="text-primary font-medium hover:underline disabled:opacity-50 inline-flex items-center gap-1"
+            >
+              {resending ? (
+                <><Loader2 className="size-3 animate-spin" />جاري الإرسال...</>
+              ) : (
+                <><RefreshCw className="size-3" />أعد الإرسال</>
+              )}
+            </button>
+          )}
+        </div>
+
+        <div className="text-center text-xs text-muted-foreground space-y-1">
+          <p>💡 لو ما لقتش الرسالة، افحص مجلد الـ Spam.</p>
+        </div>
+
+        <div className="text-center">
+          <Link href="/signup" className="text-xs text-muted-foreground hover:text-primary">
+            ← العودة لصفحة التسجيل
+          </Link>
         </div>
       </div>
-
-      <Button type="submit" variant="gradient" className="w-full h-11" disabled={pending || code.some((d) => !d)}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        تأكيد
-      </Button>
-
-      <div className="text-center text-sm">
-        <span className="text-muted-foreground">لم يصلك الرمز؟ </span>
-        {cooldown > 0 ? (
-          <span className="text-muted-foreground">إعادة الإرسال بعد {cooldown}ث</span>
-        ) : (
-          <button
-            type="button"
-            onClick={resendCode}
-            disabled={resending}
-            className="text-primary font-medium hover:underline disabled:opacity-50 inline-flex items-center gap-1"
-          >
-            {resending ? (
-              <><Loader2 className="size-3 animate-spin" />جاري الإرسال...</>
-            ) : (
-              <><RefreshCw className="size-3" />أعد الإرسال</>
-            )}
-          </button>
-        )}
-      </div>
-
-      <div className="text-center text-xs text-muted-foreground space-y-1 pt-2 border-t">
-        <p>💡 افحص مجلد الرسائل غير المرغوب فيها (Spam) أيضاً.</p>
-        <p>⚠️ لو طلبتَ رمزاً جديداً، استخدم الأحدث فقط — السابق يُلغى.</p>
-        <Link href="/signup" className="hover:text-primary inline-block mt-2">
-          ← العودة لصفحة التسجيل
-        </Link>
-      </div>
-    </form>
+    </div>
   );
 }
