@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 export function UserMenu({
   fullName,

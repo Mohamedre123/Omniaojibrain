@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd \"/e/شغل/ofooq/oji/سيستم الموقع html\" && find . -type f \\\\\\( -name \"*.html\" -o -name \"*.css\" -o -name \"*.js\" -o -name \"*.toml\" -o -name \"*.json\" -o -name \"*.sql\" -o -name \"*.md\" \\\\\\) | grep -v node_modules | sort)"
+      "Bash(cd \"/e/شغل/ofooq/oji/سيستم الموقع html\" && find . -type f \\\\\\( -name \"*.html\" -o -name \"*.css\" -o -name \"*.js\" -o -name \"*.toml\" -o -name \"*.json\" -o -name \"*.sql\" -o -name \"*.md\" \\\\\\) | grep -v node_modules | sort)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Write-Output \"=== 1. TypeScript Check ===\"; npx tsc --noEmit 2>&1 | Select-Object -First 30; Write-Output \"`n=== 2. ESLint Check ===\"; npx next lint 2>&1 | Select-Object -First 30)"
     ]
   }
 }
