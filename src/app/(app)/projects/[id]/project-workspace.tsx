@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ChatPanel } from "./chat-panel";
 import { DeliverablesPanel } from "./deliverables-panel";
 import { ShareToggle } from "./share-toggle";
