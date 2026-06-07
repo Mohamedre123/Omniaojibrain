@@ -11,9 +11,10 @@ import { ShareToggle } from "./share-toggle";
 import { MODE_LABELS, type WorkflowMode } from "@/lib/ai/prompts";
 import type { BusinessTemplate } from "@/lib/templates";
 import type { Project, Conversation, Message, Deliverable } from "@/types/db";
-import { Folder, Sparkles, RotateCcw } from "lucide-react";
+import { Folder, Sparkles, RotateCcw, Wand2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { QuickTools } from "./quick-tools";
 
 type MessagesMap = Record<string, Message[]>;
 
@@ -206,7 +207,7 @@ export function ProjectWorkspace({
           </div>
 
           <Tabs value={activeMode} onValueChange={handleModeChange} className="p-4">
-            <TabsList className="w-full h-auto p-1 grid grid-cols-4 gap-1">
+            <TabsList className="w-full h-auto p-1 grid grid-cols-3 md:grid-cols-5 gap-1">
               {(Object.keys(MODE_LABELS) as WorkflowMode[]).map((m) => {
                 const count = getMessageCount(m);
                 return (
@@ -255,6 +256,14 @@ export function ProjectWorkspace({
       </div>
 
       <aside className="space-y-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-3 text-sm font-semibold">
+            <Wand2 className="size-4 text-primary" />
+            أدواتٌ سريعة
+          </div>
+          <QuickTools project={project} onSaveDeliverable={saveAsDeliverable} />
+        </Card>
+
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3 text-sm font-semibold">
             <Folder className="size-4 text-primary" />

@@ -24,7 +24,7 @@ export const chatRequestSchema = z.object({
 
 export const newConversationSchema = z.object({
   project_id: z.string().uuid(),
-  mode: z.enum(["chat", "strategy", "design", "video"]),
+  mode: z.enum(["chat", "strategy", "design", "video", "competitor"]),
   title: z.string().max(200).optional(),
 });
 

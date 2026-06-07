@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageBubble } from "./message-bubble";
 import { VoiceInput } from "./voice-input";
+import { FileUploadButton, FilePreviewList, type UploadedFile } from "./file-upload";
 import { MODE_LABELS, type WorkflowMode } from "@/lib/ai/prompts";
 import type { BusinessTemplate } from "@/lib/templates";
 import type { Conversation, Message, Deliverable } from "@/types/db";
@@ -18,6 +19,7 @@ const MODE_TO_KIND: Record<WorkflowMode, Deliverable["kind"]> = {
   strategy: "strategy",
   design: "design_prompt",
   video: "video_prompt",
+  competitor: "note",
 };
 
 export function ChatPanel({
@@ -41,6 +43,7 @@ export function ChatPanel({
   onSaveDeliverable: SaveFn;
 }) {
   const [input, setInput] = useState("");
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingForConvo, setStreamingForConvo] = useState<string | null>(null);
@@ -56,24 +59,40 @@ export function ChatPanel({
   useEffect(() => { scrollToBottom(); }, [messages, streamingText, scrollToBottom]);
 
   async function sendMessage(text: string) {
-    if (!text.trim() || streaming) return;
+    // اسمح بالإرسال لو فيه ملفات حتى بدون نص
+    if (!text.trim() && files.length === 0) return;
+    if (streaming) return;
 
     const tempUserId = `temp-user-${Date.now()}`;
     const tempAssistantId = `temp-asst-${Date.now()}`;
     const convoId = conversation.id;
+
+    const attachmentsForUI = files.map((f) => ({
+      url: f.previewUrl,
+      type: f.type,
+      name: f.name,
+    }));
+
+    const attachmentsForAPI = files.map((f) => ({
+      url: f.previewUrl,
+      type: f.type,
+      name: f.name,
+      base64: f.base64,
+    }));
 
     const userMsg: Message = {
       id: tempUserId,
       conversation_id: convoId,
       user_id: "",
       role: "user",
-      content: text,
-      attachments: [],
+      content: text || "(صور مرفقة)",
+      attachments: attachmentsForUI,
       created_at: new Date().toISOString(),
     };
 
     onAddMessage(userMsg);
     setInput("");
+    setFiles([]);
     setStreaming(true);
     setStreamingForConvo(convoId);
     setStreamingText("");
@@ -85,7 +104,11 @@ export function ChatPanel({
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation_id: convoId, message: text }),
+        body: JSON.stringify({
+          conversation_id: convoId,
+          message: text || "حلّل الصور المرفقة وقدّم ملاحظاتك",
+          attachments: attachmentsForAPI,
+        }),
         signal: controller.signal,
       });
 
@@ -165,10 +188,11 @@ export function ChatPanel({
     : [];
 
   const modeStarters: Record<WorkflowMode, string[]> = {
-    chat: ["اقترح عشرَ أفكارٍ لمحتوى إنستجرام", "اكتب خمسة عناوينَ تسويقيةٍ لمنتجي", "حلّل المنافسين"],
+    chat: ["اقترح عشرَ أفكارٍ لمحتوى إنستجرام", "اكتب خمسة عناوينَ تسويقيةٍ لمنتجي", "راجع نصّي الترويجي"],
     strategy: ["ضع خطةَ تسويقٍ شهرية", "اقترح ميزانيةَ إعلاناتٍ مناسبة", "حدّد مؤشراتِ الأداء (KPIs)"],
     design: ["برومبتُ تصميمٍ لإعلانِ منتج", "صف لي صورةَ Lifestyle للعلامة", "برومبتُ خلفيةٍ لقصةِ إنستجرام"],
     video: ["برومبتُ فيديو Reel بأبعاد 9:16 ومدة 8 ثوانٍ", "Start frame و End frame لمنتج", "سكربتُ إعلانِ فيديو 30 ثانية"],
+    competitor: ["حلّل منافسي الرئيسي", "ما الفرصُ التي يفوّتها منافسوني؟", "قارنّي بـ 3 من منافسيّ"],
   };
 
   const isStreamingHere = streaming && streamingForConvo === conversation.id;
@@ -241,7 +265,9 @@ export function ChatPanel({
       </div>
 
       <div className="border-t pt-3 mt-3">
+        <FilePreviewList files={files} onRemove={(id) => setFiles((p) => p.filter((f) => f.id !== id))} />
         <div className="flex items-end gap-2">
+          <FileUploadButton files={files} onFilesChange={setFiles} disabled={isStreamingHere} />
           <VoiceInput onTranscript={handleVoice} disabled={isStreamingHere} />
           <Textarea
             value={input}
@@ -262,7 +288,7 @@ export function ChatPanel({
               variant="gradient"
               size="icon"
               onClick={() => sendMessage(input)}
-              disabled={!input.trim()}
+              disabled={!input.trim() && files.length === 0}
               title="إرسال"
             >
               <Send className="size-4" />
