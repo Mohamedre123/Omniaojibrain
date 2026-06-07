@@ -24,21 +24,26 @@ export function ChatPanel({
   conversation,
   mode,
   template,
-  initialMessages,
+  messages,
   brief,
+  onAddMessage,
+  onReplaceMessage,
   onSaveDeliverable,
 }: {
   conversation: Conversation;
   mode: WorkflowMode;
   template: BusinessTemplate;
-  initialMessages: Message[];
+  /** الرسائل دلوقتي بتيجي من الـ Workspace (Lifted State) عشان متختفيش لما نبدّل tabs */
+  messages: Message[];
   brief: string | null;
+  onAddMessage: (msg: Message) => void;
+  onReplaceMessage: (tempId: string, finalMsg: Message) => void;
   onSaveDeliverable: SaveFn;
 }) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [streamingForConvo, setStreamingForConvo] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -53,18 +58,24 @@ export function ChatPanel({
   async function sendMessage(text: string) {
     if (!text.trim() || streaming) return;
 
+    const tempUserId = `temp-user-${Date.now()}`;
+    const tempAssistantId = `temp-asst-${Date.now()}`;
+    const convoId = conversation.id;
+
     const userMsg: Message = {
-      id: `temp-${Date.now()}`,
-      conversation_id: conversation.id,
+      id: tempUserId,
+      conversation_id: convoId,
       user_id: "",
       role: "user",
       content: text,
       attachments: [],
       created_at: new Date().toISOString(),
     };
-    setMessages((p) => [...p, userMsg]);
+
+    onAddMessage(userMsg);
     setInput("");
     setStreaming(true);
+    setStreamingForConvo(convoId);
     setStreamingText("");
 
     const controller = new AbortController();
@@ -74,7 +85,7 @@ export function ChatPanel({
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation_id: conversation.id, message: text }),
+        body: JSON.stringify({ conversation_id: convoId, message: text }),
         signal: controller.signal,
       });
 
@@ -82,6 +93,7 @@ export function ChatPanel({
         const err = await res.json().catch(() => ({ error: "حدثت مشكلة" }));
         toast.error(err.error ?? "حدثت مشكلة");
         setStreaming(false);
+        setStreamingForConvo(null);
         return;
       }
 
@@ -96,15 +108,15 @@ export function ChatPanel({
       }
 
       const assistantMsg: Message = {
-        id: `temp-a-${Date.now()}`,
-        conversation_id: conversation.id,
+        id: tempAssistantId,
+        conversation_id: convoId,
         user_id: "",
         role: "assistant",
         content: acc,
         attachments: [],
         created_at: new Date().toISOString(),
       };
-      setMessages((p) => [...p, assistantMsg]);
+      onAddMessage(assistantMsg);
       setStreamingText("");
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
@@ -112,6 +124,7 @@ export function ChatPanel({
       }
     } finally {
       setStreaming(false);
+      setStreamingForConvo(null);
       abortRef.current = null;
     }
   }
@@ -119,6 +132,7 @@ export function ChatPanel({
   function stopStream() {
     abortRef.current?.abort();
     setStreaming(false);
+    setStreamingForConvo(null);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -135,13 +149,16 @@ export function ChatPanel({
   async function saveLastResponse() {
     const last = [...messages].reverse().find((m) => m.role === "assistant");
     if (!last) return;
-    const title = `${MODE_LABELS[mode].label} - ${new Date().toLocaleDateString("ar-EG")}`;
+    const title = `${MODE_LABELS[mode].label} - ${new Date().toLocaleDateString("ar")}`;
     await onSaveDeliverable({
       kind: MODE_TO_KIND[mode],
       title,
       content: last.content,
     });
   }
+
+  // أمنع توصيات الـ Lint بدون فائدة
+  void onReplaceMessage;
 
   const starters = !brief && messages.length === 0
     ? template.starterQuestions
@@ -154,13 +171,12 @@ export function ChatPanel({
     video: ["برومبتُ فيديو Reel بأبعاد 9:16 ومدة 8 ثوانٍ", "Start frame و End frame لمنتج", "سكربتُ إعلانِ فيديو 30 ثانية"],
   };
 
+  const isStreamingHere = streaming && streamingForConvo === conversation.id;
+
   return (
     <div className="flex flex-col h-[65vh] min-h-[500px]">
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto space-y-4 pr-1"
-      >
-        {messages.length === 0 && (
+      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pr-1">
+        {messages.length === 0 && !isStreamingHere && (
           <div className="text-center py-10">
             <div className="mx-auto size-14 rounded-full gradient-brand grid place-items-center mb-3">
               <Sparkles className="size-7 text-white" />
@@ -193,7 +209,7 @@ export function ChatPanel({
               m.role === "assistant"
                 ? () => onSaveDeliverable({
                     kind: MODE_TO_KIND[mode],
-                    title: `${MODE_LABELS[mode].label} - ${new Date().toLocaleDateString("ar-EG")}`,
+                    title: `${MODE_LABELS[mode].label} - ${new Date().toLocaleDateString("ar")}`,
                     content: m.content,
                   })
                 : undefined
@@ -201,7 +217,7 @@ export function ChatPanel({
           />
         ))}
 
-        {streaming && streamingText && (
+        {isStreamingHere && streamingText && (
           <MessageBubble
             message={{
               id: "streaming",
@@ -216,7 +232,7 @@ export function ChatPanel({
           />
         )}
 
-        {streaming && !streamingText && (
+        {isStreamingHere && !streamingText && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
             Oji يفكّر...
@@ -226,7 +242,7 @@ export function ChatPanel({
 
       <div className="border-t pt-3 mt-3">
         <div className="flex items-end gap-2">
-          <VoiceInput onTranscript={handleVoice} disabled={streaming} />
+          <VoiceInput onTranscript={handleVoice} disabled={isStreamingHere} />
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -234,11 +250,11 @@ export function ChatPanel({
             placeholder={`اكتب رسالتك... (${MODE_LABELS[mode].label})`}
             rows={2}
             className="resize-none"
-            disabled={streaming}
+            disabled={isStreamingHere}
             dir="auto"
           />
-          {streaming ? (
-            <Button variant="destructive" size="icon" onClick={stopStream}>
+          {isStreamingHere ? (
+            <Button variant="destructive" size="icon" onClick={stopStream} title="إيقاف">
               <span className="size-3 bg-white rounded-sm" />
             </Button>
           ) : (
@@ -247,6 +263,7 @@ export function ChatPanel({
               size="icon"
               onClick={() => sendMessage(input)}
               disabled={!input.trim()}
+              title="إرسال"
             >
               <Send className="size-4" />
             </Button>
