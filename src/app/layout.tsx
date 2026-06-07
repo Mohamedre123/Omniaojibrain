@@ -34,7 +34,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${inter.variable} ${arabic.variable} antialiased`}>
+      <body className={`${inter.variable} ${arabic.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider>
           {children}
           <Toaster richColors position="top-center" dir="rtl" />
