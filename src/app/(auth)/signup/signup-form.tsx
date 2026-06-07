@@ -18,7 +18,7 @@ export function SignupForm() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const fullName = String(fd.get("full_name") ?? "");
-    const email = String(fd.get("email") ?? "");
+    const email = String(fd.get("email") ?? "").trim().toLowerCase();
     const password = String(fd.get("password") ?? "");
 
     if (password.length < 6) {
@@ -33,25 +33,45 @@ export function SignupForm() {
         password,
         options: {
           data: { full_name: fullName },
-          // الـ emailRedirectTo يخلّي اللينك يرجع للموقع لو الإيميل بلينك
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
+
       if (error) {
-        toast.error("تعذّر إنشاءُ الحساب", { description: error.message });
+        // معالجة كل الأخطاء الشائعة بوضوح
+        const msg = error.message || "";
+        if (msg.includes("rate limit") || msg.includes("after")) {
+          toast.error("حاول بعد دقيقة", { description: "وصلت للحدّ المسموح من المحاولات." });
+        } else if (msg.toLowerCase().includes("already registered")) {
+          toast.error("هذا البريد مسجّلٌ بالفعل", { description: "سجّل الدخول بدلاً من ذلك." });
+        } else {
+          toast.error("تعذّر إنشاءُ الحساب", { description: error.message });
+        }
         return;
       }
-      if (data.user && !data.session) {
-        // المستخدم محتاج تأكيد — يا إما بلينك أو بكود OTP
-        toast.success("تمّ! تحقّق من بريدك", {
-          description: "إن وجدت رمزاً اكتبه هنا، أو اضغط الرابط في البريد",
+
+      // Supabase بترجع data.user.identities = [] لو المستخدم موجود بالفعل (حماية)
+      const isExistingUser = data.user && (!data.user.identities || data.user.identities.length === 0);
+      if (isExistingUser) {
+        toast.error("هذا البريد مسجّلٌ بالفعل", {
+          description: "سجّل الدخول بدلاً من ذلك أو اطلب استعادة كلمة المرور.",
         });
-        router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
         return;
       }
-      toast.success("أهلاً بك في Oji Brain 🎉");
-      router.push("/dashboard");
-      router.refresh();
+
+      // لو السيستم رجع session فوراً = "Confirm email" متوقّف في Supabase
+      if (data.session) {
+        toast.success("أهلاً بك في Oji Brain 🎉");
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      // الوضع الطبيعي: المستخدم اتعمل لكن محتاج تأكيد
+      toast.success("تمّ! تحقّق من بريدك", {
+        description: "هنرسل إليك رمزَ التأكيد الآن…",
+      });
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
     });
   }
 
