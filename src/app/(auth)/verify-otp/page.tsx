@@ -12,7 +12,9 @@ export default function VerifyOtpPage() {
         </div>
         <CardTitle className="text-2xl">تأكيد البريد</CardTitle>
         <CardDescription>
-          أرسلنا رمزاً مكوّناً من 6 أرقامٍ إلى بريدك. أدخله أدناه لتفعيلِ الحساب.
+          أرسلنا رسالةً إلى بريدك. <strong>إن وجدت رمزاً مكوّناً من 6 أرقام</strong>،
+          أدخله أدناه. <strong>وإن وجدت رابطاً</strong>، اضغط عليه مباشرةً من البريد
+          ليفعّل حسابك تلقائياً.
         </CardDescription>
       </CardHeader>
       <CardContent>

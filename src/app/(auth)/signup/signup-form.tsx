@@ -33,6 +33,8 @@ export function SignupForm() {
         password,
         options: {
           data: { full_name: fullName },
+          // الـ emailRedirectTo يخلّي اللينك يرجع للموقع لو الإيميل بلينك
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) {
@@ -40,9 +42,9 @@ export function SignupForm() {
         return;
       }
       if (data.user && !data.session) {
-        // المستخدم محتاج يفعّل بكود OTP
-        toast.success("تمّ! تحقّق من بريدك للحصول على رمز التأكيد", {
-          description: "سترسل إليك رسالةٌ تحوي رمزاً مكوّناً من 6 أرقام",
+        // المستخدم محتاج تأكيد — يا إما بلينك أو بكود OTP
+        toast.success("تمّ! تحقّق من بريدك", {
+          description: "إن وجدت رمزاً اكتبه هنا، أو اضغط الرابط في البريد",
         });
         router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
         return;
