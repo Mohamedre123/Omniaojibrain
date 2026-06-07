@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/e/شغل/ofooq/oji/سيستم الموقع html\" && find . -type f \\\\\\( -name \"*.html\" -o -name \"*.css\" -o -name \"*.js\" -o -name \"*.toml\" -o -name \"*.json\" -o -name \"*.sql\" -o -name \"*.md\" \\\\\\) | grep -v node_modules | sort)"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+# Netlify configuration for Oji Brain
+# Next.js 15 على Netlify بيشتغل أوتوماتيك مع الـ Plugin الرسمي
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# الـ Next.js Plugin بيتثبّت تلقائياً لو Netlify لاقى Next.js
+# بس لو احتجناه يدوياً:
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
