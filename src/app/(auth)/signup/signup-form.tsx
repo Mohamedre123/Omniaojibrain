@@ -33,7 +33,6 @@ export function SignupForm() {
         password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) {
@@ -41,9 +40,11 @@ export function SignupForm() {
         return;
       }
       if (data.user && !data.session) {
-        toast.success("تمّ! أُرسلت إليك رسالةُ تأكيد", {
-          description: "افتح بريدك واضغط على رابط التفعيل",
+        // المستخدم محتاج يفعّل بكود OTP
+        toast.success("تمّ! تحقّق من بريدك للحصول على رمز التأكيد", {
+          description: "سترسل إليك رسالةٌ تحوي رمزاً مكوّناً من 6 أرقام",
         });
+        router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
         return;
       }
       toast.success("أهلاً بك في Oji Brain 🎉");

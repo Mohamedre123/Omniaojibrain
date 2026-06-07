@@ -43,7 +43,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage =
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
-    pathname.startsWith("/forgot-password");
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/verify-otp");
   const isProtected =
     pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
 
