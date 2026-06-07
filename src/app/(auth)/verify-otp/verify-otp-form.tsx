@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, Mail, RefreshCw } from "lucide-react";
+import { Loader2, Mail, RefreshCw, CheckCircle } from "lucide-react";
 
 export function VerifyOtpForm() {
   const router = useRouter();
@@ -15,20 +15,11 @@ export function VerifyOtpForm() {
   const email = params.get("email") || "";
   const [pending, startTransition] = useTransition();
   const [resending, setResending] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
+  const [cooldown, setCooldown] = useState(60); // عدّاد ابتدائي بعد التسجيل
   const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
-  const [autoSent, setAutoSent] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  // إرسال OTP تلقائي عند الدخول لأوّل مرة
-  useEffect(() => {
-    if (!email || autoSent) return;
-    setAutoSent(true);
-    void sendOtp(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email]);
-
-  // عدّاد إعادة الإرسال
+  // عدّاد إعادة الإرسال — يبدأ من 60 ث لأن signup بعت إيميل بالفعل
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
@@ -89,21 +80,28 @@ export function VerifyOtpForm() {
 
     startTransition(async () => {
       const supabase = createClient();
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: "email",
-      });
 
-      if (error) {
-        // جرب نوع signup كاحتياط
-        const { error: e2 } = await supabase.auth.verifyOtp({ email, token, type: "signup" });
-        if (e2) {
-          toast.error("الرمزُ غيرُ صحيحٍ أو منتهي الصلاحية", { description: e2.message });
-          setCode(["", "", "", "", "", ""]);
-          inputsRef.current[0]?.focus();
-          return;
+      // جرّب الأنواع المختلفة بالترتيب
+      const types: Array<"signup" | "email" | "magiclink"> = ["signup", "email", "magiclink"];
+      let success = false;
+      let lastError: string | null = null;
+
+      for (const type of types) {
+        const { error } = await supabase.auth.verifyOtp({ email, token, type });
+        if (!error) {
+          success = true;
+          break;
         }
+        lastError = error.message;
+      }
+
+      if (!success) {
+        toast.error("الرمزُ غيرُ صحيحٍ أو منتهي الصلاحية", {
+          description: lastError || "اطلب رمزاً جديداً واستخدم الأحدث منهم.",
+        });
+        setCode(["", "", "", "", "", ""]);
+        inputsRef.current[0]?.focus();
+        return;
       }
 
       toast.success("تمّ تفعيل الحساب 🎉 أهلاً بك في Oji Brain");
@@ -117,39 +115,30 @@ export function VerifyOtpForm() {
     await submit(code.join(""));
   }
 
-  /** يحاول إرسال OTP بطريقتين عشان يضمن الوصول. */
-  async function sendOtp(silent = false) {
+  /** إعادة إرسال يدوية بعد طلب المستخدم. */
+  async function resendCode() {
     if (!email || resending || cooldown > 0) return;
     setResending(true);
     const supabase = createClient();
 
-    // المحاولة 1: signInWithOtp مع shouldCreateUser=false (للمستخدم الموجود)
-    const { error: err1 } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-
-    let sent = !err1;
-
-    // لو المحاولة 1 فشلت، جرّب resend بنوع signup
-    if (!sent) {
-      const { error: err2 } = await supabase.auth.resend({ type: "signup", email });
-      sent = !err2;
-      if (!sent && !silent) {
-        const msg = (err1?.message || "") + " | " + (err2?.message || "");
-        if (msg.toLowerCase().includes("rate") || msg.includes("after")) {
-          toast.error("حاول بعد دقيقة", { description: "تجاوزت الحدّ المسموح من الإرسال" });
-        } else {
-          toast.error("تعذّر الإرسال", { description: err1?.message || err2?.message });
-        }
-      }
-    }
+    const { error } = await supabase.auth.resend({ type: "signup", email });
 
     setResending(false);
-    if (sent) {
-      if (!silent) toast.success("تمّ إرسالُ رمزٍ جديد إلى بريدك");
-      setCooldown(60);
+
+    if (error) {
+      const msg = error.message || "";
+      if (msg.toLowerCase().includes("rate") || msg.includes("after")) {
+        toast.error("حاول بعد دقيقة", { description: "تجاوزت الحدّ المسموح من الإرسال" });
+      } else {
+        toast.error("تعذّر الإرسال", { description: msg });
+      }
+      return;
     }
+
+    toast.success("تمّ إرسالُ رمزٍ جديد", { description: "استخدم الرمز الأحدث فقط" });
+    setCooldown(60);
+    setCode(["", "", "", "", "", ""]);
+    inputsRef.current[0]?.focus();
   }
 
   if (!email) {
@@ -165,10 +154,14 @@ export function VerifyOtpForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="text-center">
-        <div className="inline-flex items-center gap-2 text-sm bg-muted px-3 py-2 rounded-lg">
-          <Mail className="size-4 text-primary" />
-          <span className="font-medium break-all">{email}</span>
+      <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3 flex items-start gap-2">
+        <CheckCircle className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-medium text-emerald-900 dark:text-emerald-100">تمّ إرسالُ رمزٍ إلى بريدك</p>
+          <div className="text-emerald-700 dark:text-emerald-300 text-xs mt-0.5 flex items-center gap-1 break-all">
+            <Mail className="size-3 shrink-0" />
+            {email}
+          </div>
         </div>
       </div>
 
@@ -208,7 +201,7 @@ export function VerifyOtpForm() {
         ) : (
           <button
             type="button"
-            onClick={() => sendOtp(false)}
+            onClick={resendCode}
             disabled={resending}
             className="text-primary font-medium hover:underline disabled:opacity-50 inline-flex items-center gap-1"
           >
@@ -221,8 +214,9 @@ export function VerifyOtpForm() {
         )}
       </div>
 
-      <div className="text-center text-xs text-muted-foreground space-y-1">
-        <p>افحص مجلد الرسائل غير المرغوب فيها (Spam) أيضاً.</p>
+      <div className="text-center text-xs text-muted-foreground space-y-1 pt-2 border-t">
+        <p>💡 افحص مجلد الرسائل غير المرغوب فيها (Spam) أيضاً.</p>
+        <p>⚠️ لو طلبتَ رمزاً جديداً، استخدم الأحدث فقط — السابق يُلغى.</p>
         <Link href="/signup" className="hover:text-primary inline-block mt-2">
           ← العودة لصفحة التسجيل
         </Link>
