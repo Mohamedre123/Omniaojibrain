@@ -23,11 +23,17 @@ export function LoginForm() {
     const email = String(fd.get("email") ?? "").trim().toLowerCase();
     const password = String(fd.get("password") ?? "");
 
+    if (!email || !password) {
+      toast.error("ادخل الإيميل وكلمة المرور");
+      return;
+    }
+
     startTransition(async () => {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (!error) {
+        // ✅ نجح: حسابٌ مفعّل + كلمة المرور صحيحة
         toast.success("تمّ تسجيل الدخول");
         router.push(redirect);
         router.refresh();
@@ -36,46 +42,21 @@ export function LoginForm() {
 
       const msg = (error.message || "").toLowerCase();
 
-      // الحالة الذكية: المستخدم موجود لكن بريده غير مؤكّد
-      // Supabase يرجع "Email not confirmed" أو في بعض الإصدارات
-      // يدمج الخطأ تحت "Invalid login credentials" لأسباب أمنية.
+      // الحالة 1: البريد غير مؤكّد — أرسل OTP وحوّل
       if (msg.includes("not confirmed") || msg.includes("email not")) {
-        toast.info("بريدُك غيرُ مؤكّد", {
-          description: "نرسلُ لك رمزَ التأكيد الآن…",
+        toast.info("بريدك غير مؤكّد بعد", {
+          description: "نُرسل لك رمز التأكيد الآن…",
         });
-        // أرسل رمز التأكيد ووجّه المستخدم لصفحة التحقّق
         await supabase.auth.resend({ type: "signup", email }).catch(() => {});
         router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
         return;
       }
 
-      // لو الخطأ "Invalid credentials"، جرّب نتحقّق إن كان المستخدم موجوداً وغير مؤكّد
-      // عن طريق محاولة إرسال OTP — لو الإيميل موجود، signInWithOtp ينجح
-      if (msg.includes("invalid") || msg.includes("credentials")) {
-        // نحاول إرسال OTP بحيث shouldCreateUser=false
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email,
-          options: { shouldCreateUser: false },
-        });
-
-        // لو نجح إرسال الـ OTP → معناها الإيميل موجود لكن غير مؤكّد (أو كلمة المرور غلط)
-        if (!otpError) {
-          toast.info("أرسلنا رمزَ تأكيدٍ إلى بريدك", {
-            description: "إن كان بريدك غير مؤكّد، استخدم الرمز لإتمام التفعيل.",
-          });
-          router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
-          return;
-        }
-
-        // لو فشل OTP برضو → الإيميل غير مسجّل أصلاً، أو كلمة المرور غلط
-        toast.error("بياناتُ الدخول غير صحيحة", {
-          description: "تأكّد من الإيميل وكلمة المرور.",
-        });
-        return;
-      }
-
-      // أيّ خطأ آخر
-      toast.error("تعذّر الدخول", { description: error.message });
+      // الحالة 2: بيانات غلط (إيميل غير مسجّل أو كلمة مرور خطأ)
+      // 🚫 لا نرسل Magic Link هنا (كان يسبّب مشاكل)
+      toast.error("بيانات الدخول غير صحيحة", {
+        description: "تأكّد من الإيميل وكلمة المرور، أو استخدم 'نسيت كلمة المرور'",
+      });
     });
   }
 

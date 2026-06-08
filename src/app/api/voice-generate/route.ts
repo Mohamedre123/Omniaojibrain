@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const voiceId = parsed.data.voiceId || "21m00Tcm4TlvDq8ikWAM"; // افتراضي
+  // أصوات عربية شائعة من ElevenLabs (Multilingual v2 يدعم العربي)
+  // 21m00Tcm4TlvDq8ikWAM = Rachel (Female - English/Multilingual)
+  // EXAVITQu4vr4xnSDxMaL = Bella
+  // ErXwobaYiN019PkySvjV = Antoni (Male)
+  const voiceId = parsed.data.voiceId || "EXAVITQu4vr4xnSDxMaL";
 
   try {
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {

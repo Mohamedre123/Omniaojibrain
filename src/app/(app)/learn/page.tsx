@@ -22,22 +22,22 @@ const TEMPLATES = [
 
 const MINI_COURSES = [
   {
-    title: "أساسيات إعلانات Meta في 30 دقيقة",
-    youtubeId: "RoLEhONXszU",
-    level: "مبتدئ",
-    duration: "30 دقيقة",
+    title: "Marketing Strategy — كيف تبني استراتيجية تسويق",
+    youtubeId: "hLBQRA7JEwI",
+    level: "أساسي",
+    duration: "12 دقيقة",
   },
   {
-    title: "كتابة Caption يبيع",
-    youtubeId: "vc8r1S9yC4w",
+    title: "Instagram Marketing — احتراف إنستجرام",
+    youtubeId: "Q0_uqIfXcKQ",
     level: "متوسط",
-    duration: "15 دقيقة",
+    duration: "18 دقيقة",
   },
   {
-    title: "إنشاء Reels فيرال",
-    youtubeId: "PvWmoSWb4-c",
-    level: "مبتدئ",
-    duration: "20 دقيقة",
+    title: "Content Marketing — كل ما تحتاجه",
+    youtubeId: "4SkvNw9Vr1U",
+    level: "متقدّم",
+    duration: "30 دقيقة",
   },
 ];
 
@@ -154,24 +154,37 @@ export default function LearnPage() {
         </h2>
         <div className="grid gap-3 md:grid-cols-3">
           {MINI_COURSES.map((c, i) => (
-            <Card key={i} className="overflow-hidden">
-              <div className="aspect-video bg-muted relative">
-                <iframe
-                  src={`https://www.youtube.com/embed/${c.youtubeId}`}
-                  title={c.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                />
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between text-[10px] mb-2">
-                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{c.level}</span>
-                  <span className="text-muted-foreground">{c.duration}</span>
+            <a
+              key={i}
+              href={`https://www.youtube.com/watch?v=${c.youtubeId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group"
+            >
+              <Card className="overflow-hidden h-full transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
+                <div className="aspect-video bg-muted relative overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://i.ytimg.com/vi/${c.youtubeId}/hqdefault.jpg`}
+                    alt={c.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 grid place-items-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="size-12 rounded-full bg-red-600 grid place-items-center">
+                      <Play className="size-6 text-white fill-white" />
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-medium text-sm">{c.title}</h3>
-              </div>
-            </Card>
+                <div className="p-4">
+                  <div className="flex items-center justify-between text-[10px] mb-2">
+                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{c.level}</span>
+                    <span className="text-muted-foreground">{c.duration}</span>
+                  </div>
+                  <h3 className="font-medium text-sm group-hover:text-primary transition-colors">{c.title}</h3>
+                </div>
+              </Card>
+            </a>
           ))}
         </div>
       </Card>

@@ -16,7 +16,22 @@ function client() {
   return _client;
 }
 
-const MODEL = "gemini-2.5-flash";
+// نماذج بترتيب الأولوية + fallbacks للأخطاء 503
+const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isRetryable(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("503") ||
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("overloaded") ||
+    msg.includes("rate limit")
+  );
+}
 
 export async function* streamChat(opts: {
   systemPrompt: string;
@@ -32,33 +47,63 @@ export async function* streamChat(opts: {
     ],
   }));
 
-  const response = await client().models.generateContentStream({
-    model: MODEL,
-    contents,
-    config: {
-      systemInstruction: opts.systemPrompt,
-      temperature: 0.85,
-      maxOutputTokens: 8192,
-    },
-  });
+  let lastError: unknown;
 
-  for await (const chunk of response) {
-    const text = chunk.text;
-    if (text) yield text;
+  // جرّب كلّ نموذج، مع 2 retries لكل واحد
+  for (const model of MODELS) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await client().models.generateContentStream({
+          model,
+          contents,
+          config: {
+            systemInstruction: opts.systemPrompt,
+            temperature: 0.85,
+            maxOutputTokens: 8192,
+          },
+        });
+
+        for await (const chunk of response) {
+          const text = chunk.text;
+          if (text) yield text;
+        }
+        return; // نجح
+      } catch (e) {
+        lastError = e;
+        if (!isRetryable(e)) break;
+        await sleep(800 * (attempt + 1));
+      }
+    }
   }
+
+  throw lastError instanceof Error ? lastError : new Error("توليد الردّ فشل بعد عدّة محاولات");
 }
 
 export async function generateText(opts: {
   systemPrompt: string;
   prompt: string;
 }): Promise<string> {
-  const response = await client().models.generateContent({
-    model: MODEL,
-    contents: [{ role: "user", parts: [{ text: opts.prompt }] }],
-    config: {
-      systemInstruction: opts.systemPrompt,
-      temperature: 0.7,
-    },
-  });
-  return response.text ?? "";
+  let lastError: unknown;
+
+  for (const model of MODELS) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await client().models.generateContent({
+          model,
+          contents: [{ role: "user", parts: [{ text: opts.prompt }] }],
+          config: {
+            systemInstruction: opts.systemPrompt,
+            temperature: 0.7,
+          },
+        });
+        return response.text ?? "";
+      } catch (e) {
+        lastError = e;
+        if (!isRetryable(e)) break;
+        await sleep(800 * (attempt + 1));
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("توليد الردّ فشل");
 }

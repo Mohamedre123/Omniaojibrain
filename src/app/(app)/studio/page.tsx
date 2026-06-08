@@ -120,6 +120,29 @@ function GenerateTab() {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<GeneratedImage[]>([]);
   const [useBrand, setUseBrand] = useState(true);
+  const [refImages, setRefImages] = useState<Array<{ data: string; mimeType: string; previewUrl: string; name: string }>>([]);
+
+  function handleRefUpload(files: FileList | null) {
+    if (!files) return;
+    if (refImages.length + files.length > 3) {
+      toast.error("الحدّ الأقصى 3 صور مرجعية");
+      return;
+    }
+    for (const file of Array.from(files)) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} أكبر من 5MB`);
+        continue;
+      }
+      if (!file.type.startsWith("image/")) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const r = reader.result as string;
+        const base64 = r.split(",")[1] || "";
+        setRefImages((p) => [...p, { data: base64, mimeType: file.type, previewUrl: URL.createObjectURL(file), name: file.name }]);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
 
   async function generate() {
     if (!prompt.trim()) {
@@ -151,11 +174,16 @@ function GenerateTab() {
     }
 
     try {
-      const fullPrompt = `${prompt}. Aspect ratio: ${aspect}. High quality, professional, marketing-ready.`;
+      const refsNote = refImages.length > 0 ? ` Use the attached ${refImages.length} reference image(s) as inspiration for product/subject.` : "";
+      const fullPrompt = `${prompt}.${refsNote} Aspect ratio: ${aspect}. High quality, professional, marketing-ready.`;
       const res = await fetch("/api/image-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: fullPrompt, brandContext: brandContext || undefined }),
+        body: JSON.stringify({
+          prompt: fullPrompt,
+          brandContext: brandContext || undefined,
+          refImages: refImages.length > 0 ? refImages.map(r => ({ mimeType: r.mimeType, data: r.data })) : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -202,6 +230,42 @@ function GenerateTab() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <Label>صور مرجعية (اختياري — ارفع صورة منتجك ليبني عليها)</Label>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {refImages.map((r, i) => (
+            <div key={i} className="relative group size-20 rounded-lg overflow-hidden border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={r.previewUrl} alt={r.name} className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setRefImages((p) => p.filter((_, idx) => idx !== i))}
+                className="absolute top-1 right-1 size-5 rounded-full bg-destructive text-white grid place-items-center opacity-0 group-hover:opacity-100"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+          {refImages.length < 3 && (
+            <label className="size-20 rounded-lg border-2 border-dashed grid place-items-center cursor-pointer hover:border-primary">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleRefUpload(e.target.files)}
+              />
+              <Paperclip className="size-5 text-muted-foreground" />
+            </label>
+          )}
+        </div>
+        {refImages.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-2">
+            💡 الـ AI هيستخدم الصور دي كمرجع. اشرح في الوصف نوع التصوير اللي عايزه (مثلاً: &quot;نفس المنتج بإضاءة استوديو احترافية&quot;)
+          </p>
+        )}
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer text-sm">
