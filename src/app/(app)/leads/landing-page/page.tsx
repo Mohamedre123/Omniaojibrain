@@ -32,6 +32,23 @@ const STYLES = [
   { value: "corporate", label: "🏢 شركاتية" },
 ];
 
+const CURRENCIES = [
+  { value: "SAR", label: "🇸🇦 ريال سعودي (ر.س)" },
+  { value: "AED", label: "🇦🇪 درهم إماراتي (د.إ)" },
+  { value: "EGP", label: "🇪🇬 جنيه مصري (ج.م)" },
+  { value: "KWD", label: "🇰🇼 دينار كويتي (د.ك)" },
+  { value: "QAR", label: "🇶🇦 ريال قطري (ر.ق)" },
+  { value: "BHD", label: "🇧🇭 دينار بحريني (د.ب)" },
+  { value: "OMR", label: "🇴🇲 ريال عُماني (ر.ع)" },
+  { value: "JOD", label: "🇯🇴 دينار أردني (د.أ)" },
+  { value: "MAD", label: "🇲🇦 درهم مغربي (د.م)" },
+  { value: "TND", label: "🇹🇳 دينار تونسي (د.ت)" },
+  { value: "DZD", label: "🇩🇿 دينار جزائري (د.ج)" },
+  { value: "IQD", label: "🇮🇶 دينار عراقي (د.ع)" },
+  { value: "USD", label: "🇺🇸 دولار ($)" },
+  { value: "EUR", label: "🇪🇺 يورو (€)" },
+];
+
 type AttachedImage = { id: string; name: string; type: string; base64: string; previewUrl: string };
 type Project = { id: string; name: string };
 type Step = "form" | "result";
@@ -48,6 +65,7 @@ export default function LandingPageBuilder() {
   const [description, setDescription] = useState("");
   const [features, setFeatures] = useState("");
   const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("SAR");
   const [cta, setCta] = useState("");
   const [contact, setContact] = useState("");
   const [extraNotes, setExtraNotes] = useState("");
@@ -106,8 +124,21 @@ export default function LandingPageBuilder() {
   }
 
   function extractHtml(text: string): string {
+    if (!text) return "";
+    // جرب استخراج من ```html block
     const m = text.match(/```html\n?([\s\S]+?)```/);
-    return m ? m[1].trim() : text.trim();
+    if (m) return m[1].trim();
+    // جرب أي ``` block
+    const m2 = text.match(/```\n?([\s\S]+?)```/);
+    if (m2) return m2[1].trim();
+    // لو النص فيه <!DOCTYPE أو <html بشكل مباشر، استخدمه كله
+    if (/<!DOCTYPE html|<html/i.test(text)) {
+      const start = text.search(/<!DOCTYPE html|<html/i);
+      const end = text.lastIndexOf("</html>");
+      if (end > start) return text.slice(start, end + 7).trim();
+      return text.slice(start).trim();
+    }
+    return text.trim();
   }
 
   async function generate() {
@@ -126,7 +157,8 @@ export default function LandingPageBuilder() {
       tagline && `**الـ Tagline / Subtitle**: ${tagline}`,
       description && `**الوصف الكامل**: ${description}`,
       features && `**المميّزات (نقطة لكل سطر)**:\n${features}`,
-      price && `**السعر**: ${price}`,
+      price && `**السعر**: ${price} ${CURRENCIES.find(c => c.value === currency)?.label.split(" ")[1] || currency}`,
+      price && `**العملة**: ${currency} (استخدم رمز العملة الصحيح بجانب السعر — مثلاً: ${price} ${currency === "SAR" ? "ر.س" : currency === "AED" ? "د.إ" : currency === "EGP" ? "ج.م" : currency})`,
       cta && `**زرّ الإجراء (CTA Text)**: ${cta}`,
       contact && `**معلومات تواصل / لينك زرّ CTA**: ${contact}`,
       extraNotes && `**ملاحظات إضافية**: ${extraNotes}`,
@@ -421,7 +453,7 @@ ${currentHtml}
                   ref={iframeRef}
                   srcDoc={htmlContent}
                   className="w-full h-full"
-                  sandbox="allow-scripts allow-same-origin"
+                  sandbox="allow-scripts allow-popups allow-forms"
                   title="Preview"
                 />
               </div>
@@ -606,10 +638,23 @@ ${currentHtml}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <Label htmlFor="price">السعر</Label>
-            <Input id="price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="299 ج.م" className="mt-1" />
+            <Label htmlFor="price">السعر (اختياري)</Label>
+            <Input id="price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="299" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="currency">العملة</Label>
+            <select
+              id="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
           </div>
           <div>
             <Label htmlFor="cta">نصّ زرّ CTA</Label>

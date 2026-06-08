@@ -36,33 +36,77 @@ export const TOOL_PROMPTS = {
 كلّ نسخة بنفس المعنى لكن بأسلوبٍ مختلف. التزم بهوية العلامة.`,
 
   // ============== LEADS ==============
-  landing_page_advanced: `أنت Designer + Developer Frontend خبير.
-المهمّة: ولّد صفحة هبوط HTML احترافية وتفاعلية بنفس طلب العميل بالضبط.
+  landing_page_advanced: `أنت Senior Frontend Developer + UI/UX Designer خبير.
 
-⚠️ **مهمّ جداً**:
-1. أعطِ **HTML واحد كامل** في صندوق واحد \`\`\`html ... \`\`\` (بدون شرح خارج الـ HTML).
-2. استخدم **CSS داخل <style>** و **JavaScript داخل <script>** في نفس الملف (لا ملفات خارجية).
-3. استخدم ألوان العلامة المحفوظة (الـ Hex) بشكلٍ بارز.
-4. التصميم **RTL** للعربي، **Responsive** لكل الشاشات (موبايل/تابلت/ديسكتوب).
-5. أضف **أنيميشن CSS** بسلاسة (fade-in, slide-up, hover effects, gradients animated).
-6. **Hero Section** مذهل: عنوان كبير + Tagline + CTA + صورة أو illustration.
-7. **3-6 Features** بأيقونات SVG inline.
-8. **Pricing Card** لو فيه سعر.
-9. **Footer** مع معلومات التواصل.
-10. خط Tajawal أو Cairo من Google Fonts.
-11. لو فيه صور مرفقة، استخدمها كـ data URIs أو placeholders واضحة.
-12. لا تستخدم مكتبات خارجية إلا Google Fonts.
+🔴 **قواعد إلزامية صارمة جداً — اتباعها أهم من أي شيء**:
 
-الستايل المطلوب يحدّد التصميم:
-- modern_animated: Gradients نابضة + parallax + smooth scroll + counter animations
-- minimalist: مساحات بيضاء + خطوط رفيعة + بدون gradient
-- luxury: خلفية داكنة + ذهبي/فضي + serif fonts
-- playful: ألوان جريئة + أشكال هندسية + emoji
-- corporate: blue + grey + ثقة + سلطة
+1. **ابدأ ردك بالضبط بـ**: \`\`\`html
+2. **انتهِ ردك بالضبط بـ**: \`\`\`
+3. بين السطرين، أعطِ **HTML كامل**: يبدأ بـ \`<!DOCTYPE html>\` وينتهي بـ \`</html>\`.
+4. **ممنوع** أي نص أو شرح خارج صندوق الـ HTML — لا قبل ولا بعد.
+5. **ممنوع** اختصار الكود بـ "<!-- باقي الصفحة... -->" — أكمل كل شيء كامل.
+6. **ممنوع** استخدام أي مكتبة خارجية إلا Google Fonts.
+7. **ممنوع** استخدام JSX أو React.
 
-اجعلها **جاهزة للنشر فوراً** — يكفي حفظ الملف وفتحه في المتصفح.
+📋 **الهيكل الإلزامي**:
 
-ابدأ بـ \`\`\`html مباشرةً.`,
+\`\`\`html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>عنوان الصفحة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Reset + Variables (ألوان العلامة كـ --primary, --accent) + Components + Animations + Responsive */
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <!-- Hero Section: عنوان كبير + Subtitle + CTA + visual -->
+  <!-- Features (3-6 بأيقونات SVG inline) -->
+  <!-- About / Description -->
+  <!-- Pricing (لو فيه سعر — استخدم العملة المحددة) -->
+  <!-- Testimonials (شهادات وهمية واقعية) -->
+  <!-- FAQ -->
+  <!-- Big CTA قبل Footer -->
+  <!-- Footer مع تواصل -->
+  <script>
+    /* JavaScript للأنيميشن + scroll smoothing + intersection observer */
+  </script>
+</body>
+</html>
+\`\`\`
+
+🎨 **متطلبات التصميم**:
+- استخدم **ألوان العلامة الفعلية** من ملف العلامة (الـ Hex) في CSS Variables.
+- **خط Tajawal من Google Fonts** (مُحمَّل أعلى).
+- **RTL كامل**.
+- **Responsive Mobile-first** (breakpoints عند 640px و 1024px).
+- **أنيميشن CSS** بسلاسة (fade-in عند scroll، hover effects، gradient animations).
+- **SVG inline** للأيقونات.
+- لو فيه صور مرفقة، اعملها placeholders بـ \`background: linear-gradient(...)\` مع emoji/نص يصفها.
+- كل زر CTA يفتح WhatsApp (\`https://wa.me/?text=...\`) أو \`mailto:\` أو يتمرر لقسم التواصل.
+
+✨ **بحسب الستايل المطلوب**:
+- **modern_animated**: Gradients نابضة بـ @keyframes + glassmorphism + AOS-like animations + parallax.
+- **minimalist**: مساحات بيضاء + خطوط رفيعة + ألوان قليلة + بدون gradient.
+- **luxury**: خلفية داكنة (#0a0a0a) + ذهبي (#d4af37) + خط Cormorant Garamond + إضاءة دقيقة.
+- **playful**: ألوان جريئة + أشكال هندسية + Emojis + bounce animations.
+- **corporate**: أزرق/رمادي رصين + grid 12-column + بدون انيميشن مبالغ.
+
+📏 **الجودة والطول**:
+- 200-500 سطر CSS.
+- 30-80 سطر JS.
+- كل الـ Sections كاملة.
+- لما تتفتح في المتصفح، تبدو **جاهزة للـ Production** فوراً.
+
+⚠️ **قبل الرد، تأكد**:
+- الكود يفتح في أي متصفح بدون أي خطأ.
+- ما فيهوش placeholders أو "// TODO".
+- مكتمل من \`<!DOCTYPE html>\` لـ \`</html>\`.`,
 
   lead_magnet: `أنت خبيرُ Lead Magnets.
 المهمّة: ولّد كتيّب PDF احترافي يجذب العملاء (5-10 صفحات بتنسيق Markdown).

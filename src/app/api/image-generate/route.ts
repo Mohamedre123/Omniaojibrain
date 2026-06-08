@@ -19,18 +19,61 @@ const schema = z.object({
     .max(3)
     .optional(),
   brandContext: z.string().max(1000).optional(),
+  aspect: z.string().optional(),
 });
 
-// نماذج التوليد بترتيب الأولوية — لو واحد فشل جرّب اللي بعده
-const IMAGE_MODELS = [
+// 🎨 الستايل الأساسي اللي يتضاف لكل توليد صورة لضمان جودة احترافية
+const MASTER_PHOTO_STYLE = `Ultra-High Resolution 8K Photorealistic Commercial Advertising Photography, razor-sharp focus, zero artifacts, true-to-life textures and realistic details, soft diffused studio lighting that prevents harsh shadows, subtle rim lighting / edge glow from the back for 3D depth, rich and clean colors in luxury brand aesthetic, full-frame camera quality with shallow depth of field, magazine-quality composition, professional commercial photography.`;
+
+// نماذج التوليد بترتيب الأولوية
+const GEMINI_IMAGE_MODELS = [
   "gemini-2.5-flash-image",
   "gemini-2.0-flash-preview-image-generation",
+];
+
+const IMAGEN_MODELS = [
   "imagen-4.0-generate-001",
+  "imagen-4.0-fast-generate-001",
   "imagen-3.0-generate-002",
 ];
 
+function aspectToSize(aspect?: string): { w: number; h: number } {
+  switch (aspect) {
+    case "9:16":
+    case "9:16-reel":
+      return { w: 1024, h: 1792 };
+    case "16:9":
+      return { w: 1792, h: 1024 };
+    case "2:3":
+      return { w: 1024, h: 1536 };
+    case "fb-cover":
+      return { w: 1792, h: 768 };
+    default:
+      return { w: 1024, h: 1024 };
+  }
+}
+
 async function trySleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Fallback مجاني تماماً عن طريق Pollinations.ai */
+async function pollinationsGenerate(prompt: string, aspect?: string): Promise<{ mimeType: string; data: string } | null> {
+  try {
+    const size = aspectToSize(aspect);
+    const seed = Math.floor(Math.random() * 1_000_000);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${size.w}&height=${size.h}&model=flux&nologo=true&seed=${seed}&enhance=true`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "OjiBrain/1.0" },
+      signal: AbortSignal.timeout(50_000),
+    });
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString("base64");
+    return { mimeType: "image/jpeg", data: base64 };
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -49,64 +92,39 @@ export async function POST(req: NextRequest) {
   }
   const body = parsed.data;
 
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return NextResponse.json({ error: "إعدادات الخادم ناقصة" }, { status: 500 });
-
-  const ai = new GoogleGenAI({ apiKey: key });
-
-  const fullPrompt = body.brandContext
-    ? `${body.prompt}\n\n[Brand context: ${body.brandContext}]`
-    : body.prompt;
+  // بناء البرومبت النهائي مع الستايل الأساسي
+  const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${body.brandContext ? `\n\nBrand context: ${body.brandContext}` : ""}`;
 
   const images: Array<{ mimeType: string; data: string }> = [];
   let textOutput = "";
   let lastError = "";
 
-  // جرّب كل نموذج بالترتيب
-  for (const model of IMAGE_MODELS) {
-    if (images.length > 0) break;
+  const key = process.env.GEMINI_API_KEY;
+  const hasRefImages = body.refImages && body.refImages.length > 0;
 
-    try {
-      // نموذج Imagen يستخدم API مختلف
-      if (model.startsWith("imagen-")) {
-        try {
-          const imagenResp = await ai.models.generateImages({
-            model,
-            prompt: fullPrompt,
-            config: { numberOfImages: 1, aspectRatio: "1:1" },
-          });
-          const gen = imagenResp.generatedImages || [];
-          for (const g of gen) {
-            if (g.image?.imageBytes) {
-              images.push({ mimeType: "image/png", data: g.image.imageBytes });
-            }
-          }
-        } catch (e) {
-          lastError = e instanceof Error ? e.message : "Imagen failed";
-        }
-      } else {
-        // نماذج Gemini Flash Image تستخدم generateContent
+  if (key) {
+    const ai = new GoogleGenAI({ apiKey: key });
+
+    // جرّب Gemini Flash Image أولاً (يدعم reference images)
+    for (const model of GEMINI_IMAGE_MODELS) {
+      if (images.length > 0) break;
+      try {
         const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
-        if (body.refImages && body.refImages.length > 0) {
-          for (const img of body.refImages) {
+        if (hasRefImages) {
+          for (const img of body.refImages!) {
             parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
           }
         }
-        parts.push({ text: fullPrompt });
+        parts.push({ text: enhancedPrompt });
 
-        // محاولات متعدّدة عند الـ 503
         let attempts = 0;
-        let success = false;
-        while (attempts < 3 && !success) {
+        while (attempts < 2 && images.length === 0) {
           try {
             const response = await ai.models.generateContent({
               model,
               contents: [{ role: "user", parts }],
-              config: {
-                responseModalities: ["IMAGE", "TEXT"],
-              } as never,
+              config: { responseModalities: ["IMAGE", "TEXT"] } as never,
             });
-
             const candidates = response.candidates || [];
             for (const candidate of candidates) {
               const cParts = candidate.content?.parts || [];
@@ -120,28 +138,56 @@ export async function POST(req: NextRequest) {
                 if (part.text) textOutput += part.text;
               }
             }
-            success = true;
+            break;
           } catch (e) {
             const msg = e instanceof Error ? e.message : "";
             lastError = msg;
-            if (msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("overloaded")) {
-              attempts++;
-              await trySleep(1000 * attempts);
-            } else {
-              break; // خطأ غير قابل للإعادة
-            }
+            attempts++;
+            if (!msg.includes("503") && !msg.includes("UNAVAILABLE") && !msg.includes("overloaded")) break;
+            await trySleep(1000);
           }
         }
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : "";
       }
-    } catch (e) {
-      lastError = e instanceof Error ? e.message : "Unknown";
+    }
+
+    // جرّب Imagen لو Gemini Flash فشل وما فيش reference images
+    if (images.length === 0 && !hasRefImages) {
+      for (const model of IMAGEN_MODELS) {
+        if (images.length > 0) break;
+        try {
+          const imagenResp = await ai.models.generateImages({
+            model,
+            prompt: enhancedPrompt,
+            config: { numberOfImages: 1, aspectRatio: body.aspect === "9:16" ? "9:16" : body.aspect === "16:9" ? "16:9" : "1:1" } as never,
+          });
+          const gen = imagenResp.generatedImages || [];
+          for (const g of gen) {
+            if (g.image?.imageBytes) {
+              images.push({ mimeType: "image/png", data: g.image.imageBytes });
+            }
+          }
+        } catch (e) {
+          lastError = e instanceof Error ? e.message : "";
+        }
+      }
+    }
+  }
+
+  // 🆘 Fallback مجاني عبر Pollinations.ai (لا يحتاج API key)
+  if (images.length === 0) {
+    const pollImage = await pollinationsGenerate(enhancedPrompt, body.aspect);
+    if (pollImage) {
+      images.push(pollImage);
+      textOutput = "تمّ التوليد عبر Pollinations.ai (مجاني). للحصول على جودة أعلى، فعّل توليد الصور المدفوع في Google AI Studio.";
     }
   }
 
   if (images.length === 0) {
     return NextResponse.json(
       {
-        error: `تعذّر توليدُ الصورة. ${lastError ? `السبب: ${lastError.slice(0, 200)}` : ""} ربما يحتاج حسابك تفعيل ميزة توليد الصور في Google AI Studio (Paid Tier).`,
+        error: `تعذّر توليد الصورة. ${lastError ? lastError.slice(0, 150) : "كلّ الخدمات فشلت."}`,
         textHint: textOutput || undefined,
       },
       { status: 503 }

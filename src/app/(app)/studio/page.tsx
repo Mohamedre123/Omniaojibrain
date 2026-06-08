@@ -174,14 +174,19 @@ function GenerateTab() {
     }
 
     try {
-      const refsNote = refImages.length > 0 ? ` Use the attached ${refImages.length} reference image(s) as inspiration for product/subject.` : "";
-      const fullPrompt = `${prompt}.${refsNote} Aspect ratio: ${aspect}. High quality, professional, marketing-ready.`;
+      const refsNote = refImages.length > 0
+        ? ` IMPORTANT: ${refImages.length} reference image(s) attached — use them as the EXACT product/subject. Keep the product identity, packaging, logo, and look 100% identical to the reference. DO NOT change the product itself, only the scene/setting around it.`
+        : "";
+      // 💡 اقتراحات كاميرا ذكية بناءً على نوع الموضوع
+      const cameraHint = ` Camera angle suggestions: hero low-angle for impact, eye-level for product clarity, top-down flat-lay for elegance, or macro close-up for texture detail. Choose the most fitting cinematic angle.`;
+      const fullPrompt = `${prompt}.${refsNote}${cameraHint} Aspect ratio: ${aspect}.`;
       const res = await fetch("/api/image-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: fullPrompt,
           brandContext: brandContext || undefined,
+          aspect,
           refImages: refImages.length > 0 ? refImages.map(r => ({ mimeType: r.mimeType, data: r.data })) : undefined,
         }),
       });
