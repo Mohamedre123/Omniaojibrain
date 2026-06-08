@@ -14,6 +14,7 @@ import {
   Sparkles,
   Briefcase,
   GraduationCap,
+  Users,
   Settings,
   Menu,
   X,
@@ -29,6 +30,7 @@ const NAV = [
   { href: "/leads", label: "جذب العملاء", icon: Target, color: "text-amber-500" },
   { href: "/brand", label: "هوية العلامة", icon: Sparkles, color: "text-purple-500" },
   { href: "/business", label: "أدوات الأعمال", icon: Briefcase, color: "text-indigo-500" },
+  { href: "/team", label: "الفريق", icon: Users, color: "text-teal-500" },
   { href: "/learn", label: "التعلّم", icon: GraduationCap, color: "text-pink-500" },
 ];
 

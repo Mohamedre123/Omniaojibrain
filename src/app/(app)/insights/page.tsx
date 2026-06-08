@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, Search, Clock, Flame, Calculator } from "lucide-react";
+import { TrendingUp, Search, Clock, Flame, Calculator, LineChart } from "lucide-react";
 
 const TOOLS = [
   { href: "/insights/competitor", icon: Search, title: "تحليل المنافسين الذكي", description: "Oji يبحث عن منافسيك تلقائياً ويحلّلهم", color: "from-rose-500 to-pink-600", badge: "🤖 AI Search" },
+  { href: "/insights/performance", icon: LineChart, title: "تتبّع الأداء", description: "ادخل أرقامك → تحليل وتوصيات", color: "from-violet-500 to-purple-600" },
   { href: "/insights/best-times", icon: Clock, title: "أفضل أوقات النشر", description: "اقتراح ساعات النشر لكلّ منصّة", color: "from-blue-500 to-cyan-600" },
   { href: "/insights/trends", icon: Flame, title: "مراقب الترندات", description: "أهمّ ترندات مجالك حالياً + كيف تستغلّها", color: "from-orange-500 to-amber-600" },
   { href: "/insights/roi", icon: Calculator, title: "حاسبة ROI الإعلانات", description: "توقّعات نتائج حملتك قبل التشغيل", color: "from-emerald-500 to-teal-600" },

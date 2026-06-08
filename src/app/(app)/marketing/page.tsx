@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon } from "lucide-react";
+import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon, Share2 } from "lucide-react";
 
 const TOOLS = [
+  { href: "/marketing/publisher", icon: Share2, title: "النشر المباشر", description: "انشر على واتساب/فيسبوك/تويتر/لينكدإن من مكان واحد", color: "from-emerald-500 to-green-600", badge: "🚀 جديد" },
   { href: "/marketing/hashtags", icon: Hash, title: "مولّد هاشتاجات ذكي", description: "30 هاشتاج مقسّمة بحسب الحجم والمجال", color: "from-blue-500 to-cyan-600" },
   { href: "/marketing/variations", icon: Shuffle, title: "A/B Variations", description: "5 نسخ من نفس النصّ بأساليبَ مختلفة", color: "from-violet-500 to-purple-600" },
   { href: "/marketing/email", icon: Mail, title: "Email Marketing", description: "قوالب إيميل + sequences ترحيب ومتابعة", color: "from-rose-500 to-pink-600" },
-  { href: "/marketing/whatsapp", icon: MessageCircle, title: "WhatsApp Business Templates", description: "رسائل ترويجية تلتزم بشروط WhatsApp", color: "from-emerald-500 to-teal-600" },
-  { href: "/calendar", icon: CalendarIcon, title: "Content Calendar", description: "تقويم محتوًى تفاعلي شهري", color: "from-amber-500 to-orange-600" },
+  { href: "/marketing/whatsapp", icon: MessageCircle, title: "WhatsApp Business Templates", description: "رسائل ترويجية تلتزم بشروط WhatsApp", color: "from-orange-500 to-amber-600" },
+  { href: "/calendar", icon: CalendarIcon, title: "Content Calendar", description: "تقويم محتوًى تفاعلي شهري", color: "from-indigo-500 to-purple-600" },
 ];
 
 export default function MarketingHubPage() {

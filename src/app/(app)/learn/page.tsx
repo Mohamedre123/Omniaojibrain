@@ -20,6 +20,27 @@ const TEMPLATES = [
   { title: "Talking Head Setup", category: "Runway", prompt: "professional talking head shot, clean background, soft key light, brand color accent, medium shot" },
 ];
 
+const MINI_COURSES = [
+  {
+    title: "أساسيات إعلانات Meta في 30 دقيقة",
+    youtubeId: "RoLEhONXszU",
+    level: "مبتدئ",
+    duration: "30 دقيقة",
+  },
+  {
+    title: "كتابة Caption يبيع",
+    youtubeId: "vc8r1S9yC4w",
+    level: "متوسط",
+    duration: "15 دقيقة",
+  },
+  {
+    title: "إنشاء Reels فيرال",
+    youtubeId: "PvWmoSWb4-c",
+    level: "مبتدئ",
+    duration: "20 دقيقة",
+  },
+];
+
 const CASE_STUDIES = [
   {
     title: "كيف ضاعفت مطعم في الإسكندرية مبيعاتها بـ Reels",
@@ -120,6 +141,36 @@ export default function LearnPage() {
               <Button variant="ghost" size="sm" onClick={() => copyPrompt(t.prompt)} className="mt-2 w-full">
                 نسخ البرومبت
               </Button>
+            </Card>
+          ))}
+        </div>
+      </Card>
+
+      {/* Mini Courses */}
+      <Card className="p-5 mb-6">
+        <h2 className="font-semibold flex items-center gap-2 mb-4">
+          <Play className="size-5 text-primary" />
+          كورسات مختصرة (Mini-Courses)
+        </h2>
+        <div className="grid gap-3 md:grid-cols-3">
+          {MINI_COURSES.map((c, i) => (
+            <Card key={i} className="overflow-hidden">
+              <div className="aspect-video bg-muted relative">
+                <iframe
+                  src={`https://www.youtube.com/embed/${c.youtubeId}`}
+                  title={c.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+              <div className="p-4">
+                <div className="flex items-center justify-between text-[10px] mb-2">
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{c.level}</span>
+                  <span className="text-muted-foreground">{c.duration}</span>
+                </div>
+                <h3 className="font-medium text-sm">{c.title}</h3>
+              </div>
             </Card>
           ))}
         </div>

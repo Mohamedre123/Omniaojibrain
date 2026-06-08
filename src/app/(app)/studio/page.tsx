@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ import {
   Edit3,
   X,
   Paperclip,
+  Mic,
+  Film,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -45,6 +48,31 @@ export default function StudioPage() {
         <p className="text-muted-foreground mt-2">
           توليدُ وتعديلُ وتحويلُ الصور بالذكاء الاصطناعي — استبدل اشتراكات Midjourney و Photoshop
         </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-3 mb-4">
+        <Link href="/studio/voice-over">
+          <Card className="p-4 hover:border-primary transition-all cursor-pointer flex items-center gap-3">
+            <div className="size-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 grid place-items-center text-white">
+              <Mic className="size-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Voice-over</h3>
+              <p className="text-xs text-muted-foreground">تعليق صوتي بأيّ لهجة</p>
+            </div>
+          </Card>
+        </Link>
+        <Link href="/studio/video">
+          <Card className="p-4 hover:border-primary transition-all cursor-pointer flex items-center gap-3">
+            <div className="size-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 grid place-items-center text-white">
+              <Film className="size-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">توليد فيديو</h3>
+              <p className="text-xs text-muted-foreground">برومبتات Veo/Runway/Kling</p>
+            </div>
+          </Card>
+        </Link>
       </div>
 
       <Card className="overflow-hidden">
