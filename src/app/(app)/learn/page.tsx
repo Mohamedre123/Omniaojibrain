@@ -22,22 +22,52 @@ const TEMPLATES = [
 
 const MINI_COURSES = [
   {
-    title: "Marketing Strategy — كيف تبني استراتيجية تسويق",
-    youtubeId: "hLBQRA7JEwI",
-    level: "أساسي",
-    duration: "12 دقيقة",
+    title: "Google Digital Garage",
+    badge: "Google",
+    level: "مبتدئ → متقدّم",
+    description: "كورس مجاني معتمد من Google يغطّي كل أساسيات التسويق الرقمي بشهادة معتمدة عالمياً",
+    url: "https://learndigital.withgoogle.com/digitalgarage/courses",
+    color: "from-blue-500 to-blue-700",
   },
   {
-    title: "Instagram Marketing — احتراف إنستجرام",
-    youtubeId: "Q0_uqIfXcKQ",
+    title: "Meta Blueprint",
+    badge: "Meta",
+    level: "كلّ المستويات",
+    description: "تعلّم إعلانات Facebook و Instagram من المصدر الرسمي مع شهادات معتمدة من Meta",
+    url: "https://www.facebook.com/business/learn",
+    color: "from-blue-600 to-indigo-700",
+  },
+  {
+    title: "HubSpot Academy",
+    badge: "HubSpot",
     level: "متوسط",
-    duration: "18 دقيقة",
+    description: "كورسات مجانية في Inbound Marketing و Content Strategy و Email Marketing",
+    url: "https://academy.hubspot.com",
+    color: "from-orange-500 to-red-600",
   },
   {
-    title: "Content Marketing — كل ما تحتاجه",
-    youtubeId: "4SkvNw9Vr1U",
+    title: "TikTok Business Learning Center",
+    badge: "TikTok",
+    level: "مبتدئ",
+    description: "تعلّم كيف تنمو على TikTok وتنشئ محتوى viral من TikTok مباشرة",
+    url: "https://www.tiktok.com/business/learn",
+    color: "from-pink-500 to-rose-600",
+  },
+  {
+    title: "Coursera — Digital Marketing",
+    badge: "Coursera",
     level: "متقدّم",
-    duration: "30 دقيقة",
+    description: "تخصّصات كاملة من جامعات عالمية في التسويق الرقمي",
+    url: "https://www.coursera.org/browse/business/marketing",
+    color: "from-blue-700 to-purple-700",
+  },
+  {
+    title: "Maharah — كورسات بالعربية",
+    badge: "بالعربية",
+    level: "كلّ المستويات",
+    description: "منصّة عربية فيها كورسات تسويق رقمي وسوشيال ميديا بأسلوب عربي مبسّط",
+    url: "https://maharah.net",
+    color: "from-emerald-500 to-teal-600",
   },
 ];
 
@@ -150,38 +180,32 @@ export default function LearnPage() {
       <Card className="p-5 mb-6">
         <h2 className="font-semibold flex items-center gap-2 mb-4">
           <Play className="size-5 text-primary" />
-          كورسات مختصرة (Mini-Courses)
+          منصّات تعليمية مختارة
         </h2>
+        <p className="text-xs text-muted-foreground mb-4">منصّات معتمدة عالمياً تقدّم كورسات مجانية في التسويق الرقمي</p>
         <div className="grid gap-3 md:grid-cols-3">
           {MINI_COURSES.map((c, i) => (
             <a
               key={i}
-              href={`https://www.youtube.com/watch?v=${c.youtubeId}`}
+              href={c.url}
               target="_blank"
               rel="noopener noreferrer"
               className="group"
             >
-              <Card className="overflow-hidden h-full transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
-                <div className="aspect-video bg-muted relative overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://i.ytimg.com/vi/${c.youtubeId}/hqdefault.jpg`}
-                    alt={c.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 grid place-items-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="size-12 rounded-full bg-red-600 grid place-items-center">
-                      <Play className="size-6 text-white fill-white" />
-                    </div>
-                  </div>
+              <Card className="h-full p-5 transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer relative overflow-hidden">
+                <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${c.color}`} />
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`px-2.5 py-1 rounded-md text-white text-[10px] font-bold bg-gradient-to-r ${c.color}`}>
+                    {c.badge}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">{c.level}</span>
                 </div>
-                <div className="p-4">
-                  <div className="flex items-center justify-between text-[10px] mb-2">
-                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{c.level}</span>
-                    <span className="text-muted-foreground">{c.duration}</span>
-                  </div>
-                  <h3 className="font-medium text-sm group-hover:text-primary transition-colors">{c.title}</h3>
+                <h3 className="font-semibold text-base group-hover:text-primary transition-colors mb-2">
+                  {c.title}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{c.description}</p>
+                <div className="flex items-center gap-1 mt-3 text-xs text-primary font-medium">
+                  <Play className="size-3" /> ابدأ التعلّم
                 </div>
               </Card>
             </a>

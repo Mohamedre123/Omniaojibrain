@@ -22,20 +22,8 @@ const schema = z.object({
   aspect: z.string().optional(),
 });
 
-// 🎨 الستايل الأساسي اللي يتضاف لكل توليد صورة لضمان جودة احترافية
+// 🎨 الستايل الأساسي اللي يتضاف لكل توليد صورة
 const MASTER_PHOTO_STYLE = `Ultra-High Resolution 8K Photorealistic Commercial Advertising Photography, razor-sharp focus, zero artifacts, true-to-life textures and realistic details, soft diffused studio lighting that prevents harsh shadows, subtle rim lighting / edge glow from the back for 3D depth, rich and clean colors in luxury brand aesthetic, full-frame camera quality with shallow depth of field, magazine-quality composition, professional commercial photography.`;
-
-// نماذج التوليد بترتيب الأولوية
-const GEMINI_IMAGE_MODELS = [
-  "gemini-2.5-flash-image",
-  "gemini-2.0-flash-preview-image-generation",
-];
-
-const IMAGEN_MODELS = [
-  "imagen-4.0-generate-001",
-  "imagen-4.0-fast-generate-001",
-  "imagen-3.0-generate-002",
-];
 
 function aspectToSize(aspect?: string): { w: number; h: number } {
   switch (aspect) {
@@ -53,27 +41,74 @@ function aspectToSize(aspect?: string): { w: number; h: number } {
   }
 }
 
-async function trySleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-/** Fallback مجاني تماماً عن طريق Pollinations.ai */
+/** Pollinations.ai — مجاني بدون API key، شغّال 100% */
 async function pollinationsGenerate(prompt: string, aspect?: string): Promise<{ mimeType: string; data: string } | null> {
   try {
     const size = aspectToSize(aspect);
     const seed = Math.floor(Math.random() * 1_000_000);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${size.w}&height=${size.h}&model=flux&nologo=true&seed=${seed}&enhance=true`;
+    const trimmed = prompt.slice(0, 1500);
+    // model=turbo مجاني، model=flux مدفوع
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(trimmed)}?width=${size.w}&height=${size.h}&model=turbo&nologo=true&seed=${seed}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 55_000);
+
     const res = await fetch(url, {
-      headers: { "User-Agent": "OjiBrain/1.0" },
-      signal: AbortSignal.timeout(50_000),
+      headers: { "User-Agent": "Mozilla/5.0 OjiBrain/1.0" },
+      signal: controller.signal,
+      cache: "no-store",
     });
+    clearTimeout(timer);
+
     if (!res.ok) return null;
     const buffer = await res.arrayBuffer();
+    if (buffer.byteLength < 1000) return null;
     const base64 = Buffer.from(buffer).toString("base64");
     return { mimeType: "image/jpeg", data: base64 };
   } catch {
     return null;
   }
+}
+
+/** Gemini Flash Image (للـ reference images فقط) */
+async function geminiFlashImage(
+  ai: GoogleGenAI,
+  prompt: string,
+  refImages: Array<{ mimeType: string; data: string }>
+): Promise<Array<{ mimeType: string; data: string }>> {
+  const images: Array<{ mimeType: string; data: string }> = [];
+  const models = ["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"];
+
+  for (const model of models) {
+    if (images.length > 0) break;
+    try {
+      const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+      for (const img of refImages) parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+      parts.push({ text: prompt });
+
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ role: "user", parts }],
+        config: { responseModalities: ["IMAGE", "TEXT"] } as never,
+      });
+
+      const candidates = response.candidates || [];
+      for (const candidate of candidates) {
+        const cParts = candidate.content?.parts || [];
+        for (const part of cParts) {
+          if (part.inlineData?.data) {
+            images.push({
+              mimeType: part.inlineData.mimeType || "image/png",
+              data: part.inlineData.data,
+            });
+          }
+        }
+      }
+    } catch {
+      // جرّب اللي بعده
+    }
+  }
+  return images;
 }
 
 export async function POST(req: NextRequest) {
@@ -92,107 +127,39 @@ export async function POST(req: NextRequest) {
   }
   const body = parsed.data;
 
-  // بناء البرومبت النهائي مع الستايل الأساسي
-  const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${body.brandContext ? `\n\nBrand context: ${body.brandContext}` : ""}`;
+  const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}`;
 
-  const images: Array<{ mimeType: string; data: string }> = [];
-  let textOutput = "";
-  let lastError = "";
+  const hasRefImages = !!(body.refImages && body.refImages.length > 0);
+  let images: Array<{ mimeType: string; data: string }> = [];
 
-  const key = process.env.GEMINI_API_KEY;
-  const hasRefImages = body.refImages && body.refImages.length > 0;
+  // الاستراتيجية الجديدة:
+  // - مع reference images: جرّب Gemini أولاً (هو اللي يفهم الصور)، fallback لـ Pollinations
+  // - بدون reference images: Pollinations مباشرة (مضمون يشتغل)
 
-  if (key) {
-    const ai = new GoogleGenAI({ apiKey: key });
-
-    // جرّب Gemini Flash Image أولاً (يدعم reference images)
-    for (const model of GEMINI_IMAGE_MODELS) {
-      if (images.length > 0) break;
+  if (hasRefImages) {
+    const key = process.env.GEMINI_API_KEY;
+    if (key) {
       try {
-        const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
-        if (hasRefImages) {
-          for (const img of body.refImages!) {
-            parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
-          }
-        }
-        parts.push({ text: enhancedPrompt });
-
-        let attempts = 0;
-        while (attempts < 2 && images.length === 0) {
-          try {
-            const response = await ai.models.generateContent({
-              model,
-              contents: [{ role: "user", parts }],
-              config: { responseModalities: ["IMAGE", "TEXT"] } as never,
-            });
-            const candidates = response.candidates || [];
-            for (const candidate of candidates) {
-              const cParts = candidate.content?.parts || [];
-              for (const part of cParts) {
-                if (part.inlineData?.data) {
-                  images.push({
-                    mimeType: part.inlineData.mimeType || "image/png",
-                    data: part.inlineData.data,
-                  });
-                }
-                if (part.text) textOutput += part.text;
-              }
-            }
-            break;
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : "";
-            lastError = msg;
-            attempts++;
-            if (!msg.includes("503") && !msg.includes("UNAVAILABLE") && !msg.includes("overloaded")) break;
-            await trySleep(1000);
-          }
-        }
-      } catch (e) {
-        lastError = e instanceof Error ? e.message : "";
-      }
-    }
-
-    // جرّب Imagen لو Gemini Flash فشل وما فيش reference images
-    if (images.length === 0 && !hasRefImages) {
-      for (const model of IMAGEN_MODELS) {
-        if (images.length > 0) break;
-        try {
-          const imagenResp = await ai.models.generateImages({
-            model,
-            prompt: enhancedPrompt,
-            config: { numberOfImages: 1, aspectRatio: body.aspect === "9:16" ? "9:16" : body.aspect === "16:9" ? "16:9" : "1:1" } as never,
-          });
-          const gen = imagenResp.generatedImages || [];
-          for (const g of gen) {
-            if (g.image?.imageBytes) {
-              images.push({ mimeType: "image/png", data: g.image.imageBytes });
-            }
-          }
-        } catch (e) {
-          lastError = e instanceof Error ? e.message : "";
-        }
+        const ai = new GoogleGenAI({ apiKey: key });
+        images = await geminiFlashImage(ai, enhancedPrompt, body.refImages!);
+      } catch {
+        // فشل، هنكمّل لـ Pollinations
       }
     }
   }
 
-  // 🆘 Fallback مجاني عبر Pollinations.ai (لا يحتاج API key)
+  // Pollinations: الاستراتيجية الأساسية (شغّال 100%)
   if (images.length === 0) {
     const pollImage = await pollinationsGenerate(enhancedPrompt, body.aspect);
-    if (pollImage) {
-      images.push(pollImage);
-      textOutput = "تمّ التوليد عبر Pollinations.ai (مجاني). للحصول على جودة أعلى، فعّل توليد الصور المدفوع في Google AI Studio.";
-    }
+    if (pollImage) images.push(pollImage);
   }
 
   if (images.length === 0) {
     return NextResponse.json(
-      {
-        error: `تعذّر توليد الصورة. ${lastError ? lastError.slice(0, 150) : "كلّ الخدمات فشلت."}`,
-        textHint: textOutput || undefined,
-      },
+      { error: "تعذّر توليد الصورة. جرّب وصفاً أبسط أو حاول بعد دقيقة." },
       { status: 503 }
     );
   }
 
-  return NextResponse.json({ images, text: textOutput });
+  return NextResponse.json({ images });
 }

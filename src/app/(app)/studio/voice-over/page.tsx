@@ -116,11 +116,10 @@ export default function VoiceOverPage() {
 
       <Card className="p-5 space-y-4">
         {provider === "elevenlabs" && (
-          <Card className="p-3 bg-amber-50 dark:bg-amber-950/30 border-amber-300 flex items-start gap-2 text-sm">
-            <Info className="size-4 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              يحتاج Admin إضافة <code className="text-xs bg-muted px-1 rounded">ELEVENLABS_API_KEY</code> في Vercel.
-              احصل عليه من <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" className="text-primary underline">elevenlabs.io</a>
+          <Card className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 flex items-start gap-2 text-sm">
+            <Info className="size-4 text-emerald-700 shrink-0 mt-0.5" />
+            <div className="text-emerald-900 dark:text-emerald-200">
+              ✅ ElevenLabs مفعّل. اكتب النصّ واضغط &quot;تشغيل/توليد&quot; للحصول على صوت احترافي يدعم العربية.
             </div>
           </Card>
         )}
