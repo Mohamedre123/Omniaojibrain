@@ -16,13 +16,19 @@ export async function GET(request: NextRequest) {
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
 
-  // الحالة 2: Token hash (Magic Link / Email confirmation الجديد)
-  if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      type: type as "signup" | "recovery" | "email_change" | "email" | "magiclink",
-      token_hash: tokenHash,
-    });
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+  // الحالة 2: Token hash (يشتغل في أيّ متصفح — مثالي للموبايل)
+  if (tokenHash) {
+    const typesToTry = type
+      ? [type, "signup", "email", "magiclink"]
+      : ["signup", "email", "magiclink"];
+
+    for (const t of [...new Set(typesToTry)]) {
+      const { error } = await supabase.auth.verifyOtp({
+        type: t as "signup" | "recovery" | "email_change" | "email" | "magiclink",
+        token_hash: tokenHash,
+      });
+      if (!error) return NextResponse.redirect(`${origin}${next}`);
+    }
   }
 
   // الحالة 3: الـ Session اتعملت client-side (hash fragment)

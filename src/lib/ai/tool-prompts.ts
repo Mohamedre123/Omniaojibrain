@@ -36,17 +36,21 @@ export const TOOL_PROMPTS = {
 كلّ نسخة بنفس المعنى لكن بأسلوبٍ مختلف. التزم بهوية العلامة.`,
 
   // ============== LEADS ==============
-  landing_page_advanced: `أنت Senior Frontend Developer + UI/UX Designer خبير.
+  landing_page_advanced: `أنت Senior Frontend Developer.
 
-🔴 **قواعد إلزامية صارمة جداً — اتباعها أهم من أي شيء**:
+🔴 **قواعد إلزامية صارمة جداً**:
 
 1. **ابدأ ردك بالضبط بـ**: \`\`\`html
 2. **انتهِ ردك بالضبط بـ**: \`\`\`
-3. بين السطرين، أعطِ **HTML كامل**: يبدأ بـ \`<!DOCTYPE html>\` وينتهي بـ \`</html>\`.
-4. **ممنوع** أي نص أو شرح خارج صندوق الـ HTML — لا قبل ولا بعد.
-5. **ممنوع** اختصار الكود بـ "<!-- باقي الصفحة... -->" — أكمل كل شيء كامل.
-6. **ممنوع** استخدام أي مكتبة خارجية إلا Google Fonts.
-7. **ممنوع** استخدام JSX أو React.
+3. بين السطرين: **HTML كامل** يبدأ بـ \`<!DOCTYPE html>\` وينتهي بـ \`</html>\`.
+4. **ممنوع** أي نص خارج صندوق الـ HTML.
+5. **ممنوع** اختصار الكود ("<!-- باقي... -->" أو "// rest...").
+6. **ممنوع** أي مكتبة خارجية (لا CDN، لا Bootstrap، لا fonts من Google).
+7. **ممنوع** JSX أو React.
+8. **ممنوع** أي fetch/XHR لخوادم خارجية.
+9. **CSS كامل** بـ inline styles أو في \`<style>\` — استخدم \`system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif\` للخط (مش Google Fonts).
+10. لا تحاول تحمّل صور خارجية — استخدم inline SVG أو \`background: linear-gradient(...)\` مع نص/emoji.
+11. الكود لازم يشتغل **offline 100%** — لو حفظ الـ HTML وفتحه دون إنترنت يظهر كامل.
 
 📋 **الهيكل الإلزامي**:
 
@@ -57,38 +61,44 @@ export const TOOL_PROMPTS = {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>عنوان الصفحة</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
-    /* CSS Reset + Variables (ألوان العلامة كـ --primary, --accent) + Components + Animations + Responsive */
+    /* CSS كامل: Reset + Variables + Components + Animations + Responsive */
+    /* الخط: system-ui */
+    /* الألوان من Brand */
   </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <!-- Hero Section: عنوان كبير + Subtitle + CTA + visual -->
+  <!-- Navbar (مع لوجو نصّي) -->
+  <!-- Hero Section: عنوان كبير + Subtitle + CTA كبير + visual بـ SVG/gradient -->
   <!-- Features (3-6 بأيقونات SVG inline) -->
   <!-- About / Description -->
-  <!-- Pricing (لو فيه سعر — استخدم العملة المحددة) -->
-  <!-- Testimonials (شهادات وهمية واقعية) -->
-  <!-- FAQ -->
+  <!-- Pricing (لو فيه سعر — استخدم العملة المحددة بالظبط) -->
+  <!-- Testimonials (3 شهادات افتراضية واقعية) -->
+  <!-- FAQ (4-6 أسئلة) -->
   <!-- Big CTA قبل Footer -->
   <!-- Footer مع تواصل -->
   <script>
-    /* JavaScript للأنيميشن + scroll smoothing + intersection observer */
+    /* JavaScript: smooth scroll + intersection observer للأنيميشن + form handlers */
   </script>
 </body>
 </html>
 \`\`\`
 
 🎨 **متطلبات التصميم**:
-- استخدم **ألوان العلامة الفعلية** من ملف العلامة (الـ Hex) في CSS Variables.
-- **خط Tajawal من Google Fonts** (مُحمَّل أعلى).
-- **RTL كامل**.
+- **ألوان العلامة** في CSS Variables: \`--primary\`, \`--secondary\`, \`--text\`, \`--bg\`.
+- **خط system-ui** (يعمل offline): \`font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;\`
+- **RTL كامل** مع \`dir="rtl"\`.
 - **Responsive Mobile-first** (breakpoints عند 640px و 1024px).
-- **أنيميشن CSS** بسلاسة (fade-in عند scroll، hover effects، gradient animations).
-- **SVG inline** للأيقونات.
-- لو فيه صور مرفقة، اعملها placeholders بـ \`background: linear-gradient(...)\` مع emoji/نص يصفها.
-- كل زر CTA يفتح WhatsApp (\`https://wa.me/?text=...\`) أو \`mailto:\` أو يتمرر لقسم التواصل.
+- **أنيميشن CSS** بسلاسة (@keyframes + transitions).
+- **SVG inline** للأيقونات (لا تستخدم font-awesome).
+- لو في صور: \`background: linear-gradient(135deg, color1, color2)\` مع emoji/نص داخلها.
+- كل زر CTA يفتح \`https://wa.me/?text=...\` أو \`mailto:...\` أو scroll-to-section.
+
+⚠️ **تأكّد قبل الإرسال**:
+- لا توجد علامة \`@import\` لخطوط خارجية.
+- لا توجد \`<link href="https://...">\` لـ CDN.
+- لا توجد \`<script src="https://...">\` خارجية.
+- الصفحة تشتغل offline (افتحها بدون إنترنت → تظهر كاملة).
 
 ✨ **بحسب الستايل المطلوب**:
 - **modern_animated**: Gradients نابضة بـ @keyframes + glassmorphism + AOS-like animations + parallax.
