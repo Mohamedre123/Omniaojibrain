@@ -59,7 +59,7 @@ export async function* streamChat(opts: {
           config: {
             systemInstruction: opts.systemPrompt,
             temperature: 0.85,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 65536,
           },
         });
 

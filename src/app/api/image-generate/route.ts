@@ -144,22 +144,22 @@ export async function POST(req: NextRequest) {
 
   const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}`;
 
-  const hasRefImages = !!(body.refImages && body.refImages.length > 0);
   let images: Array<{ mimeType: string; data: string }> = [];
   const errors: string[] = [];
 
-  if (hasRefImages) {
-    const key = process.env.GEMINI_API_KEY;
-    if (key) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: key });
-        images = await geminiFlashImage(ai, enhancedPrompt, body.refImages!);
-      } catch (e) {
-        errors.push(`Gemini: ${e instanceof Error ? e.message : "failed"}`);
-      }
+  // 1) Gemini Flash Image أولاً دائماً (مجاني في Free Tier — نموذج nano-banana)
+  const key = process.env.GEMINI_API_KEY;
+  if (key) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: key });
+      images = await geminiFlashImage(ai, enhancedPrompt, body.refImages ?? []);
+      if (images.length === 0) errors.push("Gemini: no image in response");
+    } catch (e) {
+      errors.push(`Gemini: ${e instanceof Error ? e.message : "failed"}`);
     }
   }
 
+  // 2) Pollinations كـ fallback أخير
   if (images.length === 0) {
     const pollResult = await pollinationsGenerate(enhancedPrompt, body.aspect);
     if (typeof pollResult === "string") {
