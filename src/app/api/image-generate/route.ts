@@ -99,7 +99,12 @@ async function geminiFlashImage(
   refImages: Array<{ mimeType: string; data: string }>
 ): Promise<Array<{ mimeType: string; data: string }>> {
   const images: Array<{ mimeType: string; data: string }> = [];
-  const models = ["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"];
+  // Nano Banana Pro أولاً (الأعلى جودة — Paid Tier) ثم Nano Banana العادي
+  const models = [
+    "gemini-3-pro-image-preview",
+    "gemini-2.5-flash-image",
+    "gemini-2.0-flash-preview-image-generation",
+  ];
   for (const model of models) {
     if (images.length > 0) break;
     try {
@@ -147,9 +152,13 @@ export async function POST(req: NextRequest) {
   let images: Array<{ mimeType: string; data: string }> = [];
   const errors: string[] = [];
 
-  // 1) Gemini Flash Image أولاً دائماً (مجاني في Free Tier — نموذج nano-banana)
-  const key = process.env.GEMINI_API_KEY;
-  if (key) {
+  // 1) المفتاح المدفوع أولاً (Nano Banana Pro) ثم المفتاح العادي
+  const keys = [process.env.VEO_API_KEY, process.env.GEMINI_API_KEY].filter(
+    (k, i, arr) => k && arr.indexOf(k) === i
+  ) as string[];
+
+  for (const key of keys) {
+    if (images.length > 0) break;
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       images = await geminiFlashImage(ai, enhancedPrompt, body.refImages ?? []);

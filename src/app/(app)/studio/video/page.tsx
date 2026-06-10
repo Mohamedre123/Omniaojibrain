@@ -1,157 +1,265 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Film, Sparkles, Loader2, Copy, Info, ExternalLink } from "lucide-react";
+import {
+  Film, Loader2, Download, Sparkles, X, Paperclip, Clock, CheckCircle2,
+} from "lucide-react";
 
-const PLATFORMS = [
-  { name: "Veo (Google)", url: "https://aitestkitchen.withgoogle.com/tools/video-fx", free: false },
-  { name: "Runway Gen-3", url: "https://runwayml.com", free: false },
-  { name: "Kling AI", url: "https://kling.kuaishou.com", free: true },
-  { name: "Pika Labs", url: "https://pika.art", free: true },
-  { name: "Hailuo AI", url: "https://hailuoai.video", free: true },
-];
+type Phase = "idle" | "starting" | "generating" | "done" | "error";
 
-export default function VideoGenPage() {
-  const [scene, setScene] = useState("");
-  const [duration, setDuration] = useState("8s");
-  const [aspect, setAspect] = useState("9:16");
-  const [model, setModel] = useState("Veo");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState("");
+export default function VideoGeneratePage() {
+  const [prompt, setPrompt] = useState("");
+  const [aspect, setAspect] = useState<"16:9" | "9:16">("16:9");
+  const [model, setModel] = useState<"fast" | "quality">("fast");
+  const [refImage, setRefImage] = useState<{ data: string; mimeType: string; previewUrl: string } | null>(null);
+
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [elapsed, setElapsed] = useState(0);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  function handleFile(file: File | null) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("الصورة أكبر من 5MB"); return; }
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = reader.result as string;
+      setRefImage({
+        data: r.split(",")[1] || "",
+        mimeType: file.type,
+        previewUrl: URL.createObjectURL(file),
+      });
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function generate() {
-    if (!scene.trim()) { toast.error("اكتب وصف المشهد"); return; }
-    setLoading(true);
-    setResult("");
+    if (!prompt.trim()) { toast.error("اكتب وصف الفيديو"); return; }
 
-    const input = `**وصف المشهد**: ${scene}
-**النموذج**: ${model}
-**المدّة**: ${duration}
-**نسبة الأبعاد**: ${aspect}`;
+    setPhase("starting");
+    setVideoUrl("");
+    setErrorMsg("");
+    setElapsed(0);
 
     try {
-      const res = await fetch("/api/generator", {
+      const res = await fetch("/api/video-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool: "video_prompt_advanced", input }),
+        body: JSON.stringify({
+          prompt,
+          aspect,
+          model,
+          refImage: refImage ? { mimeType: refImage.mimeType, data: refImage.data } : undefined,
+        }),
       });
-
-      if (!res.ok || !res.body) { toast.error("حدثت مشكلة"); setLoading(false); return; }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let acc = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        acc += decoder.decode(value, { stream: true });
-        setResult(acc);
+      const data = await res.json();
+      if (!res.ok) {
+        setPhase("error");
+        setErrorMsg(data.error || "تعذّر بدء التوليد");
+        toast.error(data.error || "تعذّر بدء التوليد");
+        return;
       }
-    } catch { toast.error("تعذّر الاتصال"); }
-    finally { setLoading(false); }
+
+      const opName = data.operationName;
+      setPhase("generating");
+      toast.success("بدأ التوليد — عادةً ياخد من دقيقة لـ 3 دقايق");
+
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+
+      pollRef.current = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/video-generate?op=${encodeURIComponent(opName)}`);
+          const pollData = await pollRes.json();
+
+          if (pollData.error && pollData.done !== false) {
+            stopTimers();
+            setPhase("error");
+            setErrorMsg(pollData.error);
+            toast.error(pollData.error);
+            return;
+          }
+
+          if (pollData.done && pollData.videoUri) {
+            stopTimers();
+            setVideoUrl(`/api/video-generate?download=${encodeURIComponent(pollData.videoUri)}`);
+            setPhase("done");
+            toast.success("🎬 الفيديو جاهز!");
+          }
+        } catch {
+          // تجاهل أخطاء polling مؤقتة
+        }
+      }, 10_000);
+    } catch {
+      setPhase("error");
+      setErrorMsg("تعذّر الاتصال");
+      toast.error("تعذّر الاتصال");
+    }
   }
 
-  function copy() {
-    navigator.clipboard.writeText(result);
-    toast.success("تمّ النسخ");
+  function stopTimers() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
+
+  function formatTime(s: number) {
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }
+
+  const busy = phase === "starting" || phase === "generating";
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Film className="size-7 text-primary" />
-          توليد فيديو
+          توليد فيديو — Veo 3
         </h1>
         <p className="text-muted-foreground mt-2">
-          برومبتات احترافية لفيديوهات AI — استخدمها مع Veo / Runway / Kling
+          فيديو 8 ثوانٍ حقيقي بالصوت من وصفك — بأحدث نموذج من Google
         </p>
       </div>
 
-      <Card className="p-3 mb-4 bg-blue-50 dark:bg-blue-950/30 border-blue-300 flex items-start gap-2 text-sm">
-        <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
-        <div>
-          توليد الفيديو الفعلي محدود الوصول حالياً (Veo API). دلوقتي Oji يولّد لك **برومبت محترف** تستخدمه في الأدوات الجاهزة.
-        </div>
-      </Card>
-
       <Card className="p-5 space-y-4">
         <div>
-          <Label htmlFor="scene">وصف المشهد</Label>
+          <Label htmlFor="prompt">وصف الفيديو</Label>
           <Textarea
-            id="scene"
-            value={scene}
-            onChange={(e) => setScene(e.target.value)}
-            placeholder="مثلاً: كوب قهوة فوق طاولة خشبية، بخار صاعد ببطء، إضاءة دافئة..."
+            id="prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="مثلاً: لقطة سينمائية لكوب قهوة يتصاعد منه البخار على طاولة خشبية، إضاءة صباحية دافئة، حركة كاميرا بطيئة للأمام..."
             rows={4}
             className="mt-1"
+            disabled={busy}
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            💡 اكتب بالعربي أو الإنجليزي — اذكر الحركة، الإضاءة، وزاوية الكاميرا لنتيجة أفضل
+          </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <Label>المدّة</Label>
-            <select value={duration} onChange={(e) => setDuration(e.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
-              <option value="5s">5 ثوان</option>
-              <option value="8s">8 ثوان</option>
-              <option value="10s">10 ثوان</option>
-              <option value="16s">16 ثانية</option>
-            </select>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>الأبعاد</Label>
-            <select value={aspect} onChange={(e) => setAspect(e.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
-              <option value="9:16">9:16 (Story/Reel)</option>
-              <option value="16:9">16:9 (Widescreen)</option>
-              <option value="1:1">1:1 (Square)</option>
-            </select>
+            <div className="mt-1 flex gap-2">
+              <button
+                onClick={() => setAspect("16:9")}
+                disabled={busy}
+                className={`flex-1 p-2 rounded-md text-xs border transition-all ${aspect === "16:9" ? "bg-primary text-primary-foreground border-primary" : "hover:border-primary/40"}`}
+              >
+                🖥️ أفقي 16:9
+              </button>
+              <button
+                onClick={() => setAspect("9:16")}
+                disabled={busy}
+                className={`flex-1 p-2 rounded-md text-xs border transition-all ${aspect === "9:16" ? "bg-primary text-primary-foreground border-primary" : "hover:border-primary/40"}`}
+              >
+                📱 عمودي 9:16
+              </button>
+            </div>
           </div>
           <div>
-            <Label>النموذج</Label>
-            <select value={model} onChange={(e) => setModel(e.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
-              {PLATFORMS.map((p) => <option key={p.name}>{p.name}</option>)}
-            </select>
+            <Label>الجودة</Label>
+            <div className="mt-1 flex gap-2">
+              <button
+                onClick={() => setModel("fast")}
+                disabled={busy}
+                className={`flex-1 p-2 rounded-md text-xs border transition-all ${model === "fast" ? "bg-primary text-primary-foreground border-primary" : "hover:border-primary/40"}`}
+              >
+                ⚡ سريع (أرخص)
+              </button>
+              <button
+                onClick={() => setModel("quality")}
+                disabled={busy}
+                className={`flex-1 p-2 rounded-md text-xs border transition-all ${model === "quality" ? "bg-primary text-primary-foreground border-primary" : "hover:border-primary/40"}`}
+              >
+                💎 أعلى جودة
+              </button>
+            </div>
           </div>
         </div>
 
-        <Button onClick={generate} disabled={loading} variant="gradient" size="lg" className="w-full">
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          توليد البرومبت
-        </Button>
-      </Card>
-
-      {result && (
-        <Card className="p-5 mt-4">
-          <div className="flex justify-between items-center mb-3 pb-3 border-b">
-            <h3 className="font-semibold">البرومبت جاهز</h3>
-            <Button variant="outline" size="sm" onClick={copy}><Copy className="size-3" /> نسخ</Button>
-          </div>
-          <pre className="text-sm whitespace-pre-wrap font-mono bg-muted/50 p-4 rounded-md max-h-96 overflow-y-auto" dir="ltr">{result}</pre>
-
-          <div className="mt-4 border-t pt-4">
-            <p className="text-sm font-medium mb-2">جرّبه في:</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {PLATFORMS.map((p) => (
-                <a
-                  key={p.name}
-                  href={p.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between p-2 rounded-md border hover:border-primary text-sm"
-                >
-                  <span>{p.name}</span>
-                  {p.free && <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-1.5 rounded">مجاني</span>}
-                  <ExternalLink className="size-3" />
-                </a>
-              ))}
+        <div>
+          <Label>صورة بداية (اختياري — Image to Video)</Label>
+          {refImage ? (
+            <div className="relative inline-block mt-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={refImage.previewUrl} alt="ref" className="max-h-40 rounded-lg border" />
+              <button
+                onClick={() => setRefImage(null)}
+                disabled={busy}
+                className="absolute top-1 right-1 size-6 rounded-full bg-destructive text-white grid place-items-center"
+              >
+                <X className="size-3" />
+              </button>
             </div>
-          </div>
-        </Card>
-      )}
+          ) : (
+            <label className={`mt-1 block border-2 border-dashed rounded-lg p-6 text-center ${busy ? "opacity-50" : "cursor-pointer hover:border-primary"}`}>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => handleFile(e.target.files?.[0] || null)}
+              />
+              <Paperclip className="size-6 mx-auto text-muted-foreground mb-1" />
+              <p className="text-xs text-muted-foreground">ارفع صورة ليتحرّك منها الفيديو</p>
+            </label>
+          )}
+        </div>
+
+        <Button onClick={generate} disabled={busy} variant="gradient" size="lg" className="w-full">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+          {phase === "starting" ? "جاري البدء..." : phase === "generating" ? `جاري التوليد... ${formatTime(elapsed)}` : "توليد الفيديو"}
+        </Button>
+
+        {phase === "generating" && (
+          <Card className="p-4 bg-primary/5 border-primary/30 flex items-center gap-3">
+            <Clock className="size-5 text-primary shrink-0 animate-pulse" />
+            <div className="text-sm">
+              <p className="font-medium">Veo 3 يصنع فيديوك الآن...</p>
+              <p className="text-xs text-muted-foreground">عادةً من دقيقة إلى 3 دقايق — اترك الصفحة مفتوحة</p>
+            </div>
+          </Card>
+        )}
+
+        {phase === "error" && errorMsg && (
+          <Card className="p-4 bg-destructive/5 border-destructive/30 text-sm text-destructive">
+            {errorMsg}
+          </Card>
+        )}
+
+        {phase === "done" && videoUrl && (
+          <Card className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="size-5" /> فيديوك جاهز!
+            </div>
+            <video src={videoUrl} controls autoPlay loop className="w-full rounded-lg" />
+            <div className="flex justify-end">
+              <a
+                href={videoUrl}
+                download={`oji-video-${Date.now()}.mp4`}
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+              >
+                <Download className="size-4" /> تنزيل MP4
+              </a>
+            </div>
+          </Card>
+        )}
+      </Card>
     </div>
   );
 }
