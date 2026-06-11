@@ -28,6 +28,7 @@ type Tab = "generate" | "edit" | "resize";
 
 const ASPECTS = [
   { label: "مربّع 1:1 (Post)", value: "1:1", w: 1080, h: 1080 },
+  { label: "Portrait 4:5 (Insta)", value: "4:5", w: 1080, h: 1350 },
   { label: "Story 9:16", value: "9:16", w: 1080, h: 1920 },
   { label: "Reel 9:16", value: "9:16-reel", w: 1080, h: 1920 },
   { label: "أفقي 16:9", value: "16:9", w: 1920, h: 1080 },

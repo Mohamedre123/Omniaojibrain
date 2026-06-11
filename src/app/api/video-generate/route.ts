@@ -20,7 +20,12 @@ const startSchema = z.object({
 });
 
 function getKey(): string | null {
-  return process.env.VEO_API_KEY || process.env.GEMINI_API_KEY || null;
+  // فلتر صارم: مفاتيح Google لازم تبدأ بـ AIza — أي قيمة تانية تتجاهل
+  const candidates = [process.env.VEO_API_KEY, process.env.GEMINI_API_KEY];
+  for (const k of candidates) {
+    if (k && k.startsWith("AIza")) return k;
+  }
+  return null;
 }
 
 /** POST: يبدأ توليد الفيديو ويرجع اسم العملية */

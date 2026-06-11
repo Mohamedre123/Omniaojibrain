@@ -33,6 +33,8 @@ function aspectToSize(aspect?: string): { w: number; h: number } {
       return { w: 1792, h: 1024 };
     case "2:3":
       return { w: 1024, h: 1536 };
+    case "4:5":
+      return { w: 1024, h: 1280 };
     case "fb-cover":
       return { w: 1792, h: 768 };
     default:
@@ -153,9 +155,10 @@ export async function POST(req: NextRequest) {
   const errors: string[] = [];
 
   // 1) المفتاح المدفوع أولاً (Nano Banana Pro) ثم المفتاح العادي
+  // فلتر صارم: مفاتيح Google لازم تبدأ بـ AIza — أي قيمة تانية (OAuth tokens) تتجاهل
   const keys = [process.env.VEO_API_KEY, process.env.GEMINI_API_KEY].filter(
-    (k, i, arr) => k && arr.indexOf(k) === i
-  ) as string[];
+    (k, i, arr): k is string => !!k && k.startsWith("AIza") && arr.indexOf(k) === i
+  );
 
   for (const key of keys) {
     if (images.length > 0) break;
