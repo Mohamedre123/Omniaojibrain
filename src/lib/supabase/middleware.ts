@@ -40,11 +40,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  // ملاحظة: /verify-otp مش هنا عمداً — لازم تفتح حتى لو فيه جلسة قديمة
+  // (الصفحة نفسها بتتعامل مع الجلسات القديمة وبتسجّل خروج صامت لو لازم)
   const isAuthPage =
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/verify-otp");
+    pathname.startsWith("/forgot-password");
   const isProtected =
     pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
 

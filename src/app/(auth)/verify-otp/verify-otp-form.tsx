@@ -26,54 +26,79 @@ export function VerifyOtpForm() {
     return () => clearInterval(t);
   }, [cooldown]);
 
-  // قراءة الجلسة كلَّ 3 ثوانٍ — لاكتشاف التفعيل تلقائياً
+  // اكتشاف التفعيل تلقائياً — بتحقّق حقيقي من السيرفر (مش كوكيز قديمة)
   useEffect(() => {
     if (!email || verified) return;
     const supabase = createClient();
+    let cancelled = false;
 
-    async function check() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user.email?.toLowerCase() === email.toLowerCase()) {
-        setVerified(true);
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        toast.success("تمّ تفعيل الحساب 🎉");
-        setTimeout(() => {
-          router.push("/dashboard");
-          router.refresh();
-        }, 1200);
-      }
+    function confirmAndGo() {
+      if (cancelled) return;
+      setVerified(true);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      toast.success("تمّ تفعيل الحساب 🎉");
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh();
+      }, 1000);
     }
 
-    // فحص فوري
-    void check();
+    async function init() {
+      // 🧹 أولاً: لو فيه جلسة قديمة محفوظة في المتصفح، تحقّق منها من السيرفر
+      const { data: { user }, error } = await supabase.auth.getUser();
 
-    // فحص دوري
-    pollIntervalRef.current = setInterval(check, 3000);
+      if (user && !error) {
+        if (user.email?.toLowerCase() === email.toLowerCase() && user.email_confirmed_at) {
+          // جلسة حقيقية لنفس الإيميل ومفعّلة → كمّل
+          confirmAndGo();
+          return;
+        }
+        // جلسة لحساب مختلف → سجّل خروج صامت عشان متلخبطش الصفحة
+        if (user.email?.toLowerCase() !== email.toLowerCase()) {
+          await supabase.auth.signOut().catch(() => {});
+        }
+      } else if (error) {
+        // كوكيز بايظة/جلسة منتهية → نضّفها
+        await supabase.auth.signOut().catch(() => {});
+      }
 
-    // الاستماع لتغيّر الجلسة في تابات أخرى (لو فتح اللينك في تاب جديد)
+      // فحص دوري بتحقّق سيرفر فعلي (يكتشف لو ضغط لينك التفعيل في تاب تاني)
+      pollIntervalRef.current = setInterval(async () => {
+        const { data: { user: u }, error: e } = await supabase.auth.getUser();
+        if (
+          u && !e &&
+          u.email?.toLowerCase() === email.toLowerCase() &&
+          u.email_confirmed_at
+        ) {
+          confirmAndGo();
+        }
+      }, 4000);
+    }
+
+    void init();
+
+    // الاستماع لدخول حقيقي بنفس الإيميل فقط
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        setVerified(true);
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        toast.success("تمّ تفعيل الحساب 🎉");
-        setTimeout(() => {
-          router.push("/dashboard");
-          router.refresh();
-        }, 1200);
+      if (
+        event === "SIGNED_IN" &&
+        session?.user.email?.toLowerCase() === email.toLowerCase()
+      ) {
+        confirmAndGo();
       }
     });
 
     return () => {
+      cancelled = true;
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       subscription.unsubscribe();
     };
   }, [email, verified, router]);
 
-  /** تأكيد بكود 6 أرقام — مثالي للموبايل (تكتبه في متصفحك الأساسي) */
+  /** تأكيد بكود الأرقام — مثالي للموبايل (تكتبه في متصفحك الأساسي) */
   async function submitCode() {
     const token = code.replace(/\D/g, "");
-    if (token.length !== 6) {
-      toast.error("الكود 6 أرقام");
+    if (token.length < 6 || token.length > 10) {
+      toast.error("اكتب الرمز كاملاً كما في الرسالة");
       return;
     }
     setSubmitting(true);
@@ -165,7 +190,7 @@ export function VerifyOtpForm() {
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={6}
+            maxLength={10}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             onKeyDown={(e) => { if (e.key === "Enter") void submitCode(); }}
@@ -173,7 +198,7 @@ export function VerifyOtpForm() {
             className="flex-1 h-12 text-center text-2xl font-bold tracking-[0.5em] rounded-lg border border-input bg-background focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             disabled={submitting}
           />
-          <Button onClick={submitCode} disabled={submitting || code.length !== 6} variant="gradient" className="h-12 px-6">
+          <Button onClick={submitCode} disabled={submitting || code.length < 6} variant="gradient" className="h-12 px-6">
             {submitting ? <Loader2 className="size-4 animate-spin" /> : "تأكيد"}
           </Button>
         </div>
