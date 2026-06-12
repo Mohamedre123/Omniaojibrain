@@ -286,7 +286,7 @@ function GenerateTab() {
 
       <Button onClick={generate} disabled={loading} variant="gradient" size="lg" className="w-full">
         {loading ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
-        {loading ? "جاري التوليد... (قد يستغرق 20 ثانية)" : "توليد الصورة"}
+        {loading ? "جاري التوليد بـ Nano Banana Pro... (حتى 3 دقايق للجودة العالية)" : "توليد الصورة"}
       </Button>
 
       <ImageResults images={images} />

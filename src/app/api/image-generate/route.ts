@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Vercel Fluid Compute يسمح حتى 300 ثانية — Nano Banana Pro بياخد وقت مع الصور المرجعية
+export const maxDuration = 300;
 
 const GL_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -69,7 +70,8 @@ async function generateImageREST(
   parts.push({ text: prompt });
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 50_000);
+  // Pro بياخد وقت طويل خصوصاً مع صور مرجعية — 240 ثانية حد أقصى
+  const timer = setTimeout(() => controller.abort(), 240_000);
 
   try {
     const res = await fetch(`${GL_BASE}/models/${model}:generateContent`, {
@@ -140,7 +142,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "مفتاح Gemini غير مضبوط في الخادم" }, { status: 500 });
   }
 
-  const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}`;
+  const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}\n\nIMPORTANT: You MUST generate and output an actual IMAGE. Do not respond with text only.`;
 
   const errors: string[] = [];
 
