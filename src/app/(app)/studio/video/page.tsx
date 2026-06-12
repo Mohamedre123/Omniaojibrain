@@ -7,10 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Film, Loader2, Download, Sparkles, X, Paperclip, Clock, CheckCircle2,
+  Film, Loader2, Download, Sparkles, X, Paperclip, Clock, CheckCircle2, FolderOpen,
 } from "lucide-react";
+import Link from "next/link";
+import { saveVideoToLibrary } from "@/lib/media-library";
 
 type Phase = "idle" | "starting" | "generating" | "done" | "error";
+
+function handle401(res: Response): boolean {
+  if (res.status === 401) {
+    toast.error("انتهت جلستك — جاري تحويلك لتسجيل الدخول");
+    setTimeout(() => { window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname); }, 1200);
+    return true;
+  }
+  return false;
+}
 
 export default function VideoGeneratePage() {
   const [prompt, setPrompt] = useState("");
@@ -67,6 +78,7 @@ export default function VideoGeneratePage() {
           refImage: refImage ? { mimeType: refImage.mimeType, data: refImage.data } : undefined,
         }),
       });
+      if (handle401(res)) { setPhase("idle"); return; }
       const data = await res.json();
       if (!res.ok) {
         setPhase("error");
@@ -96,9 +108,23 @@ export default function VideoGeneratePage() {
 
           if (pollData.done && pollData.videoUri) {
             stopTimers();
-            setVideoUrl(`/api/video-generate?download=${encodeURIComponent(pollData.videoUri)}`);
+            const proxyUrl = `/api/video-generate?download=${encodeURIComponent(pollData.videoUri)}`;
+            setVideoUrl(proxyUrl);
             setPhase("done");
             toast.success("🎬 الفيديو جاهز!");
+            // 💾 حفظ تلقائي في ملفاتي — مش هيضيع بعد الريفرش
+            void fetch(proxyUrl)
+              .then((r) => (r.ok ? r.blob() : null))
+              .then((blob) => {
+                if (blob && blob.size > 1000) {
+                  return saveVideoToLibrary(blob);
+                }
+                return false;
+              })
+              .then((ok) => {
+                if (ok) toast.success("اتحفظ في 📁 ملفاتي تلقائياً", { id: "autosave-vid" });
+              })
+              .catch(() => {});
           }
         } catch {
           // تجاهل أخطاء polling مؤقتة
@@ -248,7 +274,10 @@ export default function VideoGeneratePage() {
               <CheckCircle2 className="size-5" /> فيديوك جاهز!
             </div>
             <video src={videoUrl} controls autoPlay loop className="w-full rounded-lg" />
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <Link href="/studio/library" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary">
+                <FolderOpen className="size-4" /> اتحفظ في ملفاتي
+              </Link>
               <a
                 href={videoUrl}
                 download={`oji-video-${Date.now()}.mp4`}

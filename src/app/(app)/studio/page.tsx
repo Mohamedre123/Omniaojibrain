@@ -21,8 +21,19 @@ import {
   Film,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { saveImageToLibrary } from "@/lib/media-library";
 
 type GeneratedImage = { mimeType: string; data: string };
+
+/** معالجة انتهاء الجلسة — توجيه فوري لتسجيل الدخول */
+function handle401(res: Response): boolean {
+  if (res.status === 401) {
+    toast.error("انتهت جلستك — جاري تحويلك لتسجيل الدخول");
+    setTimeout(() => { window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname); }, 1200);
+    return true;
+  }
+  return false;
+}
 
 type Tab = "generate" | "edit" | "resize";
 
@@ -69,8 +80,19 @@ export default function StudioPage() {
               <Film className="size-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm">توليد فيديو</h3>
-              <p className="text-xs text-muted-foreground">برومبتات Veo/Runway/Kling</p>
+              <h3 className="font-semibold text-sm">توليد فيديو — Veo 3</h3>
+              <p className="text-xs text-muted-foreground">فيديو حقيقي 8 ثوانٍ بالصوت</p>
+            </div>
+          </Card>
+        </Link>
+        <Link href="/studio/library" className="md:col-span-2">
+          <Card className="p-4 hover:border-primary transition-all cursor-pointer flex items-center gap-3 border-primary/30 bg-primary/5">
+            <div className="size-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 grid place-items-center text-white">
+              <Download className="size-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">📁 ملفاتي — كل توليداتك محفوظة هنا</h3>
+              <p className="text-xs text-muted-foreground">الصور والفيديوهات بتتحفظ تلقائياً — مفيش حاجة بتضيع بعد الريفرش</p>
             </div>
           </Card>
         </Link>
@@ -191,6 +213,7 @@ function GenerateTab() {
           refImages: refImages.length > 0 ? refImages.map(r => ({ mimeType: r.mimeType, data: r.data })) : undefined,
         }),
       });
+      if (handle401(res)) return;
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "تعذّر التوليد");
@@ -198,6 +221,12 @@ function GenerateTab() {
       }
       setImages(data.images || []);
       toast.success(`تمّ توليد ${data.images?.length || 0} صورة`);
+      // 💾 حفظ تلقائي في ملفاتي — مش هتضيع بعد الريفرش
+      for (const img of data.images || []) {
+        void saveImageToLibrary(img.data, img.mimeType).then((ok) => {
+          if (ok) toast.success("اتحفظت في 📁 ملفاتي تلقائياً", { id: "autosave" });
+        });
+      }
     } catch {
       toast.error("تعذّر الاتصال");
     } finally {
@@ -342,12 +371,19 @@ function EditTab() {
           refImages: [{ mimeType: refImage.mimeType, data: refImage.data }],
         }),
       });
+      if (handle401(res)) return;
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "تعذّر التعديل");
         return;
       }
       setImages(data.images || []);
+      // 💾 حفظ تلقائي
+      for (const img of data.images || []) {
+        void saveImageToLibrary(img.data, img.mimeType).then((ok) => {
+          if (ok) toast.success("اتحفظت في 📁 ملفاتي تلقائياً", { id: "autosave" });
+        });
+      }
     } catch {
       toast.error("تعذّر الاتصال");
     } finally {

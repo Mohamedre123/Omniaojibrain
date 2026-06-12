@@ -15,6 +15,8 @@ export function VerifyOtpForm() {
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(60);
   const [verified, setVerified] = useState(false);
+  const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // عدّاد إعادة الإرسال
@@ -66,6 +68,35 @@ export function VerifyOtpForm() {
       subscription.unsubscribe();
     };
   }, [email, verified, router]);
+
+  /** تأكيد بكود 6 أرقام — مثالي للموبايل (تكتبه في متصفحك الأساسي) */
+  async function submitCode() {
+    const token = code.replace(/\D/g, "");
+    if (token.length !== 6) {
+      toast.error("الكود 6 أرقام");
+      return;
+    }
+    setSubmitting(true);
+    const supabase = createClient();
+    const types = ["signup", "email"] as const;
+    let lastError = "";
+    for (const type of types) {
+      const { error } = await supabase.auth.verifyOtp({ email, token, type });
+      if (!error) {
+        setVerified(true);
+        toast.success("تمّ تفعيل الحساب 🎉");
+        setTimeout(() => {
+          router.push("/dashboard");
+          router.refresh();
+        }, 1000);
+        setSubmitting(false);
+        return;
+      }
+      lastError = error.message;
+    }
+    setSubmitting(false);
+    toast.error("الكود غير صحيح أو منتهي", { description: lastError });
+  }
 
   async function resendEmail() {
     if (!email || resending || cooldown > 0) return;
@@ -126,23 +157,40 @@ export function VerifyOtpForm() {
         <p className="font-medium mt-1 break-all">{email}</p>
       </div>
 
+      {/* الطريقة 1: كود 6 أرقام — الأفضل للموبايل */}
       <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
-        <div className="flex items-start gap-3">
-          <div className="size-8 rounded-full bg-primary/20 text-primary grid place-items-center shrink-0">
-            <ExternalLink className="size-4" />
-          </div>
-          <div className="text-sm">
-            <p className="font-semibold">افتح بريدك واضغط على رابط التفعيل</p>
-            <p className="text-muted-foreground text-xs mt-1">
-              سنُنقلك تلقائياً للداشبورد بمجرّد التفعيل.
-            </p>
-          </div>
+        <p className="font-semibold text-sm text-center">✍️ اكتب الكود المكوّن من 6 أرقام الموجود في الرسالة</p>
+        <div className="flex gap-2" dir="ltr">
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => { if (e.key === "Enter") void submitCode(); }}
+            placeholder="123456"
+            className="flex-1 h-12 text-center text-2xl font-bold tracking-[0.5em] rounded-lg border border-input bg-background focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            disabled={submitting}
+          />
+          <Button onClick={submitCode} disabled={submitting || code.length !== 6} variant="gradient" className="h-12 px-6">
+            {submitting ? <Loader2 className="size-4 animate-spin" /> : "تأكيد"}
+          </Button>
         </div>
+        <p className="text-xs text-muted-foreground text-center">
+          💡 على الموبايل؟ اقرأ الكود من الإيميل وارجع هنا واكتبه — هتسجّل دخول في متصفحك مباشرة
+        </p>
       </div>
 
-      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-3">
-        <Loader2 className="size-4 animate-spin" />
-        <span>بانتظار التفعيل...</span>
+      {/* الطريقة 2: الرابط */}
+      <div className="rounded-lg border bg-muted/30 p-3 flex items-start gap-3">
+        <div className="size-7 rounded-full bg-primary/15 text-primary grid place-items-center shrink-0">
+          <ExternalLink className="size-3.5" />
+        </div>
+        <div className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">أو اضغط رابط التفعيل في الرسالة</span> — سنكتشف التفعيل تلقائياً وننقلك للداشبورد.
+        </div>
+        <Loader2 className="size-3.5 animate-spin shrink-0 mt-1" />
       </div>
 
       <div className="border-t pt-4 space-y-3">

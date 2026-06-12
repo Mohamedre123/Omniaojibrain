@@ -112,6 +112,13 @@ export function ChatPanel({
         signal: controller.signal,
       });
 
+      if (res.status === 401) {
+        toast.error("انتهت جلستك — جاري تحويلك لتسجيل الدخول");
+        setTimeout(() => { window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname); }, 1200);
+        setStreaming(false);
+        setStreamingForConvo(null);
+        return;
+      }
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({ error: "حدثت مشكلة" }));
         toast.error(err.error ?? "حدثت مشكلة");
