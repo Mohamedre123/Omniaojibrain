@@ -24,6 +24,7 @@ export default async function DashboardPage() {
   const { data: projects } = await supabase
     .from("projects")
     .select("*")
+    .neq("business_type", "assistant")
     .order("updated_at", { ascending: false });
 
   const { data: profile } = await supabase

@@ -313,10 +313,17 @@ function GenerateTab() {
         <span>استخدم ألوان وهوية علامتي في التوليد</span>
       </label>
 
-      <Button onClick={generate} disabled={loading} variant="gradient" size="lg" className="w-full">
-        {loading ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
-        {loading ? "جاري التوليد بـ Nano Banana Pro... (حتى 3 دقايق للجودة العالية)" : "توليد الصورة"}
-      </Button>
+      <div className="space-y-2">
+        <Button onClick={generate} disabled={loading} variant="gradient" size="lg" className="w-full">
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
+          {loading ? "جارٍ التوليد…" : "توليد الصورة"}
+        </Button>
+        {loading && (
+          <p className="text-xs text-center text-muted-foreground leading-relaxed">
+            🍌 نولّد بـ Nano Banana Pro — قد يستغرق حتى 3 دقائق للجودة العالية، يُرجى الانتظار.
+          </p>
+        )}
+      </div>
 
       <ImageResults images={images} />
     </div>

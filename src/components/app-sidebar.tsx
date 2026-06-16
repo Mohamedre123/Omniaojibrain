@@ -19,10 +19,12 @@ import {
   Menu,
   X,
   Brain,
+  MessageSquare,
 } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard", label: "المشاريع", icon: LayoutDashboard, color: "text-blue-500" },
+  { href: "/assistant", label: "المساعد العام", icon: MessageSquare, color: "text-violet-500" },
   { href: "/studio", label: "الاستوديو", icon: ImageIcon, color: "text-rose-500" },
   { href: "/calendar", label: "التقويم", icon: Calendar, color: "text-emerald-500" },
   { href: "/marketing", label: "التسويق", icon: Megaphone, color: "text-orange-500" },
