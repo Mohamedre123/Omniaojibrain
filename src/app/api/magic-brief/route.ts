@@ -69,6 +69,58 @@ function extractMeta(html: string): Record<string, string> {
   return meta;
 }
 
+function resolveUrl(src: string, base: string): string | null {
+  try { return new URL(src, base).href; } catch { return null; }
+}
+
+/** يحاول إيجاد رابط شعار الموقع (أفضل مرشّح) */
+function extractLogoUrl(html: string, baseUrl: string, meta: Record<string, string>): string | null {
+  const hrefOf = (tag: string) => tag.match(/href\s*=\s*["']([^"']+)["']/i)?.[1];
+  const srcOf = (tag: string) => tag.match(/src\s*=\s*["']([^"']+)["']/i)?.[1];
+
+  // 1) صورة فيها كلمة logo (الأرجح إنها الشعار)
+  const imgRe = /<img[^>]+>/gi;
+  let im: RegExpExecArray | null;
+  while ((im = imgRe.exec(html)) !== null) {
+    if (/logo/i.test(im[0])) {
+      const s = srcOf(im[0]);
+      const r = s && resolveUrl(s, baseUrl);
+      if (r) return r;
+    }
+  }
+  // 2) apple-touch-icon (عادةً أيقونة العلامة بدقّة جيدة)
+  const apple = html.match(/<link[^>]+rel\s*=\s*["'][^"']*apple-touch-icon[^"']*["'][^>]*>/i);
+  if (apple) { const h = hrefOf(apple[0]); const r = h && resolveUrl(h, baseUrl); if (r) return r; }
+  // 3) og:image
+  if (meta["og:image"]) { const r = resolveUrl(meta["og:image"], baseUrl); if (r) return r; }
+  // 4) favicon
+  const icon = html.match(/<link[^>]+rel\s*=\s*["'][^"']*icon[^"']*["'][^>]*>/i);
+  if (icon) { const h = hrefOf(icon[0]); const r = h && resolveUrl(h, baseUrl); if (r) return r; }
+  return null;
+}
+
+/** ينزّل صورة ويحوّلها base64 (من السيرفر — يتفادى CORS) */
+async function fetchImageAsBase64(url: string): Promise<{ data: string; mime: string } | null> {
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 8000);
+    const r = await fetch(url, {
+      signal: c.signal,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; OjiBrain/1.0; +https://oji.agency)" },
+      redirect: "follow",
+    });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    const ct = (r.headers.get("content-type") || "").split(";")[0];
+    if (!ct.startsWith("image/")) return null;
+    const ab = await r.arrayBuffer();
+    if (ab.byteLength > 3 * 1024 * 1024 || ab.byteLength < 100) return null;
+    return { data: Buffer.from(ab).toString("base64"), mime: ct };
+  } catch {
+    return null;
+  }
+}
+
 /** يستخرج أكثر ألوان HEX تكراراً من كود الصفحة (تقريبٌ لهوية اللون) */
 function extractBrandColors(html: string): string[] {
   const counts: Record<string, number> = {};
@@ -242,7 +294,18 @@ export async function POST(req: NextRequest) {
     const m = response.match(/\{[\s\S]*\}/);
     if (!m) return NextResponse.json({ error: "تعذّر تحليلُ المحتوى" }, { status: 500 });
     const data = JSON.parse(m[0]);
-    return NextResponse.json({ ...data, source_type: detected.type });
+
+    // 🖼️ حاول جلب الشعار كمرجعٍ للألوان
+    const logoUrl = extractLogoUrl(html, detected.fetchUrl, meta);
+    const logo = logoUrl ? await fetchImageAsBase64(logoUrl) : null;
+
+    return NextResponse.json({
+      ...data,
+      source_type: detected.type,
+      logo_url: logoUrl ?? undefined,
+      logo_base64: logo?.data,
+      logo_mime: logo?.mime,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "حدثت مشكلة";
     return NextResponse.json({ error: msg }, { status: 500 });

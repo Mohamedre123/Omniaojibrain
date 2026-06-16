@@ -82,9 +82,27 @@ export function NewProjectDialog({ children }: { children?: React.ReactNode }) {
           if (data.brand_name) patch.brand_name = data.brand_name;
           if (data.tone) patch.brand_voice = data.tone;
           if (colors.length > 0) patch.brand_colors = colors;
+
+          // 🖼️ ارفع الشعار للتخزين واحفظ رابطه — يُستخدم كمرجع ألوان في الاستوديو
+          if (data.logo_base64 && typeof data.logo_mime === "string" && data.logo_mime.startsWith("image/")) {
+            try {
+              const ext = data.logo_mime.includes("png") ? "png" : data.logo_mime.includes("svg") ? "svg" : data.logo_mime.includes("webp") ? "webp" : "jpg";
+              const path = `${user.id}/brand/logo-${Date.now()}.${ext}`;
+              const bytes = Uint8Array.from(atob(data.logo_base64), (c) => c.charCodeAt(0));
+              const blob = new Blob([bytes], { type: data.logo_mime });
+              const { error: logoErr } = await supabase.storage.from("uploads").upload(path, blob, { contentType: data.logo_mime, upsert: true });
+              if (!logoErr) {
+                const { data: signed } = await supabase.storage.from("uploads").createSignedUrl(path, 31536000);
+                if (signed?.signedUrl) patch.brand_logo_url = signed.signedUrl;
+              }
+            } catch {
+              // تجاهل — الشعار اختياري
+            }
+          }
+
           if (Object.keys(patch).length > 0) {
             const { error: upErr } = await supabase.from("profiles").update(patch).eq("id", user.id);
-            savedIdentity = !upErr && colors.length > 0;
+            savedIdentity = !upErr && (colors.length > 0 || !!patch.brand_logo_url);
           }
         }
       } catch {

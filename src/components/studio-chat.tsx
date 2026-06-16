@@ -106,6 +106,7 @@ export function StudioChat() {
   const messages = threads[mode];
 
   const lastImageRef = useRef<{ data?: string; mimeType: string; path?: string } | null>(null);
+  const brandLogoCache = useRef<{ url: string; logo: { data: string; mimeType: string } | null } | null>(null);
   const convoIds = useRef<{ image: string; video: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -161,26 +162,59 @@ export function StudioChat() {
     reader.readAsDataURL(file);
   }
 
-  async function getBrandContext(): Promise<string> {
-    if (!useBrand) return "";
+  async function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(((reader.result as string) || "").split(",")[1] || "");
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function getBrandIdentity(): Promise<{ text: string; logo: { data: string; mimeType: string } | null }> {
+    if (!useBrand) return { text: "", logo: null };
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return "";
+      if (!user) return { text: "", logo: null };
       const { data: profile } = await supabase
         .from("profiles")
-        .select("brand_voice, brand_name, brand_colors")
+        .select("brand_voice, brand_name, brand_colors, brand_logo_url")
         .eq("id", user.id)
         .maybeSingle();
-      if (!profile) return "";
+      if (!profile) return { text: "", logo: null };
       const colors = (profile.brand_colors as string[]) || [];
-      return [
+      const text = [
         profile.brand_name && `Brand: ${profile.brand_name}`,
         profile.brand_voice && `Voice: ${profile.brand_voice}`,
         colors.length > 0 && `Brand colors (use exactly): ${colors.join(", ")}`,
       ].filter(Boolean).join(". ");
+
+      // الشعار كمرجع ألوان (مع كاش)
+      let logo: { data: string; mimeType: string } | null = null;
+      const url = profile.brand_logo_url as string | null;
+      if (url) {
+        if (brandLogoCache.current?.url === url) {
+          logo = brandLogoCache.current.logo;
+        } else {
+          try {
+            const r = await fetch(url);
+            if (r.ok) {
+              const blob = await r.blob();
+              if (blob.type.startsWith("image/") && blob.size < 4 * 1024 * 1024) {
+                const data = await blobToBase64(blob);
+                if (data) logo = { data, mimeType: blob.type };
+              }
+            }
+          } catch {
+            // تجاهل
+          }
+          brandLogoCache.current = { url, logo };
+        }
+      }
+      return { text, logo };
     } catch {
-      return "";
+      return { text: "", logo: null };
     }
   }
 
@@ -215,7 +249,8 @@ export function StudioChat() {
 
   async function runImage(text: string, userText: string, assistantId: string, attachedRef: RefImg | null) {
     try {
-      const brandContext = await getBrandContext();
+      const brand = await getBrandIdentity();
+      const brandContext = brand.text;
 
       // حل الصورة المرجعية للتعديل: المرفق، أو آخر صورة (ننزّلها base64 لو لازم)
       let refData: { mimeType: string; data: string } | null = null;
@@ -242,7 +277,16 @@ export function StudioChat() {
         ? " IMPORTANT: A reference image is attached — keep the product/subject identity (logo, packaging, shape) 100% identical; only build the requested scene around it."
         : "";
 
-      const fullPrompt = `${text}.${editNote} Aspect ratio: ${imgAspect}.`;
+      // الصور المرجعية: (المرجع/آخر صورة) + الشعار كمرجع ألوان للتوليد الجديد فقط
+      const refImages: Array<{ mimeType: string; data: string }> = [];
+      if (refData) refImages.push(refData);
+      let logoNote = "";
+      if (brand.logo && !attachedRef && !editing && refImages.length < 3) {
+        refImages.push({ mimeType: brand.logo.mimeType, data: brand.logo.data });
+        logoNote = " A brand LOGO image is also attached ONLY as a color & style reference — match the brand's exact color palette and visual identity from it. Do NOT draw or include the logo itself in the output unless explicitly requested.";
+      }
+
+      const fullPrompt = `${text}.${editNote}${logoNote} Aspect ratio: ${imgAspect}.`;
 
       const res = await fetch("/api/image-generate", {
         method: "POST",
@@ -251,7 +295,7 @@ export function StudioChat() {
           prompt: fullPrompt,
           brandContext: brandContext || undefined,
           aspect: imgAspect,
-          refImages: refData ? [refData] : undefined,
+          refImages: refImages.length > 0 ? refImages : undefined,
         }),
       });
       if (handle401(res)) { setBusy(false); return; }
