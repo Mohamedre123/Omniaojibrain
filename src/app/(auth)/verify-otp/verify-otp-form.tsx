@@ -185,7 +185,7 @@ export function VerifyOtpForm() {
       {/* الطريقة 1: كود 6 أرقام — الأفضل للموبايل */}
       <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
         <p className="font-semibold text-sm text-center">✍️ اكتب الكود المكوّن من 6 أرقام الموجود في الرسالة</p>
-        <div className="flex gap-2" dir="ltr">
+        <div className="space-y-2.5">
           <input
             type="text"
             inputMode="numeric"
@@ -194,12 +194,13 @@ export function VerifyOtpForm() {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             onKeyDown={(e) => { if (e.key === "Enter") void submitCode(); }}
-            placeholder="123456"
-            className="flex-1 h-12 text-center text-2xl font-bold tracking-[0.5em] rounded-lg border border-input bg-background focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            placeholder="______"
+            dir="ltr"
+            className="w-full h-14 text-center text-2xl sm:text-3xl font-bold tracking-[0.35em] sm:tracking-[0.5em] rounded-xl border-2 border-input bg-background focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             disabled={submitting}
           />
-          <Button onClick={submitCode} disabled={submitting || code.length < 6} variant="gradient" className="h-12 px-6">
-            {submitting ? <Loader2 className="size-4 animate-spin" /> : "تأكيد"}
+          <Button onClick={submitCode} disabled={submitting || code.length < 6} variant="gradient" className="w-full h-12 text-base">
+            {submitting ? <Loader2 className="size-4 animate-spin" /> : "تأكيد الكود"}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground text-center">

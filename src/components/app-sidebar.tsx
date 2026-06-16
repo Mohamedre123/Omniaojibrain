@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -38,6 +38,22 @@ const FOOTER_NAV = [
   { href: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
+/** زر فتح القائمة على الموبايل — يوضع داخل الهيدر عشان ما يتغطّاش */
+export function SidebarTrigger({ className }: { className?: string }) {
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new Event("oji:toggle-sidebar"))}
+      className={cn(
+        "lg:hidden size-10 rounded-lg border bg-card grid place-items-center active:scale-95 transition-transform",
+        className
+      )}
+      aria-label="القائمة"
+    >
+      <Menu className="size-5" />
+    </button>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,21 +61,34 @@ export function AppSidebar() {
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
+  // افتح القائمة عند الضغط على زر الهيدر، واقفلها عند تغيّر الصفحة أو Escape
+  useEffect(() => {
+    const open = () => setMobileOpen(true);
+    window.addEventListener("oji:toggle-sidebar", open);
+    return () => window.removeEventListener("oji:toggle-sidebar", open);
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen]);
+
   return (
     <>
-      {/* Mobile trigger */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-3 right-3 z-30 size-10 rounded-lg border bg-card grid place-items-center"
-        aria-label="القائمة"
-      >
-        <Menu className="size-5" />
-      </button>
-
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/50 z-40 animate-fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -67,7 +96,7 @@ export function AppSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-0 right-0 h-screen w-64 border-l bg-card z-50 flex flex-col transition-transform",
+          "fixed lg:sticky top-0 right-0 h-screen w-[min(80vw,16rem)] lg:w-64 border-l bg-card z-50 flex flex-col transition-transform duration-300 safe-top",
           mobileOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
         )}
       >

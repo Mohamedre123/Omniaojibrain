@@ -158,7 +158,7 @@ export function NewProjectDialog({ children }: { children?: React.ReactNode }) {
           <p className="text-xs text-muted-foreground">
             أدخل رابطَ موقع العميل أو صفحةَ المنتج، وسيقوم Oji بملءِ البيانات تلقائياً
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               placeholder="https://example.com"
               type="url"
@@ -166,7 +166,7 @@ export function NewProjectDialog({ children }: { children?: React.ReactNode }) {
               onChange={(e) => setMagicUrl(e.target.value)}
               disabled={magicLoading}
             />
-            <Button type="button" variant="gradient" onClick={runMagicBrief} disabled={magicLoading}>
+            <Button type="button" variant="gradient" onClick={runMagicBrief} disabled={magicLoading} className="shrink-0 w-full sm:w-auto">
               {magicLoading ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
               تحليل
             </Button>

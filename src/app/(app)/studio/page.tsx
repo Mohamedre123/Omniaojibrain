@@ -102,27 +102,27 @@ export default function StudioPage() {
         <div className="flex border-b">
           <button
             onClick={() => setTab("generate")}
-            className={`flex-1 p-3 text-sm font-medium flex items-center justify-center gap-2 ${
+            className={`flex-1 px-2 py-3 text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 ${
               tab === "generate" ? "bg-primary/10 text-primary border-b-2 border-primary" : ""
             }`}
           >
-            <Sparkles className="size-4" /> توليد صور
+            <Sparkles className="size-4 shrink-0" /> توليد صور
           </button>
           <button
             onClick={() => setTab("edit")}
-            className={`flex-1 p-3 text-sm font-medium flex items-center justify-center gap-2 ${
+            className={`flex-1 px-2 py-3 text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 ${
               tab === "edit" ? "bg-primary/10 text-primary border-b-2 border-primary" : ""
             }`}
           >
-            <Edit3 className="size-4" /> تعديل صور
+            <Edit3 className="size-4 shrink-0" /> تعديل صور
           </button>
           <button
             onClick={() => setTab("resize")}
-            className={`flex-1 p-3 text-sm font-medium flex items-center justify-center gap-2 ${
+            className={`flex-1 px-2 py-3 text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 ${
               tab === "resize" ? "bg-primary/10 text-primary border-b-2 border-primary" : ""
             }`}
           >
-            <Crop className="size-4" /> تحويل أحجام
+            <Crop className="size-4 shrink-0" /> تحويل أحجام
           </button>
         </div>
 

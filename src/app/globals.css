@@ -79,12 +79,24 @@
 
 @layer base {
   * { @apply border-border; }
-  html { -webkit-font-smoothing: antialiased; }
+  html {
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+    /* امنع الزحف الأفقي على الموبايل */
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-arabic), var(--font-sans), system-ui, sans-serif;
+    overflow-x: hidden;
+    /* دعم منطقة الأمان في الآيفون (notch + الشريط السفلي) */
+    -webkit-tap-highlight-color: transparent;
   }
   [dir="rtl"] { font-family: var(--font-arabic), system-ui, sans-serif; }
+  /* أبعاد عناصر اللمس لا تقل عن المعيار على الموبايل */
+  @media (max-width: 1023px) {
+    button, a, [role="button"], input, select, textarea { touch-action: manipulation; }
+  }
 }
 
 @layer utilities {
@@ -100,5 +112,70 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  /* حشوة منطقة الأمان (آيفون notch / شريط أندرويد السفلي) */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* ===== أنيميشن الموقع ===== */
+  .animate-float { animation: oji-float 6s ease-in-out infinite; }
+  .animate-float-slow { animation: oji-float 9s ease-in-out infinite; }
+  .animate-blob { animation: oji-blob 16s ease-in-out infinite; }
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: oji-gradient 8s ease infinite;
+  }
+  .animate-fade-up { animation: oji-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-fade-in { animation: oji-fade-in 0.8s ease both; }
+  .animate-shine {
+    background: linear-gradient(110deg, transparent 30%, color-mix(in oklab, var(--primary) 18%, transparent) 50%, transparent 70%);
+    background-size: 200% 100%;
+    animation: oji-shine 3s linear infinite;
+  }
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+  .delay-500 { animation-delay: 0.5s; }
+  .delay-700 { animation-delay: 0.7s; }
+
+  .hover-lift { transition: transform 0.3s cubic-bezier(0.22,1,0.36,1), box-shadow 0.3s ease; }
+  .hover-lift:hover { transform: translateY(-6px); }
+}
+
+@keyframes oji-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+@keyframes oji-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.1); }
+  66% { transform: translate(-25px, 25px) scale(0.95); }
+}
+@keyframes oji-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes oji-fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes oji-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes oji-shine {
+  to { background-position: -200% 0; }
+}
+
+/* احترم تفضيل تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
