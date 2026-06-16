@@ -148,11 +148,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "مفتاح Gemini غير مضبوط في الخادم" }, { status: 500 });
   }
 
-  const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}\n\nIMPORTANT: You MUST generate and output an actual IMAGE. Do not respond with text only.`;
+  // 🔤 لو الطلب فيه نص مكتوب داخل الصورة، استخدم Pro (الأدقّ في النص خصوصاً العربي)
+  const wantsText =
+    /["“”«»][^"“”«»]{1,80}["“”«»]/.test(body.prompt) ||
+    /(اكتب|مكتوب|عبار[ةه]|نصّ?|جمل[ةه]|كلم[ةه]|شعار|عنوان|بخط|لافت[ةه]|تايبوغرافي|typography|text\s|caption|headline|slogan)/i.test(body.prompt);
 
-  const models = MODELS_BY_QUALITY[body.quality];
+  const effectiveQuality: "fast" | "high" = wantsText ? "high" : body.quality;
+
+  const textNote = wantsText
+    ? "\n\nCRITICAL TEXT RULE: Render any requested text EXACTLY as written, spelled correctly. For Arabic text, use proper right-to-left direction and correct CONNECTED letter forms (not isolated/broken glyphs). The text must be clean, legible, and accurate."
+    : "";
+
+  const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}${textNote}\n\nIMPORTANT: You MUST generate and output an actual IMAGE. Do not respond with text only.`;
+
+  const models = MODELS_BY_QUALITY[effectiveQuality];
   // مهلة أقصر للوضع السريع (flash يردّ في ثوانٍ) — يقلّل فشل الاتصال على شبكات الموبايل
-  const timeoutMs = body.quality === "fast" ? 90_000 : 230_000;
+  const timeoutMs = effectiveQuality === "fast" ? 90_000 : 230_000;
 
   const errors: string[] = [];
 
