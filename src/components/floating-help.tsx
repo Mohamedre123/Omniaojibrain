@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,12 +19,16 @@ const STARTERS = [
 ];
 
 export function FloatingHelp() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [streamText, setStreamText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // أخفِ الزرّ العائم في الصفحات اللي فيها شريط إدخال سفلي (شات) عشان ما يغطّيش زر الإرسال
+  const hideOnChat = ["/studio", "/assistant", "/projects"].some((p) => pathname?.startsWith(p));
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -65,6 +70,9 @@ export function FloatingHelp() {
       setLoading(false);
     }
   }
+
+  // في صفحات الشات نخفي الزرّ تماماً (المساعد متاح من القائمة الجانبية)
+  if (hideOnChat) return null;
 
   if (!open) {
     return (

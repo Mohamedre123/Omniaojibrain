@@ -274,18 +274,29 @@ export function StudioChat() {
           if (pollData.done && pollData.videoUri) {
             stopTimers();
             const proxyUrl = `/api/video-generate?download=${encodeURIComponent(pollData.videoUri)}`;
-            update(assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز! اتحفظ في ملفاتي تلقائياً." });
+            // حمّل الفيديو مرّة واحدة كـ blob — يظهر فوراً (بدل تنزيلين متنافسين عبر الـ proxy)
+            update(assistantId, { text: "خلص التوليد — بحضّر المعاينة… ⏳" });
+            try {
+              const r = await fetch(proxyUrl);
+              const blob = r.ok ? await r.blob() : null;
+              if (blob && blob.size > 1000) {
+                const objUrl = URL.createObjectURL(blob);
+                update(assistantId, { status: "done", videoUrl: objUrl, text: "🎬 الفيديو جاهز! اتحفظ في ملفاتي تلقائياً." });
+                void saveVideoToLibrary(blob).then((ok) => {
+                  if (ok) toast.success("اتحفظ في 📁 ملفاتي", { id: "autosave-vid" });
+                });
+              } else {
+                update(assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
+              }
+            } catch {
+              update(assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
+            }
             setBusy(false);
-            void fetch(proxyUrl)
-              .then((r) => (r.ok ? r.blob() : null))
-              .then((blob) => (blob && blob.size > 1000 ? saveVideoToLibrary(blob) : false))
-              .then((ok) => { if (ok) toast.success("اتحفظ في 📁 ملفاتي", { id: "autosave-vid" }); })
-              .catch(() => {});
           }
         } catch {
           // تجاهل أخطاء polling المؤقتة
         }
-      }, 10_000);
+      }, 5_000);
     } catch {
       update(assistantId, { status: "error", error: "تعذّر الاتصال" });
       toast.error("تعذّر الاتصال");
