@@ -23,12 +23,12 @@ function extFromMime(mime: string): string {
   return "bin";
 }
 
-/** حفظ صورة (base64) في مكتبة المستخدم تلقائياً */
-export async function saveImageToLibrary(base64: string, mimeType: string): Promise<boolean> {
+/** حفظ صورة (base64) في مكتبة المستخدم — يرجّع مسار التخزين أو null */
+export async function saveImageToLibrary(base64: string, mimeType: string): Promise<string | null> {
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) return null;
 
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     const blob = new Blob([bytes], { type: mimeType });
@@ -38,18 +38,18 @@ export async function saveImageToLibrary(base64: string, mimeType: string): Prom
       contentType: mimeType,
       upsert: false,
     });
-    return !error;
+    return error ? null : path;
   } catch {
-    return false;
+    return null;
   }
 }
 
-/** حفظ فيديو (Blob) في مكتبة المستخدم تلقائياً */
-export async function saveVideoToLibrary(blob: Blob): Promise<boolean> {
+/** حفظ فيديو (Blob) في مكتبة المستخدم — يرجّع مسار التخزين أو null */
+export async function saveVideoToLibrary(blob: Blob): Promise<string | null> {
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) return null;
 
     const mime = blob.type || "video/mp4";
     const path = `${user.id}/${FOLDER}/vid-${Date.now()}.${extFromMime(mime)}`;
@@ -58,9 +58,36 @@ export async function saveVideoToLibrary(blob: Blob): Promise<boolean> {
       contentType: mime,
       upsert: false,
     });
-    return !error;
+    return error ? null : path;
   } catch {
-    return false;
+    return null;
+  }
+}
+
+/** رابط موقّع لمسار تخزين (للعرض) */
+export async function signedUrlFor(path: string, expiresIn = 604800): Promise<string | null> {
+  try {
+    const supabase = createClient();
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn);
+    return data?.signedUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** تنزيل ملف من التخزين وتحويله base64 (للتعديل على الصورة لاحقاً) */
+export async function downloadAsBase64(path: string): Promise<{ data: string; mimeType: string } | null> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase.storage.from(BUCKET).download(path);
+    if (error || !data) return null;
+    const buf = await data.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return { data: btoa(binary), mimeType: data.type || "image/png" };
+  } catch {
+    return null;
   }
 }
 

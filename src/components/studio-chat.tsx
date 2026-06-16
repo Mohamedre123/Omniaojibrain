@@ -5,10 +5,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { saveImageToLibrary, saveVideoToLibrary } from "@/lib/media-library";
-import { loadThread, saveThread } from "@/lib/studio-store";
+import { saveImageToLibrary, saveVideoToLibrary, downloadAsBase64 } from "@/lib/media-library";
 import {
-  ImageIcon as ImageLucide, // alias to avoid clash
+  ensureStudioConversations,
+  loadStudioMessages,
+  addStudioMessage,
+  clearStudioConversation,
+  type CloudMsg,
+} from "@/lib/studio-cloud";
+import {
+  ImageIcon as ImageLucide,
   Film,
   Loader2,
   Download,
@@ -28,12 +34,14 @@ type ChatMsg = {
   role: "user" | "assistant";
   text?: string;
   kind?: Mode;
-  image?: { data: string; mimeType: string }; // base64 (للصور)
-  videoUrl?: string; // object URL للعرض (لا يُخزَّن)
-  videoBlob?: Blob; // يُخزَّن في IndexedDB ويُعاد منه العرض بعد الريفرش
+  imageSrc?: string; // data: URI (مولّدة) أو signed URL (محمّلة)
+  imageData?: string; // base64 للصور المولّدة حديثاً
+  mimeType?: string;
+  videoSrc?: string; // object URL أو signed URL
+  mediaPath?: string; // مسار التخزين
   status?: "loading" | "error" | "done";
   error?: string;
-  refPreview?: string; // معاينة صورة مرفقة من المستخدم (لا تُخزَّن)
+  refPreview?: string;
 };
 
 type RefImg = { data: string; mimeType: string; previewUrl: string; name: string };
@@ -68,6 +76,20 @@ function handle401(res: Response): boolean {
   return false;
 }
 
+function cloudToChat(m: CloudMsg): ChatMsg {
+  return {
+    id: m.id,
+    role: m.role,
+    text: m.text,
+    kind: m.kind,
+    imageSrc: m.imageSrc,
+    videoSrc: m.videoSrc,
+    mediaPath: m.mediaPath,
+    mimeType: m.mimeType,
+    status: "done",
+  };
+}
+
 export function StudioChat() {
   const [mode, setMode] = useState<Mode>("image");
   const [threads, setThreads] = useState<Record<Mode, ChatMsg[]>>({ image: [], video: [] });
@@ -77,14 +99,14 @@ export function StudioChat() {
   const [vidQuality, setVidQuality] = useState<"fast" | "quality">("fast");
   const [useBrand, setUseBrand] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [ref, setRef] = useState<RefImg | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
   const messages = threads[mode];
 
-  // سياق التعديل: آخر صورة وُلِّدت (عشان "عدّل عليها" بدون إعادة رفع)
-  const lastImageRef = useRef<{ data: string; mimeType: string } | null>(null);
-  const loadedRef = useRef(false);
+  const lastImageRef = useRef<{ data?: string; mimeType: string; path?: string } | null>(null);
+  const convoIds = useRef<{ image: string; video: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -102,45 +124,23 @@ export function StudioChat() {
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
-  // 📥 تحميل المحادثات المخزّنة عند الفتح (تبقى بعد الريفرش)
+  // ☁️ حمّل المحادثات من السحابة (تتزامن على كل الأجهزة)
   useEffect(() => {
     (async () => {
-      const [img, vid] = await Promise.all([
-        loadThread<ChatMsg>("image"),
-        loadThread<ChatMsg>("video"),
-      ]);
-      const restore = (arr: ChatMsg[]) =>
-        arr
-          .filter((m) => m.status !== "loading")
-          .map((m) => (m.videoBlob ? { ...m, videoUrl: URL.createObjectURL(m.videoBlob) } : m));
-      const imgR = restore(img);
-      const vidR = restore(vid);
-      setThreads({ image: imgR, video: vidR });
-      const lastImg = [...imgR].reverse().find((m) => m.image)?.image;
-      if (lastImg) lastImageRef.current = lastImg;
-      loadedRef.current = true;
+      const ids = await ensureStudioConversations();
+      convoIds.current = ids;
+      if (ids) {
+        const [img, vid] = await Promise.all([
+          loadStudioMessages(ids.image, "image"),
+          loadStudioMessages(ids.video, "video"),
+        ]);
+        setThreads({ image: img.map(cloudToChat), video: vid.map(cloudToChat) });
+        const lastImg = [...img].reverse().find((m) => m.mediaPath && m.imageSrc);
+        if (lastImg?.mediaPath) lastImageRef.current = { mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath };
+      }
+      setLoadingHistory(false);
     })();
   }, []);
-
-  // 💾 احفظ المحادثات محلياً عند أي تغيير (بعد التحميل الأولي فقط)
-  useEffect(() => {
-    if (!loadedRef.current) return;
-    const serialize = (arr: ChatMsg[]) =>
-      arr
-        .filter((m) => m.status !== "loading")
-        .map((m) => ({
-          id: m.id,
-          role: m.role,
-          text: m.text,
-          kind: m.kind,
-          image: m.image,
-          videoBlob: m.videoBlob,
-          status: m.status,
-          error: m.error,
-        }));
-    void saveThread("image", serialize(threads.image));
-    void saveThread("video", serialize(threads.video));
-  }, [threads]);
 
   const updateMsg = useCallback((m: Mode, id: string, patch: Partial<ChatMsg>) => {
     setThreads((prev) => ({
@@ -195,13 +195,8 @@ export function StudioChat() {
     if (busy) return;
 
     const activeMode = mode;
-    const userMsg: ChatMsg = {
-      id: uid(),
-      role: "user",
-      text: text || (activeMode === "image" ? "ولّد صورة من المرفق" : "ولّد فيديو من المرفق"),
-      refPreview: ref?.previewUrl,
-      kind: activeMode,
-    };
+    const userText = text || (activeMode === "image" ? "ولّد صورة من المرفق" : "ولّد فيديو من المرفق");
+    const userMsg: ChatMsg = { id: uid(), role: "user", text: userText, refPreview: ref?.previewUrl, kind: activeMode };
     const assistantId = uid();
     const assistantMsg: ChatMsg = { id: assistantId, role: "assistant", kind: activeMode, status: "loading" };
 
@@ -212,23 +207,33 @@ export function StudioChat() {
     setBusy(true);
 
     if (activeMode === "image") {
-      await runImage(text, assistantId, attachedRef);
+      await runImage(text, userText, assistantId, attachedRef);
     } else {
-      await runVideo(text, assistantId, attachedRef);
+      await runVideo(text, userText, assistantId, attachedRef);
     }
   }
 
-  async function runImage(text: string, assistantId: string, attachedRef: RefImg | null) {
+  async function runImage(text: string, userText: string, assistantId: string, attachedRef: RefImg | null) {
     try {
       const brandContext = await getBrandContext();
 
-      const refs: Array<{ mimeType: string; data: string }> = [];
+      // حل الصورة المرجعية للتعديل: المرفق، أو آخر صورة (ننزّلها base64 لو لازم)
+      let refData: { mimeType: string; data: string } | null = null;
       let editing = false;
       if (attachedRef) {
-        refs.push({ mimeType: attachedRef.mimeType, data: attachedRef.data });
+        refData = { mimeType: attachedRef.mimeType, data: attachedRef.data };
       } else if (lastImageRef.current) {
-        refs.push({ mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data });
-        editing = true;
+        if (lastImageRef.current.data) {
+          refData = { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data };
+          editing = true;
+        } else if (lastImageRef.current.path) {
+          const dl = await downloadAsBase64(lastImageRef.current.path);
+          if (dl) {
+            refData = dl;
+            lastImageRef.current.data = dl.data;
+            editing = true;
+          }
+        }
       }
 
       const editNote = editing
@@ -246,7 +251,7 @@ export function StudioChat() {
           prompt: fullPrompt,
           brandContext: brandContext || undefined,
           aspect: imgAspect,
-          refImages: refs.length > 0 ? refs : undefined,
+          refImages: refData ? [refData] : undefined,
         }),
       });
       if (handle401(res)) { setBusy(false); return; }
@@ -259,16 +264,29 @@ export function StudioChat() {
       }
 
       const img = data.images[0] as { data: string; mimeType: string };
-      lastImageRef.current = img;
+      const replyText = editing ? "عدّلت الصورة ✨ — تقدر تكمّل تعديل تاني، أو تبدأ صورة جديدة." : "اتفضّل الصورة 🎨 — قولّي لو عايز أعدّل أي حاجة فيها.";
       updateMsg("image", assistantId, {
         status: "done",
-        image: img,
-        text: editing ? "عدّلت الصورة ✨ — تقدر تكمّل تعديل تاني، أو تبدأ صورة جديدة." : "اتفضّل الصورة 🎨 — قولّي لو عايز أعدّل أي حاجة فيها.",
+        imageSrc: `data:${img.mimeType};base64,${img.data}`,
+        imageData: img.data,
+        mimeType: img.mimeType,
+        text: replyText,
       });
 
-      void saveImageToLibrary(img.data, img.mimeType).then((ok) => {
-        if (ok) toast.success("اتحفظت في 📁 ملفاتي", { id: "autosave" });
-      });
+      // حفظ في المكتبة + تزامن سحابي
+      const path = await saveImageToLibrary(img.data, img.mimeType);
+      if (path) {
+        toast.success("اتحفظت في 📁 ملفاتي", { id: "autosave" });
+        updateMsg("image", assistantId, { mediaPath: path });
+        lastImageRef.current = { data: img.data, mimeType: img.mimeType, path };
+        const cid = convoIds.current?.image;
+        if (cid) {
+          await addStudioMessage({ convoId: cid, role: "user", text: userText });
+          await addStudioMessage({ convoId: cid, role: "assistant", text: replyText, mediaPath: path, mediaType: img.mimeType });
+        }
+      } else {
+        lastImageRef.current = { data: img.data, mimeType: img.mimeType };
+      }
     } catch {
       updateMsg("image", assistantId, { status: "error", error: "تعذّر الاتصال" });
       toast.error("تعذّر الاتصال");
@@ -277,12 +295,15 @@ export function StudioChat() {
     }
   }
 
-  async function runVideo(text: string, assistantId: string, attachedRef: RefImg | null) {
+  async function runVideo(text: string, userText: string, assistantId: string, attachedRef: RefImg | null) {
     setElapsed(0);
     try {
-      const startImg = attachedRef ?? (lastImageRef.current
-        ? { ...lastImageRef.current, previewUrl: "", name: "last" }
-        : null);
+      let startImg: { mimeType: string; data: string } | null = null;
+      if (attachedRef) {
+        startImg = { mimeType: attachedRef.mimeType, data: attachedRef.data };
+      } else if (lastImageRef.current?.data) {
+        startImg = { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data };
+      }
 
       const res = await fetch("/api/video-generate", {
         method: "POST",
@@ -291,7 +312,7 @@ export function StudioChat() {
           prompt: text,
           aspect: vidAspect,
           model: vidQuality,
-          refImage: startImg ? { mimeType: startImg.mimeType, data: startImg.data } : undefined,
+          refImage: startImg ?? undefined,
         }),
       });
       if (handle401(res)) { setBusy(false); return; }
@@ -323,20 +344,28 @@ export function StudioChat() {
             stopTimers();
             const proxyUrl = `/api/video-generate?download=${encodeURIComponent(pollData.videoUri)}`;
             updateMsg("video", assistantId, { text: "خلص التوليد — بحضّر المعاينة… ⏳" });
+            const replyText = "🎬 الفيديو جاهز! اتحفظ في ملفاتي تلقائياً.";
             try {
               const r = await fetch(proxyUrl);
               const blob = r.ok ? await r.blob() : null;
               if (blob && blob.size > 1000) {
                 const objUrl = URL.createObjectURL(blob);
-                updateMsg("video", assistantId, { status: "done", videoUrl: objUrl, videoBlob: blob, text: "🎬 الفيديو جاهز! اتحفظ في ملفاتي تلقائياً." });
-                void saveVideoToLibrary(blob).then((ok) => {
-                  if (ok) toast.success("اتحفظ في 📁 ملفاتي", { id: "autosave-vid" });
-                });
+                updateMsg("video", assistantId, { status: "done", videoSrc: objUrl, text: replyText });
+                const path = await saveVideoToLibrary(blob);
+                if (path) {
+                  toast.success("اتحفظ في 📁 ملفاتي", { id: "autosave-vid" });
+                  updateMsg("video", assistantId, { mediaPath: path });
+                  const cid = convoIds.current?.video;
+                  if (cid) {
+                    await addStudioMessage({ convoId: cid, role: "user", text: userText });
+                    await addStudioMessage({ convoId: cid, role: "assistant", text: replyText, mediaPath: path, mediaType: "video" });
+                  }
+                }
               } else {
-                updateMsg("video", assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
+                updateMsg("video", assistantId, { status: "done", videoSrc: proxyUrl, text: "🎬 الفيديو جاهز!" });
               }
             } catch {
-              updateMsg("video", assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
+              updateMsg("video", assistantId, { status: "done", videoSrc: proxyUrl, text: "🎬 الفيديو جاهز!" });
             }
             setBusy(false);
           }
@@ -356,14 +385,17 @@ export function StudioChat() {
     if (mode === "image") lastImageRef.current = null;
     setThreads((prev) => ({ ...prev, [mode]: [] }));
     setRef(null);
+    const cid = convoIds.current?.[mode];
+    if (cid) void clearStudioConversation(cid);
     toast.success("بدأنا من جديد ✨");
   }
 
-  function downloadImage(img: { data: string; mimeType: string }) {
-    const ext = img.mimeType.includes("png") ? "png" : img.mimeType.includes("webp") ? "webp" : "jpg";
+  function downloadMedia(src: string, ext: string) {
     const a = document.createElement("a");
-    a.href = `data:${img.mimeType};base64,${img.data}`;
+    a.href = src;
     a.download = `oji-${Date.now()}.${ext}`;
+    a.target = "_blank";
+    a.rel = "noopener";
     a.click();
   }
 
@@ -373,10 +405,9 @@ export function StudioChat() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem)]">
-      {/* شريط علوي: تبديل الموديل + إعدادات */}
+      {/* شريط علوي */}
       <div className="border-b bg-card/60 backdrop-blur px-3 sm:px-4 py-2.5 space-y-2.5">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* مبدّل الموديل — كل وضع له شات منفصل */}
           <div className="inline-flex rounded-lg border bg-background p-0.5">
             <button
               onClick={() => setMode("image")}
@@ -406,7 +437,6 @@ export function StudioChat() {
           </Button>
         </div>
 
-        {/* الأبعاد + خيارات */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {aspects.map((a) => (
             <button
@@ -422,16 +452,8 @@ export function StudioChat() {
           ))}
           {mode === "video" && (
             <div className="inline-flex rounded-md border overflow-hidden text-xs">
-              <button
-                onClick={() => setVidQuality("fast")}
-                disabled={busy}
-                className={`px-2.5 py-1 ${vidQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}
-              >سريع</button>
-              <button
-                onClick={() => setVidQuality("quality")}
-                disabled={busy}
-                className={`px-2.5 py-1 ${vidQuality === "quality" ? "bg-primary text-primary-foreground" : "bg-card"}`}
-              >جودة عالية</button>
+              <button onClick={() => setVidQuality("fast")} disabled={busy} className={`px-2.5 py-1 ${vidQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع</button>
+              <button onClick={() => setVidQuality("quality")} disabled={busy} className={`px-2.5 py-1 ${vidQuality === "quality" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
             </div>
           )}
           <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer mr-auto">
@@ -441,9 +463,13 @@ export function StudioChat() {
         </div>
       </div>
 
-      {/* منطقة الرسائل */}
+      {/* الرسائل */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-4 py-4 space-y-4">
-        {messages.length === 0 && (
+        {loadingHistory ? (
+          <div className="h-full grid place-items-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : messages.length === 0 ? (
           <div className="h-full grid place-items-center text-center px-4">
             <div className="max-w-md">
               <div className="mx-auto size-16 rounded-2xl gradient-brand grid place-items-center mb-4 animate-float-slow">
@@ -462,78 +488,62 @@ export function StudioChat() {
                   ? ["منتج عناية بالبشرة على خلفية رخام فاخرة", "إعلان برجر شهي بإضاءة سينمائية", "بوست خصم 50% بألوان جذابة"]
                   : ["لقطة بطيئة لقطرات ماء على تفاحة حمراء", "كاميرا تدور حول ساعة فاخرة", "مشهد افتتاح متجر بإضاءة نيون"]
                 ).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setInput(s)}
-                    className="rounded-full border bg-card px-3 py-1.5 text-xs hover:border-primary hover:bg-accent/50 transition-all"
-                  >
+                  <button key={s} onClick={() => setInput(s)} className="rounded-full border bg-card px-3 py-1.5 text-xs hover:border-primary hover:bg-accent/50 transition-all">
                     {s}
                   </button>
                 ))}
               </div>
             </div>
           </div>
-        )}
+        ) : (
+          messages.map((m) => (
+            <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
+              <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl ${m.role === "user" ? "bg-primary/10 px-4 py-2.5" : "bg-card border p-2.5"}`}>
+                {m.refPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.refPreview} alt="مرفق" className="mb-2 max-h-40 rounded-lg object-cover" />
+                )}
+                {m.text && (
+                  <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${m.role === "assistant" && (m.imageSrc || m.videoSrc) ? "px-1.5 pt-1" : ""}`}>
+                    {m.text}
+                  </p>
+                )}
 
-        {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-            <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl ${
-              m.role === "user" ? "bg-primary/10 px-4 py-2.5" : "bg-card border p-2.5"
-            }`}>
-              {m.refPreview && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.refPreview} alt="مرفق" className="mb-2 max-h-40 rounded-lg object-cover" />
-              )}
-              {m.text && (
-                <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${m.role === "assistant" && (m.image || m.videoUrl) ? "px-1.5 pt-1" : ""}`}>
-                  {m.text}
-                </p>
-              )}
-
-              {m.status === "loading" && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground px-1.5 py-1.5">
-                  <Loader2 className="size-4 animate-spin" />
-                  {m.kind === "video"
-                    ? <span>بصنع الفيديو… {elapsed > 0 ? fmt(elapsed) : ""}</span>
-                    : <span>بصمّم الصورة…</span>}
-                </div>
-              )}
-
-              {m.status === "error" && (
-                <p className="text-sm text-destructive px-1.5 py-1">⚠️ {m.error}</p>
-              )}
-
-              {m.image && (
-                <div className="mt-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`data:${m.image.mimeType};base64,${m.image.data}`}
-                    alt="الصورة المولّدة"
-                    className="rounded-xl w-full max-w-md"
-                  />
-                  <div className="mt-2 px-1">
-                    <Button variant="outline" size="sm" onClick={() => m.image && downloadImage(m.image)} className="text-xs">
-                      <Download className="size-3.5" /> تحميل
-                    </Button>
+                {m.status === "loading" && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground px-1.5 py-1.5">
+                    <Loader2 className="size-4 animate-spin" />
+                    {m.kind === "video" ? <span>بصنع الفيديو… {elapsed > 0 ? fmt(elapsed) : ""}</span> : <span>بصمّم الصورة…</span>}
                   </div>
-                </div>
-              )}
+                )}
 
-              {m.videoUrl && (
-                <div className="mt-1.5">
-                  <video src={m.videoUrl} controls autoPlay loop playsInline className="rounded-xl w-full max-w-md" />
-                  <div className="mt-2 px-1">
-                    <a href={m.videoUrl} download={`oji-${Date.now()}.mp4`}>
-                      <Button variant="outline" size="sm" className="text-xs">
+                {m.status === "error" && <p className="text-sm text-destructive px-1.5 py-1">⚠️ {m.error}</p>}
+
+                {m.imageSrc && (
+                  <div className="mt-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.imageSrc} alt="الصورة المولّدة" className="rounded-xl w-full max-w-md" />
+                    <div className="mt-2 px-1">
+                      <Button variant="outline" size="sm" onClick={() => m.imageSrc && downloadMedia(m.imageSrc, m.mimeType?.includes("webp") ? "webp" : m.mimeType?.includes("png") ? "png" : "jpg")} className="text-xs">
                         <Download className="size-3.5" /> تحميل
                       </Button>
-                    </a>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {m.videoSrc && (
+                  <div className="mt-1.5">
+                    <video src={m.videoSrc} controls autoPlay loop playsInline className="rounded-xl w-full max-w-md" />
+                    <div className="mt-2 px-1">
+                      <Button variant="outline" size="sm" onClick={() => m.videoSrc && downloadMedia(m.videoSrc, "mp4")} className="text-xs">
+                        <Download className="size-3.5" /> تحميل
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* شريط الإدخال */}
@@ -556,30 +566,21 @@ export function StudioChat() {
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
             placeholder={mode === "image" ? "اكتب وصف الصورة أو طلب تعديل…" : "اكتب وصف الفيديو…"}
             rows={1}
             dir="auto"
             disabled={busy}
             className="resize-none min-h-11 max-h-32 py-2.5"
           />
-          <Button
-            variant="gradient"
-            size="icon"
-            onClick={() => void send()}
-            disabled={busy || (!input.trim() && !ref)}
-            className="shrink-0 size-11 rounded-xl"
-            title="إرسال"
-          >
+          <Button variant="gradient" size="icon" onClick={() => void send()} disabled={busy || (!input.trim() && !ref)} className="shrink-0 size-11 rounded-xl" title="إرسال">
             {busy ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
           </Button>
         </div>
         <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
           {mode === "image"
-            ? "💡 شات الصور وشات الفيديو منفصلين، والمحادثة بتفضل محفوظة بعد الريفرش."
-            : "🎬 شات الفيديو منفصل عن الصور، ومحفوظ بعد الريفرش. ممكن ترفق صورة بداية."}
+            ? "💡 شات الصور وشات الفيديو منفصلين، ومحفوظين على حسابك — بيظهروا على أي جهاز تسجّل منه."
+            : "🎬 شات الفيديو منفصل، ومحفوظ على حسابك ويتزامن على كل أجهزتك. ممكن ترفق صورة بداية."}
         </p>
       </div>
     </div>

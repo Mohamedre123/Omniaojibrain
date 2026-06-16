@@ -119,7 +119,7 @@ export default function VideoGeneratePage() {
                 if (blob && blob.size > 1000) {
                   return saveVideoToLibrary(blob);
                 }
-                return false;
+                return null;
               })
               .then((ok) => {
                 if (ok) toast.success("اتحفظ في 📁 ملفاتي تلقائياً", { id: "autosave-vid" });
