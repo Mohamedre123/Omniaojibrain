@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { saveImageToLibrary, saveVideoToLibrary } from "@/lib/media-library";
+import { loadThread, saveThread } from "@/lib/studio-store";
 import {
   ImageIcon as ImageLucide, // alias to avoid clash
   Film,
@@ -28,10 +29,11 @@ type ChatMsg = {
   text?: string;
   kind?: Mode;
   image?: { data: string; mimeType: string }; // base64 (للصور)
-  videoUrl?: string; // proxy url (للفيديو)
+  videoUrl?: string; // object URL للعرض (لا يُخزَّن)
+  videoBlob?: Blob; // يُخزَّن في IndexedDB ويُعاد منه العرض بعد الريفرش
   status?: "loading" | "error" | "done";
   error?: string;
-  refPreview?: string; // معاينة صورة مرفقة من المستخدم
+  refPreview?: string; // معاينة صورة مرفقة من المستخدم (لا تُخزَّن)
 };
 
 type RefImg = { data: string; mimeType: string; previewUrl: string; name: string };
@@ -68,7 +70,7 @@ function handle401(res: Response): boolean {
 
 export function StudioChat() {
   const [mode, setMode] = useState<Mode>("image");
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [threads, setThreads] = useState<Record<Mode, ChatMsg[]>>({ image: [], video: [] });
   const [input, setInput] = useState("");
   const [imgAspect, setImgAspect] = useState("1:1");
   const [vidAspect, setVidAspect] = useState<"16:9" | "9:16">("16:9");
@@ -78,8 +80,11 @@ export function StudioChat() {
   const [ref, setRef] = useState<RefImg | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
+  const messages = threads[mode];
+
   // سياق التعديل: آخر صورة وُلِّدت (عشان "عدّل عليها" بدون إعادة رفع)
   const lastImageRef = useRef<{ data: string; mimeType: string } | null>(null);
+  const loadedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -90,16 +95,59 @@ export function StudioChat() {
     });
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages, elapsed, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [messages, elapsed, mode, scrollToBottom]);
 
   useEffect(() => () => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
-  function update(id: string, patch: Partial<ChatMsg>) {
-    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
-  }
+  // 📥 تحميل المحادثات المخزّنة عند الفتح (تبقى بعد الريفرش)
+  useEffect(() => {
+    (async () => {
+      const [img, vid] = await Promise.all([
+        loadThread<ChatMsg>("image"),
+        loadThread<ChatMsg>("video"),
+      ]);
+      const restore = (arr: ChatMsg[]) =>
+        arr
+          .filter((m) => m.status !== "loading")
+          .map((m) => (m.videoBlob ? { ...m, videoUrl: URL.createObjectURL(m.videoBlob) } : m));
+      const imgR = restore(img);
+      const vidR = restore(vid);
+      setThreads({ image: imgR, video: vidR });
+      const lastImg = [...imgR].reverse().find((m) => m.image)?.image;
+      if (lastImg) lastImageRef.current = lastImg;
+      loadedRef.current = true;
+    })();
+  }, []);
+
+  // 💾 احفظ المحادثات محلياً عند أي تغيير (بعد التحميل الأولي فقط)
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    const serialize = (arr: ChatMsg[]) =>
+      arr
+        .filter((m) => m.status !== "loading")
+        .map((m) => ({
+          id: m.id,
+          role: m.role,
+          text: m.text,
+          kind: m.kind,
+          image: m.image,
+          videoBlob: m.videoBlob,
+          status: m.status,
+          error: m.error,
+        }));
+    void saveThread("image", serialize(threads.image));
+    void saveThread("video", serialize(threads.video));
+  }, [threads]);
+
+  const updateMsg = useCallback((m: Mode, id: string, patch: Partial<ChatMsg>) => {
+    setThreads((prev) => ({
+      ...prev,
+      [m]: prev[m].map((msg) => (msg.id === id ? { ...msg, ...patch } : msg)),
+    }));
+  }, []);
 
   function handleFile(file: File | null) {
     if (!file) return;
@@ -146,23 +194,24 @@ export function StudioChat() {
     if (!text && !ref) return;
     if (busy) return;
 
+    const activeMode = mode;
     const userMsg: ChatMsg = {
       id: uid(),
       role: "user",
-      text: text || (mode === "image" ? "ولّد صورة من المرفق" : "ولّد فيديو من المرفق"),
+      text: text || (activeMode === "image" ? "ولّد صورة من المرفق" : "ولّد فيديو من المرفق"),
       refPreview: ref?.previewUrl,
-      kind: mode,
+      kind: activeMode,
     };
     const assistantId = uid();
-    const assistantMsg: ChatMsg = { id: assistantId, role: "assistant", kind: mode, status: "loading" };
+    const assistantMsg: ChatMsg = { id: assistantId, role: "assistant", kind: activeMode, status: "loading" };
 
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setThreads((prev) => ({ ...prev, [activeMode]: [...prev[activeMode], userMsg, assistantMsg] }));
     setInput("");
     const attachedRef = ref;
     setRef(null);
     setBusy(true);
 
-    if (mode === "image") {
+    if (activeMode === "image") {
       await runImage(text, assistantId, attachedRef);
     } else {
       await runVideo(text, assistantId, attachedRef);
@@ -173,7 +222,6 @@ export function StudioChat() {
     try {
       const brandContext = await getBrandContext();
 
-      // سياق التعديل: لو المستخدم رفع صورة استخدمها، وإلا لو فيه آخر صورة مولّدة استخدمها كأساس للتعديل
       const refs: Array<{ mimeType: string; data: string }> = [];
       let editing = false;
       if (attachedRef) {
@@ -204,7 +252,7 @@ export function StudioChat() {
       if (handle401(res)) { setBusy(false); return; }
       const data = await res.json();
       if (!res.ok || !data.images?.length) {
-        update(assistantId, { status: "error", error: data.error || "تعذّر التوليد" });
+        updateMsg("image", assistantId, { status: "error", error: data.error || "تعذّر التوليد" });
         toast.error(data.error || "تعذّر التوليد");
         setBusy(false);
         return;
@@ -212,7 +260,7 @@ export function StudioChat() {
 
       const img = data.images[0] as { data: string; mimeType: string };
       lastImageRef.current = img;
-      update(assistantId, {
+      updateMsg("image", assistantId, {
         status: "done",
         image: img,
         text: editing ? "عدّلت الصورة ✨ — تقدر تكمّل تعديل تاني، أو تبدأ صورة جديدة." : "اتفضّل الصورة 🎨 — قولّي لو عايز أعدّل أي حاجة فيها.",
@@ -222,7 +270,7 @@ export function StudioChat() {
         if (ok) toast.success("اتحفظت في 📁 ملفاتي", { id: "autosave" });
       });
     } catch {
-      update(assistantId, { status: "error", error: "تعذّر الاتصال" });
+      updateMsg("image", assistantId, { status: "error", error: "تعذّر الاتصال" });
       toast.error("تعذّر الاتصال");
     } finally {
       setBusy(false);
@@ -249,13 +297,13 @@ export function StudioChat() {
       if (handle401(res)) { setBusy(false); return; }
       const data = await res.json();
       if (!res.ok || !data.operationName) {
-        update(assistantId, { status: "error", error: data.error || "تعذّر بدء التوليد" });
+        updateMsg("video", assistantId, { status: "error", error: data.error || "تعذّر بدء التوليد" });
         toast.error(data.error || "تعذّر بدء التوليد");
         setBusy(false);
         return;
       }
 
-      update(assistantId, { text: "بصنع الفيديو دلوقتي 🎬 — عادةً من دقيقة لـ 3 دقايق، سيبك في الصفحة." });
+      updateMsg("video", assistantId, { text: "بصنع الفيديو دلوقتي 🎬 — عادةً من دقيقة لـ 3 دقايق، سيبك في الصفحة." });
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
 
       const opName = data.operationName as string;
@@ -266,7 +314,7 @@ export function StudioChat() {
 
           if (pollData.error && pollData.done !== false) {
             stopTimers();
-            update(assistantId, { status: "error", error: pollData.error });
+            updateMsg("video", assistantId, { status: "error", error: pollData.error });
             toast.error(pollData.error);
             setBusy(false);
             return;
@@ -274,22 +322,21 @@ export function StudioChat() {
           if (pollData.done && pollData.videoUri) {
             stopTimers();
             const proxyUrl = `/api/video-generate?download=${encodeURIComponent(pollData.videoUri)}`;
-            // حمّل الفيديو مرّة واحدة كـ blob — يظهر فوراً (بدل تنزيلين متنافسين عبر الـ proxy)
-            update(assistantId, { text: "خلص التوليد — بحضّر المعاينة… ⏳" });
+            updateMsg("video", assistantId, { text: "خلص التوليد — بحضّر المعاينة… ⏳" });
             try {
               const r = await fetch(proxyUrl);
               const blob = r.ok ? await r.blob() : null;
               if (blob && blob.size > 1000) {
                 const objUrl = URL.createObjectURL(blob);
-                update(assistantId, { status: "done", videoUrl: objUrl, text: "🎬 الفيديو جاهز! اتحفظ في ملفاتي تلقائياً." });
+                updateMsg("video", assistantId, { status: "done", videoUrl: objUrl, videoBlob: blob, text: "🎬 الفيديو جاهز! اتحفظ في ملفاتي تلقائياً." });
                 void saveVideoToLibrary(blob).then((ok) => {
                   if (ok) toast.success("اتحفظ في 📁 ملفاتي", { id: "autosave-vid" });
                 });
               } else {
-                update(assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
+                updateMsg("video", assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
               }
             } catch {
-              update(assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
+              updateMsg("video", assistantId, { status: "done", videoUrl: proxyUrl, text: "🎬 الفيديو جاهز!" });
             }
             setBusy(false);
           }
@@ -298,7 +345,7 @@ export function StudioChat() {
         }
       }, 5_000);
     } catch {
-      update(assistantId, { status: "error", error: "تعذّر الاتصال" });
+      updateMsg("video", assistantId, { status: "error", error: "تعذّر الاتصال" });
       toast.error("تعذّر الاتصال");
       setBusy(false);
     }
@@ -306,8 +353,8 @@ export function StudioChat() {
 
   function newSession() {
     if (busy) return;
-    lastImageRef.current = null;
-    setMessages([]);
+    if (mode === "image") lastImageRef.current = null;
+    setThreads((prev) => ({ ...prev, [mode]: [] }));
     setRef(null);
     toast.success("بدأنا من جديد ✨");
   }
@@ -329,11 +376,10 @@ export function StudioChat() {
       {/* شريط علوي: تبديل الموديل + إعدادات */}
       <div className="border-b bg-card/60 backdrop-blur px-3 sm:px-4 py-2.5 space-y-2.5">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* مبدّل الموديل */}
+          {/* مبدّل الموديل — كل وضع له شات منفصل */}
           <div className="inline-flex rounded-lg border bg-background p-0.5">
             <button
               onClick={() => setMode("image")}
-              disabled={busy}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                 mode === "image" ? "gradient-brand text-white shadow" : "text-muted-foreground"
               }`}
@@ -342,7 +388,6 @@ export function StudioChat() {
             </button>
             <button
               onClick={() => setMode("video")}
-              disabled={busy}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                 mode === "video" ? "gradient-brand text-white shadow" : "text-muted-foreground"
               }`}
@@ -533,8 +578,8 @@ export function StudioChat() {
         </div>
         <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
           {mode === "image"
-            ? "💡 بعد توليد الصورة، اكتب تعديلك (زي «خليها ليلاً») وأنا أعدّل على نفس الصورة — أو اضغط «جديد» لبداية جديدة."
-            : "🎬 ممكن ترفق صورة بداية. الفيديو بيتولّد بالـ API ويتحفظ في ملفاتي تلقائياً."}
+            ? "💡 شات الصور وشات الفيديو منفصلين، والمحادثة بتفضل محفوظة بعد الريفرش."
+            : "🎬 شات الفيديو منفصل عن الصور، ومحفوظ بعد الريفرش. ممكن ترفق صورة بداية."}
         </p>
       </div>
     </div>
