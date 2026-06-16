@@ -69,6 +69,24 @@ function extractMeta(html: string): Record<string, string> {
   return meta;
 }
 
+/** يستخرج أكثر ألوان HEX تكراراً من كود الصفحة (تقريبٌ لهوية اللون) */
+function extractBrandColors(html: string): string[] {
+  const counts: Record<string, number> = {};
+  const re = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    let hex = m[1].toLowerCase();
+    if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+    // تجاهل الأبيض والأسود النقي (شائعة جداً وليست هوية)
+    if (hex === "ffffff" || hex === "000000") continue;
+    counts["#" + hex] = (counts["#" + hex] || 0) + 1;
+  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([c]) => c);
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -185,6 +203,16 @@ export async function POST(req: NextRequest) {
     prompt += `⚠️ الصفحة لم تُرجع محتوًى كافياً (طبيعيٌّ لمنصّات السوشيال). استنتج من اسم الحساب والمنصّة.\n\n`;
   }
 
+  // 🎨 ألوان الهوية المكتشفة من كود الموقع + theme-color
+  const detectedColors = extractBrandColors(html);
+  if (meta["theme-color"] && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(meta["theme-color"])) {
+    detectedColors.unshift(meta["theme-color"].toLowerCase());
+  }
+  const uniqueColors = Array.from(new Set(detectedColors)).slice(0, 6);
+  if (uniqueColors.length > 0) {
+    prompt += `**ألوانٌ مكتشفةٌ من كود/تصميم الموقع (HEX)**: ${uniqueColors.join(", ")}\n\n`;
+  }
+
   prompt += `**المطلوب**: أعد JSON يحوي التالي بدون أيِّ شرحٍ خارجَ JSON:
 
 {
@@ -194,10 +222,13 @@ export async function POST(req: NextRequest) {
   "audience": "الجمهور المستهدف بدقة",
   "tone": "نبرة المحتوى (رسمية/مرحة/فاخرة/إلخ)",
   "key_points": ["نقطة بيع 1", "نقطة بيع 2", "نقطة بيع 3"],
+  "brand_colors": ["#hex لون أساسي", "#hex لون ثانوي"],
   "platform_strategy": "اقتراحات سريعة لاستراتيجية المنصة"
 }
 
-كن ذكياً ومستنتجاً حتى لو المعلوماتُ شحيحة.`;
+ملاحظاتٌ مهمّة:
+- في "brand_colors" استخدم الألوان المكتشفة أعلاه إن كانت تمثّل هوية العلامة (تجاهل الرمادي/الأبيض/الأسود العادي)، وإلا استنتج لوحةَ ألوانٍ منطقيةً للهوية كصيغة HEX (لونان إلى أربعة). إن لم تستطع التخمين، أعد مصفوفةً فارغة.
+- كن ذكياً ومستنتجاً حتى لو المعلوماتُ شحيحة.`;
 
   const key = process.env.GEMINI_API_KEY;
   if (!key) return NextResponse.json({ error: "إعدادات الخادم ناقصة" }, { status: 500 });

@@ -54,6 +54,11 @@ export function NewProjectDialog({ children }: { children?: React.ReactNode }) {
         return;
       }
 
+      // 🎨 ألوان الهوية المكتشفة
+      const colors: string[] = Array.isArray(data.brand_colors)
+        ? data.brand_colors.filter((c: unknown) => typeof c === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c)).slice(0, 4)
+        : [];
+
       // املا الفورم تلقائي
       if (nameRef.current && data.brand_name) nameRef.current.value = data.brand_name;
       if (briefRef.current) {
@@ -61,9 +66,29 @@ export function NewProjectDialog({ children }: { children?: React.ReactNode }) {
           data.brief && `${data.brief}`,
           data.audience && `\n**الجمهورُ المستهدف:** ${data.audience}`,
           data.tone && `\n**النبرة:** ${data.tone}`,
+          colors.length > 0 && `\n**ألوانُ الهوية:** ${colors.join("، ")}`,
           data.key_points?.length > 0 && `\n**نقاطُ التميّز:**\n${data.key_points.map((p: string) => `- ${p}`).join("\n")}`,
         ].filter(Boolean).join("\n");
         briefRef.current.value = lines;
+      }
+
+      // 💾 احفظ الهوية في "هويتي" (البروفايل) عشان الاستوديو يستخدمها لما تفعّل "هويتي"
+      let savedIdentity = false;
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const patch: Record<string, unknown> = {};
+          if (data.brand_name) patch.brand_name = data.brand_name;
+          if (data.tone) patch.brand_voice = data.tone;
+          if (colors.length > 0) patch.brand_colors = colors;
+          if (Object.keys(patch).length > 0) {
+            const { error: upErr } = await supabase.from("profiles").update(patch).eq("id", user.id);
+            savedIdentity = !upErr && colors.length > 0;
+          }
+        }
+      } catch {
+        // تجاهل — حفظ الهوية اختياري
       }
 
       // خمن نوع البزنس
@@ -82,7 +107,10 @@ export function NewProjectDialog({ children }: { children?: React.ReactNode }) {
         if (type.includes(k)) { setBusinessType(v); break; }
       }
 
-      toast.success("جاهز! راجِع البيانات وعدّل ما تشاء ✨");
+      toast.success(
+        savedIdentity ? "جاهز! وحفظنا ألوان الهوية في «هويتي» 🎨" : "جاهز! راجِع البيانات وعدّل ما تشاء ✨",
+        savedIdentity ? { description: "فعّل «هويتي» في الاستوديو عشان التصاميم تطلع بألوان العلامة" } : undefined
+      );
     } catch {
       toast.error("تعذّر الاتصال");
     } finally {
