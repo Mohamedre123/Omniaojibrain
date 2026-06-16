@@ -95,6 +95,7 @@ export function StudioChat() {
   const [threads, setThreads] = useState<Record<Mode, ChatMsg[]>>({ image: [], video: [] });
   const [input, setInput] = useState("");
   const [imgAspect, setImgAspect] = useState("1:1");
+  const [imgQuality, setImgQuality] = useState<"fast" | "high">("fast");
   const [vidAspect, setVidAspect] = useState<"16:9" | "9:16">("16:9");
   const [vidQuality, setVidQuality] = useState<"fast" | "quality">("fast");
   const [useBrand, setUseBrand] = useState(true);
@@ -160,6 +161,35 @@ export function StudioChat() {
       setRef({ data: r.split(",")[1] || "", mimeType: file.type, previewUrl: URL.createObjectURL(file), name: file.name });
     };
     reader.readAsDataURL(file);
+  }
+
+  // يصغّر الصورة المرجعية قبل الإرسال (يقلّل حجم الطلب → يمنع فشل الاتصال ويسرّع)
+  async function shrinkImage(dataB64: string, mime: string, max = 1280, quality = 0.85): Promise<{ data: string; mimeType: string }> {
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (Math.max(width, height) > max) {
+            const scale = max / Math.max(width, height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { resolve({ data: dataB64, mimeType: mime }); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          const out = canvas.toDataURL("image/jpeg", quality);
+          resolve({ data: out.split(",")[1] || dataB64, mimeType: "image/jpeg" });
+        };
+        img.onerror = () => resolve({ data: dataB64, mimeType: mime });
+        img.src = `data:${mime};base64,${dataB64}`;
+      } catch {
+        resolve({ data: dataB64, mimeType: mime });
+      }
+    });
   }
 
   async function blobToBase64(blob: Blob): Promise<string> {
@@ -277,27 +307,37 @@ export function StudioChat() {
         ? " IMPORTANT: A reference image is attached — keep the product/subject identity (logo, packaging, shape) 100% identical; only build the requested scene around it."
         : "";
 
-      // الصور المرجعية: (المرجع/آخر صورة) + الشعار كمرجع ألوان للتوليد الجديد فقط
+      // الصور المرجعية (مصغّرة): (المرجع/آخر صورة) + الشعار كمرجع ألوان للتوليد الجديد فقط
       const refImages: Array<{ mimeType: string; data: string }> = [];
-      if (refData) refImages.push(refData);
+      if (refData) refImages.push(await shrinkImage(refData.data, refData.mimeType));
       let logoNote = "";
       if (brand.logo && !attachedRef && !editing && refImages.length < 3) {
-        refImages.push({ mimeType: brand.logo.mimeType, data: brand.logo.data });
+        refImages.push(await shrinkImage(brand.logo.data, brand.logo.mimeType, 512));
         logoNote = " A brand LOGO image is also attached ONLY as a color & style reference — match the brand's exact color palette and visual identity from it. Do NOT draw or include the logo itself in the output unless explicitly requested.";
       }
 
       const fullPrompt = `${text}.${editNote}${logoNote} Aspect ratio: ${imgAspect}.`;
 
-      const res = await fetch("/api/image-generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: fullPrompt,
-          brandContext: brandContext || undefined,
-          aspect: imgAspect,
-          refImages: refImages.length > 0 ? refImages : undefined,
-        }),
-      });
+      // مهلة من جهة العميل عشان ما يفضلش معلّق على شبكات الموبايل
+      const controller = new AbortController();
+      const clientTimeout = setTimeout(() => controller.abort(), imgQuality === "fast" ? 110_000 : 280_000);
+      let res: Response;
+      try {
+        res = await fetch("/api/image-generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: fullPrompt,
+            brandContext: brandContext || undefined,
+            aspect: imgAspect,
+            quality: imgQuality,
+            refImages: refImages.length > 0 ? refImages : undefined,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(clientTimeout);
+      }
       if (handle401(res)) { setBusy(false); return; }
       const data = await res.json();
       if (!res.ok || !data.images?.length) {
@@ -331,9 +371,11 @@ export function StudioChat() {
       } else {
         lastImageRef.current = { data: img.data, mimeType: img.mimeType };
       }
-    } catch {
-      updateMsg("image", assistantId, { status: "error", error: "تعذّر الاتصال" });
-      toast.error("تعذّر الاتصال");
+    } catch (e) {
+      const aborted = e instanceof Error && e.name === "AbortError";
+      const msg = aborted ? "أخذ وقتاً أطول من المتوقّع — جرّب وضع «سريع ⚡» أو حاول تاني" : "تعذّر الاتصال — تأكد من الإنترنت وحاول مرة أخرى";
+      updateMsg("image", assistantId, { status: "error", error: msg });
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
@@ -494,9 +536,15 @@ export function StudioChat() {
               {a.label}
             </button>
           ))}
+          {mode === "image" && (
+            <div className="inline-flex rounded-md border overflow-hidden text-xs">
+              <button onClick={() => setImgQuality("fast")} disabled={busy} className={`px-2.5 py-1 ${imgQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
+              <button onClick={() => setImgQuality("high")} disabled={busy} className={`px-2.5 py-1 ${imgQuality === "high" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
+            </div>
+          )}
           {mode === "video" && (
             <div className="inline-flex rounded-md border overflow-hidden text-xs">
-              <button onClick={() => setVidQuality("fast")} disabled={busy} className={`px-2.5 py-1 ${vidQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع</button>
+              <button onClick={() => setVidQuality("fast")} disabled={busy} className={`px-2.5 py-1 ${vidQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
               <button onClick={() => setVidQuality("quality")} disabled={busy} className={`px-2.5 py-1 ${vidQuality === "quality" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
             </div>
           )}

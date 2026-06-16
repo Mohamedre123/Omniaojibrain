@@ -22,13 +22,19 @@ const schema = z.object({
     .optional(),
   brandContext: z.string().max(1000).optional(),
   aspect: z.string().optional(),
+  quality: z.enum(["fast", "high"]).optional().default("fast"),
 });
 
 // 🎨 الستايل الأساسي لكل توليد
 const MASTER_PHOTO_STYLE = `Ultra-High Resolution 8K Photorealistic Commercial Advertising Photography, razor-sharp focus, soft diffused studio lighting, subtle rim lighting, rich clean colors, luxury brand aesthetic, full-frame camera quality, shallow depth of field, magazine-quality composition.`;
 
-// 🍌 نماذج Gemini فقط — Nano Banana Pro أولاً ثم Nano Banana
-const IMAGE_MODELS = ["gemini-3-pro-image-preview", "gemini-2.5-flash-image"];
+// 🍌 نماذج Gemini فقط
+// fast: Nano Banana (flash) أولاً — أسرع بكثير (ثوانٍ) ومناسب للتجربة السريعة
+// high: Nano Banana Pro أولاً — أدقّ لكن أبطأ
+const MODELS_BY_QUALITY: Record<"fast" | "high", string[]> = {
+  fast: ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"],
+  high: ["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
+};
 
 function getKeys(): string[] {
   return [process.env.VEO_API_KEY, process.env.GEMINI_API_KEY].filter(
@@ -61,7 +67,8 @@ async function generateImageREST(
   key: string,
   model: string,
   prompt: string,
-  refImages: Array<{ mimeType: string; data: string }>
+  refImages: Array<{ mimeType: string; data: string }>,
+  timeoutMs: number
 ): Promise<{ images: Array<{ mimeType: string; data: string }>; error?: string }> {
   const parts: Part[] = [];
   for (const img of refImages) {
@@ -70,8 +77,7 @@ async function generateImageREST(
   parts.push({ text: prompt });
 
   const controller = new AbortController();
-  // Pro بياخد وقت طويل خصوصاً مع صور مرجعية — 240 ثانية حد أقصى
-  const timer = setTimeout(() => controller.abort(), 240_000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(`${GL_BASE}/models/${model}:generateContent`, {
@@ -144,12 +150,15 @@ export async function POST(req: NextRequest) {
 
   const enhancedPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}\n\nIMPORTANT: You MUST generate and output an actual IMAGE. Do not respond with text only.`;
 
+  const models = MODELS_BY_QUALITY[body.quality];
+  // مهلة أقصر للوضع السريع (flash يردّ في ثوانٍ) — يقلّل فشل الاتصال على شبكات الموبايل
+  const timeoutMs = body.quality === "fast" ? 90_000 : 230_000;
+
   const errors: string[] = [];
 
-  // جرّب: لكل مفتاح، جرّب النماذج بالترتيب (Pro أولاً)
   for (const key of keys) {
-    for (const model of IMAGE_MODELS) {
-      const result = await generateImageREST(key, model, enhancedPrompt, body.refImages ?? []);
+    for (const model of models) {
+      const result = await generateImageREST(key, model, enhancedPrompt, body.refImages ?? [], timeoutMs);
       if (result.images.length > 0) {
         return NextResponse.json({ images: result.images, model });
       }
