@@ -5,6 +5,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingHelp } from "@/components/floating-help";
 import { AppSidebar, SidebarTrigger } from "@/components/app-sidebar";
 
+// 🔒 مهمّ جداً للأمان: كل صفحات الحساب تُرسَم لكل طلبٍ على حدة (لكل مستخدم)،
+// وممنوع تخزينها في أي كاش — يمنع ظهور بيانات مستخدمٍ لمستخدمٍ آخر.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

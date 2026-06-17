@@ -62,5 +62,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // 🔒 امنع تخزين صفحات الحساب في أي كاش (CDN/متصفح) — حماية من تسرّب بيانات مستخدمٍ لآخر
+  const isUserArea =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/projects") ||
+    pathname.startsWith("/assistant") ||
+    pathname.startsWith("/studio") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/marketing") ||
+    pathname.startsWith("/insights") ||
+    pathname.startsWith("/leads") ||
+    pathname.startsWith("/brand") ||
+    pathname.startsWith("/business") ||
+    pathname.startsWith("/team") ||
+    pathname.startsWith("/learn") ||
+    pathname.startsWith("/calendar");
+  if (isUserArea) {
+    response.headers.set("Cache-Control", "private, no-store, no-cache, must-revalidate, max-age=0");
+  }
+
   return response;
 }

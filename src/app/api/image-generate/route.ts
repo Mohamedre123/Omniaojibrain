@@ -28,12 +28,12 @@ const schema = z.object({
 // 🎨 الستايل الأساسي لكل توليد
 const MASTER_PHOTO_STYLE = `Ultra-High Resolution 8K Photorealistic Commercial Advertising Photography, razor-sharp focus, soft diffused studio lighting, subtle rim lighting, rich clean colors, luxury brand aesthetic, full-frame camera quality, shallow depth of field, magazine-quality composition.`;
 
-// 🍌 نماذج Gemini فقط
-// fast: Nano Banana (flash) أولاً — أسرع بكثير (ثوانٍ) ومناسب للتجربة السريعة
-// high: Nano Banana Pro أولاً — أدقّ لكن أبطأ
+// 🍌 نماذج Gemini فقط — أحدث إصدار Nano Banana (الجيل 3.1) أولاً
+// fast: Nano Banana 3.1 flash — سريع (ثوانٍ) وجودته أعلى من 2.5
+// high: Nano Banana Pro (الجيل 3) — الأدقّ خصوصاً في النصوص
 const MODELS_BY_QUALITY: Record<"fast" | "high", string[]> = {
-  fast: ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"],
-  high: ["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
+  fast: ["gemini-3.1-flash-image", "gemini-2.5-flash-image"],
+  high: ["gemini-3-pro-image", "gemini-3-pro-image-preview", "gemini-3.1-flash-image"],
 };
 
 function getKeys(): string[] {
