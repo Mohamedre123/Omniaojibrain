@@ -4,6 +4,7 @@ import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingHelp } from "@/components/floating-help";
 import { AppSidebar, SidebarTrigger } from "@/components/app-sidebar";
+import { AnimatedBackground } from "@/components/animated-background";
 
 // 🔒 مهمّ جداً للأمان: كل صفحات الحساب تُرسَم لكل طلبٍ على حدة (لكل مستخدم)،
 // وممنوع تخزينها في أي كاش — يمنع ظهور بيانات مستخدمٍ لمستخدمٍ آخر.
@@ -24,7 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .single();
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen flex">
+      <AnimatedBackground />
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="glass sticky top-0 z-30 border-b safe-top">
