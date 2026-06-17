@@ -148,12 +148,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "مفتاح Gemini غير مضبوط في الخادم" }, { status: 500 });
   }
 
-  // 🔤 لو الطلب فيه نص مكتوب داخل الصورة، استخدم Pro (الأدقّ في النص خصوصاً العربي)
+  // 🔤 لو الطلب فيه نص مكتوب داخل الصورة، نضيف تعليمة دقّة فقط.
+  // Nano Banana 2 (gemini-3.1-flash-image) ممتاز في العربي وسريع — فلا نجبر Pro البطيء.
   const wantsText =
     /["“”«»][^"“”«»]{1,80}["“”«»]/.test(body.prompt) ||
     /(اكتب|مكتوب|عبار[ةه]|نصّ?|جمل[ةه]|كلم[ةه]|شعار|عنوان|بخط|لافت[ةه]|تايبوغرافي|typography|text\s|caption|headline|slogan)/i.test(body.prompt);
 
-  const effectiveQuality: "fast" | "high" = wantsText ? "high" : body.quality;
+  const effectiveQuality: "fast" | "high" = body.quality;
 
   const textNote = wantsText
     ? "\n\nCRITICAL TEXT RULE: Render any requested text EXACTLY as written, spelled correctly. For Arabic text, use proper right-to-left direction and correct CONNECTED letter forms (not isolated/broken glyphs). The text must be clean, legible, and accurate."
