@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Reveal } from "@/components/reveal";
 import {
   Brain,
   Sparkles,
@@ -13,13 +14,16 @@ import {
   Zap,
   Shield,
   ArrowLeft,
+  Check,
+  Star,
 } from "lucide-react";
 
 export default function LandingPage() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background">
-      {/* خلفية متحرّكة (blobs) */}
+      {/* خلفية متحرّكة */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-grid opacity-[0.5]" />
         <div className="absolute -top-32 -right-24 size-[34rem] max-w-[80vw] rounded-full bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 blur-3xl animate-blob" />
         <div className="absolute top-1/3 -left-24 size-[30rem] max-w-[80vw] rounded-full bg-gradient-to-br from-blue-500/25 to-cyan-400/15 blur-3xl animate-blob delay-300" />
         <div className="absolute bottom-0 right-1/4 size-[28rem] max-w-[80vw] rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/10 blur-3xl animate-blob delay-500" />
@@ -34,12 +38,14 @@ export default function LandingPage() {
             </div>
             <span className="text-xl font-bold">Oji Brain</span>
           </Link>
+          <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
+            <Link href="#features" className="hover:text-foreground transition-colors">الإمكانيات</Link>
+            <Link href="#how" className="hover:text-foreground transition-colors">كيف يعمل</Link>
+            <Link href="#faq" className="hover:text-foreground transition-colors">الأسئلة</Link>
+          </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" className="hidden sm:inline-flex">
               <Link href="/login">تسجيل الدخول</Link>
-            </Button>
-            <Button asChild variant="ghost" size="icon" className="sm:hidden" aria-label="تسجيل الدخول">
-              <Link href="/login"><ArrowLeft className="size-5" /></Link>
             </Button>
             <Button asChild variant="gradient"><Link href="/signup">ابدأ مجاناً</Link></Button>
           </div>
@@ -47,10 +53,13 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="container mx-auto px-4 pt-16 sm:pt-24 pb-24 sm:pb-32 text-center">
+      <section className="container mx-auto px-4 pt-16 sm:pt-24 pb-16 text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-accent/50 px-4 py-1.5 text-sm animate-fade-up">
-          <Sparkles className="size-4 text-primary" />
-          <span>مدعومٌ بأحدث نماذج الذكاء الاصطناعي</span>
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
+            <span className="relative inline-flex size-2 rounded-full bg-primary" />
+          </span>
+          <span>مدعومٌ بأحدث نماذج الذكاء الاصطناعي — Nano Banana 2 و Veo</span>
         </div>
         <h1 className="mx-auto max-w-4xl text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.15] animate-fade-up delay-100">
           عقلُ مشروعك <span className="text-gradient animate-gradient">الإبداعي</span>
@@ -58,13 +67,13 @@ export default function LandingPage() {
           في مكانٍ واحد
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed animate-fade-up delay-200">
-          منصةُ ذكاءٍ اصطناعيٍّ تفهمك بأيّ لغةٍ وأيّ لهجة. اشرح فكرة مشروعك، وستحصل على
-          <span className="text-foreground font-medium"> استراتيجيةٍ متكاملة</span>،
-          <span className="text-foreground font-medium"> تصميماتٍ احترافية</span>، و
-          <span className="text-foreground font-medium"> سكربتاتِ فيديو</span> جاهزةً للتنفيذ.
+          منصةُ ذكاءٍ اصطناعيٍّ تفهمك بأيّ لغةٍ ولهجة. اشرح فكرتك، واحصل على
+          <span className="text-foreground font-medium"> استراتيجية</span>،
+          <span className="text-foreground font-medium"> صورٍ وفيديوهاتٍ احترافية</span>، و
+          <span className="text-foreground font-medium"> محتوًى جاهز</span> للتنفيذ.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 animate-fade-up delay-300">
-          <Button asChild size="lg" variant="gradient" className="h-14 px-8 text-base w-full sm:w-auto">
+          <Button asChild size="lg" variant="gradient" className="h-14 px-8 text-base w-full sm:w-auto hover-lift">
             <Link href="/signup">
               ابدأ مشروعك الأول
               <ArrowLeft className="size-5" />
@@ -75,122 +84,252 @@ export default function LandingPage() {
           </Button>
         </div>
         <p className="mt-4 text-sm text-muted-foreground animate-fade-up delay-400">
-          مجانيٌّ تماماً • بدون بطاقةٍ ائتمانية • حسابٌ مستقلٌّ لكلّ مستخدم
+          مجانيٌّ للبدء • بدون بطاقةٍ ائتمانية • حسابٌ مستقلٌّ لكلّ مستخدم
         </p>
 
-        {/* شريط الإمكانيات السريع */}
-        <div className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto animate-fade-up delay-500">
-          {[
-            { icon: Palette, label: "توليدُ صور" },
-            { icon: Video, label: "توليدُ فيديو" },
-            { icon: Mic, label: "تعليقٌ صوتي" },
-            { icon: Target, label: "استراتيجيات" },
-          ].map((q) => (
-            <div key={q.label} className="hover-lift rounded-xl border bg-card/60 backdrop-blur p-4 flex flex-col items-center gap-2">
-              <q.icon className="size-6 text-primary" />
-              <span className="text-sm font-medium">{q.label}</span>
+        {/* معاينة تفاعلية للتطبيق */}
+        <Reveal delay={150} className="mt-16 max-w-4xl mx-auto">
+          <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="gradient-border rounded-2xl p-5 text-right hover-lift sm:translate-y-4">
+                <div className="size-11 rounded-xl bg-rose-500/15 text-rose-500 grid place-items-center mb-3"><Palette className="size-6" /></div>
+                <h3 className="font-semibold">صورة إعلانية</h3>
+                <p className="text-xs text-muted-foreground mt-1">«كوب قهوة على رخام بإضاءة دافئة» → صورة في ثوانٍ</p>
+                <div className="mt-3 h-20 rounded-lg bg-gradient-to-br from-amber-400/30 to-rose-500/30 animate-shine" />
+              </div>
+              <div className="gradient-border rounded-2xl p-5 text-right hover-lift">
+                <div className="size-11 rounded-xl bg-violet-500/15 text-violet-500 grid place-items-center mb-3"><Target className="size-6" /></div>
+                <h3 className="font-semibold">خطة تسويق</h3>
+                <p className="text-xs text-muted-foreground mt-1">خطة شهرية كاملة بمحتوًى وميزانية ومنصّات</p>
+                <div className="mt-3 space-y-1.5">
+                  <div className="h-2.5 rounded bg-muted w-5/6" />
+                  <div className="h-2.5 rounded bg-muted w-4/6" />
+                  <div className="h-2.5 rounded bg-muted w-3/6" />
+                </div>
+              </div>
+              <div className="gradient-border rounded-2xl p-5 text-right hover-lift sm:translate-y-4">
+                <div className="size-11 rounded-xl bg-blue-500/15 text-blue-500 grid place-items-center mb-3"><Video className="size-6" /></div>
+                <h3 className="font-semibold">فيديو إعلاني</h3>
+                <p className="text-xs text-muted-foreground mt-1">فيديو بجودة عالية من وصفٍ أو صورة</p>
+                <div className="mt-3 h-20 rounded-lg bg-gradient-to-br from-blue-500/30 to-cyan-400/30 grid place-items-center">
+                  <div className="size-8 rounded-full bg-white/80 grid place-items-center">
+                    <div className="ml-0.5 size-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-blue-600" />
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* شريط الإمكانيات المتحرّك */}
+      <section className="py-6 border-y bg-secondary/20">
+        <div className="marquee-mask overflow-hidden">
+          <div className="flex gap-3 w-max animate-marquee">
+            {[...CAPS, ...CAPS].map((c, i) => (
+              <span key={i} className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm whitespace-nowrap">
+                <c.icon className="size-4 text-primary" /> {c.label}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* الأرقام */}
-      <section className="container mx-auto px-4 pb-20">
+      <section className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto text-center">
           {[
             { n: "+6", t: "لهجات يفهمها" },
             { n: "24/7", t: "متاحٌ دائماً" },
             { n: "∞", t: "مشاريع بلا حدود" },
-          ].map((s) => (
-            <div key={s.t} className="rounded-2xl border bg-card/60 backdrop-blur p-5">
-              <div className="text-3xl sm:text-4xl font-bold text-gradient">{s.n}</div>
-              <div className="mt-1 text-xs sm:text-sm text-muted-foreground">{s.t}</div>
-            </div>
+          ].map((s, i) => (
+            <Reveal key={s.t} delay={i * 100}>
+              <div className="gradient-border rounded-2xl p-5">
+                <div className="text-3xl sm:text-4xl font-bold text-gradient">{s.n}</div>
+                <div className="mt-1 text-xs sm:text-sm text-muted-foreground">{s.t}</div>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" className="bg-secondary/30 py-20 sm:py-24">
+      <section id="features" className="py-20 sm:py-24">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-2xl text-center">
+          <Reveal className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl sm:text-4xl font-bold">كلُّ ما يحتاجه مشروعك</h2>
-            <p className="mt-3 text-muted-foreground">من الفكرة إلى التنفيذ — منظومةُ عملٍ متكاملةٌ في منصةٍ واحدة</p>
-          </div>
+            <p className="mt-3 text-muted-foreground">من الفكرة إلى التنفيذ — منظومةٌ متكاملةٌ في منصةٍ واحدة</p>
+          </Reveal>
           <div className="mt-14 grid gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="group hover-lift rounded-2xl border bg-card p-6 hover:shadow-xl hover:border-primary/40">
-                <div className="mb-4 inline-grid size-12 place-items-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-110 group-hover:rotate-3">
-                  <f.icon className="size-6" />
+            {FEATURES.map((f, i) => (
+              <Reveal key={f.title} delay={(i % 3) * 100}>
+                <div className="group hover-lift rounded-2xl border bg-card p-6 h-full hover:shadow-xl hover:border-primary/40">
+                  <div className={`mb-4 inline-grid size-12 place-items-center rounded-xl ${f.bg} transition-transform group-hover:scale-110 group-hover:-rotate-3`}>
+                    <f.icon className="size-6" />
+                  </div>
+                  <h3 className="text-lg font-semibold">{f.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.description}</p>
                 </div>
-                <h3 className="text-lg font-semibold">{f.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section className="container mx-auto px-4 py-20 sm:py-24">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold">كيف يعمل؟</h2>
-          <p className="mt-3 text-muted-foreground">ثلاثُ خطواتٍ بسيطةٍ بين الفكرة والتنفيذ</p>
+      <section id="how" className="bg-secondary/30 py-20 sm:py-24">
+        <div className="container mx-auto px-4">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl sm:text-4xl font-bold">كيف يعمل؟</h2>
+            <p className="mt-3 text-muted-foreground">ثلاثُ خطواتٍ بسيطةٍ بين الفكرة والتنفيذ</p>
+          </Reveal>
+          <div className="mt-16 grid gap-8 sm:grid-cols-3 relative">
+            {[
+              { n: "1", t: "اشرح فكرتك", d: "أدخل وصفاً موجزاً أو رابط موقعك، واختر نوع نشاطك" },
+              { n: "2", t: "اختر الأداة", d: "استراتيجية، صور، فيديو، أو محادثةٌ حرّة مع المساعد" },
+              { n: "3", t: "حمّل ونفّذ", d: "كلّ مخرجاتك تُحفظ في مكتبتك وتتزامن على أجهزتك" },
+            ].map((s, i) => (
+              <Reveal key={s.n} delay={i * 120}>
+                <div className="relative hover-lift rounded-2xl border bg-card p-8 pt-10 h-full">
+                  <div className="absolute -top-5 right-6 size-12 rounded-full gradient-brand grid place-items-center text-white text-xl font-bold shadow-lg">
+                    {s.n}
+                  </div>
+                  <h3 className="mt-2 text-xl font-bold">{s.t}</h3>
+                  <p className="mt-2 text-muted-foreground leading-relaxed">{s.d}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
-        <div className="mt-16 grid gap-8 sm:grid-cols-3">
-          {[
-            { n: "1", t: "اشرح فكرة مشروعك", d: "أدخل وصفاً موجزاً، واختر نوع نشاطك من القوالب الجاهزة" },
-            { n: "2", t: "اختر الوضع المناسب", d: "استراتيجيةٌ متكاملة، تصميمات، أو فيديو إعلاني — أو محادثةٌ حرّة" },
-            { n: "3", t: "حمّل النتائج واستخدمها", d: "صدّر المخرجات بصيغة PDF أو نص، وشارك المشروع مع عميلك" },
-          ].map((s) => (
-            <div key={s.n} className="relative hover-lift rounded-2xl border bg-card p-8 pt-10">
-              <div className="absolute -top-5 right-6 size-12 rounded-full gradient-brand grid place-items-center text-white text-xl font-bold shadow-lg">
-                {s.n}
+      </section>
+
+      {/* Testimonials */}
+      <section className="container mx-auto px-4 py-20 sm:py-24">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold">ثقةٌ من صُنّاع المحتوى</h2>
+          <p className="mt-3 text-muted-foreground">أدواتٌ تختصر ساعاتٍ من العمل اليومي</p>
+        </Reveal>
+        <div className="mt-12 grid gap-5 sm:grid-cols-3">
+          {TESTIMONIALS.map((t, i) => (
+            <Reveal key={t.name} delay={i * 100}>
+              <div className="rounded-2xl border bg-card p-6 h-full hover-lift">
+                <div className="flex gap-0.5 text-amber-400 mb-3">
+                  {Array.from({ length: 5 }).map((_, j) => <Star key={j} className="size-4 fill-current" />)}
+                </div>
+                <p className="text-sm leading-relaxed">{t.quote}</p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="size-9 rounded-full gradient-brand grid place-items-center text-white text-sm font-bold">{t.name[0]}</div>
+                  <div>
+                    <p className="text-sm font-semibold">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                </div>
               </div>
-              <h3 className="mt-2 text-xl font-bold">{s.t}</h3>
-              <p className="mt-2 text-muted-foreground leading-relaxed">{s.d}</p>
-            </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ — تفاعلي */}
+      <section id="faq" className="container mx-auto px-4 py-20 sm:py-24">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold">أسئلةٌ شائعة</h2>
+          <p className="mt-3 text-muted-foreground">كلُّ ما تريد معرفته قبل أن تبدأ</p>
+        </Reveal>
+        <div className="mt-10 max-w-2xl mx-auto space-y-3">
+          {FAQ.map((f, i) => (
+            <Reveal key={f.q} delay={i * 60}>
+              <details className="group rounded-xl border bg-card px-5 py-4 [&_summary]:cursor-pointer">
+                <summary className="flex items-center justify-between gap-3 font-medium list-none">
+                  {f.q}
+                  <span className="size-6 rounded-full border grid place-items-center text-muted-foreground transition-transform group-open:rotate-45 shrink-0">+</span>
+                </summary>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{f.a}</p>
+              </details>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* CTA */}
       <section className="container mx-auto px-4 pb-24">
-        <div className="relative overflow-hidden rounded-3xl gradient-brand p-8 sm:p-12 text-center text-white">
-          <div aria-hidden className="absolute inset-0 animate-shine" />
-          <div className="relative">
-            <h2 className="text-3xl sm:text-4xl font-bold">جاهزٌ للبدء؟</h2>
-            <p className="mt-3 text-white/90 max-w-xl mx-auto">
-              افتح حسابك الآن وابدأ مشروعك الأول في أقلَّ من دقيقة.
-            </p>
-            <Button asChild size="lg" variant="secondary" className="mt-8 h-14 px-10 text-base w-full sm:w-auto">
-              <Link href="/signup">
-                أنشئ حسابك مجاناً
-                <ArrowLeft className="size-5" />
-              </Link>
-            </Button>
+        <Reveal>
+          <div className="relative overflow-hidden rounded-3xl gradient-brand p-8 sm:p-14 text-center text-white">
+            <div aria-hidden className="absolute inset-0 animate-shine" />
+            <div className="relative">
+              <h2 className="text-3xl sm:text-4xl font-bold">جاهزٌ للبدء؟</h2>
+              <p className="mt-3 text-white/90 max-w-xl mx-auto">
+                افتح حسابك الآن وابدأ مشروعك الأول في أقلَّ من دقيقة.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-3">
+                <Button asChild size="lg" variant="secondary" className="h-14 px-10 text-base w-full sm:w-auto">
+                  <Link href="/signup">
+                    أنشئ حسابك مجاناً
+                    <ArrowLeft className="size-5" />
+                  </Link>
+                </Button>
+              </div>
+              <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/85">
+                {["بدون بطاقة ائتمانية", "إلغاء في أي وقت", "بياناتك معزولةٌ وآمنة"].map((x) => (
+                  <span key={x} className="inline-flex items-center gap-1.5"><Check className="size-4" /> {x}</span>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 safe-bottom">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Oji Brain — جزءٌ من Oji
+      <footer className="border-t py-10 safe-bottom">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="size-7 rounded-md gradient-brand grid place-items-center"><Brain className="size-4 text-white" /></div>
+            <span className="font-semibold text-foreground">Oji Brain</span>
+          </div>
+          <p>© {new Date().getFullYear()} Oji Brain — جزءٌ من Oji</p>
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="hover:text-foreground transition-colors">دخول</Link>
+            <Link href="/signup" className="hover:text-foreground transition-colors">حساب جديد</Link>
+          </div>
         </div>
       </footer>
     </main>
   );
 }
 
+const CAPS = [
+  { icon: Palette, label: "توليد صور" },
+  { icon: Video, label: "توليد فيديو" },
+  { icon: Target, label: "استراتيجيات تسويق" },
+  { icon: Mic, label: "تعليق صوتي" },
+  { icon: Globe, label: "كل اللهجات" },
+  { icon: Sparkles, label: "تحليل المنافسين" },
+  { icon: Share2, label: "مشاركة مع العميل" },
+  { icon: Download, label: "تصدير PDF" },
+];
+
 const FEATURES = [
-  { icon: Target, title: "استراتيجيةُ تسويقٍ متكاملة", description: "خطةٌ شهريةٌ أو ربعُ سنويةٍ بأهدافٍ ومحتوًى ومنصاتٍ وميزانية، قابلةٌ للتنفيذ تفصيلياً." },
-  { icon: Palette, title: "توليدُ صورٍ احترافية", description: "صورٌ تسويقيةٌ واقعيةٌ بالذكاء الاصطناعي (Nano Banana Pro) — بأيّ أبعادٍ تناسب منصّاتك." },
-  { icon: Video, title: "توليدُ فيديو إعلاني", description: "فيديوهاتٌ بجودةٍ عالية (Veo) من نصٍّ أو من صورة — جاهزةٌ للريلز والإعلانات." },
-  { icon: Globe, title: "يفهم جميع اللهجات", description: "اكتب بالمصرية، الخليجية، الشامية، المغربية، الفصحى، أو الإنجليزية — والذكاء الاصطناعي يردّ بنفس لهجتك." },
-  { icon: Mic, title: "تعليقٌ صوتي وإدخالٌ صوتي", description: "حوّل كلامك إلى نص، وحوّل نصوصك إلى تعليقٍ صوتيٍّ احترافيٍّ بأصواتٍ متعددة." },
-  { icon: Shield, title: "حسابك خاصٌّ بك", description: "كلُّ حسابٍ معزولٌ تماماً بنظام أمانٍ متعدد الطبقات — لا أحدَ يصل إلى مشاريعك." },
-  { icon: Download, title: "تحميلٌ وتصدير", description: "PDF احترافي، نصوص، صور، فيديو — جميع المخرجات تُحفظ في مكتبتك وتحت تصرّفك." },
-  { icon: Share2, title: "شاركها مع عميلك", description: "أرسل رابطاً للعميل النهائي ليطّلع على الاستراتيجية والمخرجات دون إنشاء حساب." },
-  { icon: Zap, title: "سرعةٌ دون انقطاع", description: "ردودٌ فوريةٌ تظهر أثناء القراءة، دون رسومِ اشتراكٍ أو حدودِ استخدامٍ مزعجة." },
+  { icon: Target, bg: "bg-violet-500/15 text-violet-500", title: "استراتيجيةُ تسويقٍ متكاملة", description: "خطةٌ شهريةٌ أو ربعُ سنويةٍ بأهدافٍ ومحتوًى ومنصاتٍ وميزانية، قابلةٌ للتنفيذ تفصيلياً." },
+  { icon: Palette, bg: "bg-rose-500/15 text-rose-500", title: "توليدُ صورٍ احترافية", description: "صورٌ واقعيةٌ بالذكاء الاصطناعي (Nano Banana 2) — بأيّ أبعادٍ تناسب منصّاتك." },
+  { icon: Video, bg: "bg-blue-500/15 text-blue-500", title: "توليدُ فيديو إعلاني", description: "فيديوهاتٌ بجودةٍ عالية (Veo) من نصٍّ أو من صورة — جاهزةٌ للريلز والإعلانات." },
+  { icon: Globe, bg: "bg-emerald-500/15 text-emerald-500", title: "يفهم جميع اللهجات", description: "اكتب بالمصرية، الخليجية، الشامية، المغربية، الفصحى، أو الإنجليزية — ويردّ بنفس لهجتك." },
+  { icon: Mic, bg: "bg-amber-500/15 text-amber-600", title: "تعليقٌ صوتي", description: "حوّل نصوصك إلى تعليقٍ صوتيٍّ احترافيٍّ بأصواتٍ متعددة، وكلامك إلى نص." },
+  { icon: Shield, bg: "bg-cyan-500/15 text-cyan-500", title: "حسابك خاصٌّ بك", description: "كلُّ حسابٍ معزولٌ تماماً بنظام أمانٍ متعدد الطبقات — لا أحدَ يصل إلى مشاريعك." },
+  { icon: Download, bg: "bg-indigo-500/15 text-indigo-500", title: "تحميلٌ وتصدير", description: "PDF احترافي، نصوص، صور، فيديو — كلُّ المخرجات تُحفظ في مكتبتك." },
+  { icon: Share2, bg: "bg-pink-500/15 text-pink-500", title: "شاركها مع عميلك", description: "أرسل رابطاً للعميل النهائي ليطّلع على الاستراتيجية والمخرجات دون إنشاء حساب." },
+  { icon: Zap, bg: "bg-fuchsia-500/15 text-fuchsia-500", title: "سرعةٌ دون انقطاع", description: "ردودٌ فوريةٌ تظهر أثناء القراءة، دون رسومِ اشتراكٍ أو حدودِ استخدامٍ مزعجة." },
+];
+
+const TESTIMONIALS = [
+  { name: "سارة", role: "صاحبة متجر إلكتروني", quote: "بقيت أطلّع تصاميم وإعلانات في دقايق بدل ما أستنى مصمّم. وفّرت عليّ وقت ومجهود كبير." },
+  { name: "خالد", role: "مسوّق رقمي — الرياض", quote: "الاستراتيجيات مفصّلة وعملية، وبيفهم السوق الخليجي صح. أداة أساسية في شغلي اليومي." },
+  { name: "ليلى", role: "مديرة محتوى", quote: "إني أكلّمه بلهجتي ويرد بنفس الأسلوب خلّى الشغل أسهل بكتير. والصور بجودة احترافية." },
+];
+
+const FAQ = [
+  { q: "هل أحتاج خبرةً تقنية؟", a: "إطلاقاً. اكتب فكرتك بلغتك العادية، والباقي على Oji — يفهم كلامك وينفّذ." },
+  { q: "هل بياناتي ومشاريعي آمنة؟", a: "نعم. كلُّ حسابٍ معزولٌ تماماً بنظام أمانٍ متعدد الطبقات، ولا يمكن لأحدٍ الوصول إلى بياناتك." },
+  { q: "هل يكتب بلهجتي؟", a: "أيوه — اكتب بالمصرية أو الخليجية أو الشامية أو المغربية أو الفصحى أو الإنجليزية، ويرد بنفس لهجتك." },
+  { q: "هل المخرجات تُحفظ؟", a: "كلُّ الصور والفيديوهات والمحادثات تُحفظ تلقائياً في مكتبتك وتتزامن على كلّ أجهزتك." },
+  { q: "هل يعمل على الموبايل؟", a: "نعم، الموقع متجاوبٌ بالكامل ويعمل على iOS و Android و الكمبيوتر و الماك وكلّ الأجهزة." },
 ];

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NewProjectDialog } from "./new-project-dialog";
 import { WelcomeBanner } from "./welcome-banner";
 import { BUSINESS_TEMPLATES } from "@/lib/templates";
+import { Reveal } from "@/components/reveal";
 import { relativeTime } from "@/lib/utils";
 import { FolderPlus, FolderOpen, ArrowLeft } from "lucide-react";
 import type { Project } from "@/types/db";
@@ -54,10 +55,11 @@ export default async function DashboardPage() {
         <EmptyState />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((p) => {
+          {list.map((p, i) => {
             const tpl = BUSINESS_TEMPLATES.find((t) => t.id === p.business_type);
             return (
-              <Link key={p.id} href={`/projects/${p.id}`}>
+              <Reveal key={p.id} delay={(i % 6) * 70}>
+              <Link href={`/projects/${p.id}`} className="block h-full">
                 <Card className="group h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 cursor-pointer">
                   <div className={`h-24 bg-gradient-to-br ${COVER_COLORS[p.cover_color] ?? COVER_COLORS.violet} relative`}>
                     <div className="absolute inset-0 grid place-items-center text-5xl">
@@ -81,6 +83,7 @@ export default async function DashboardPage() {
                   </CardContent>
                 </Card>
               </Link>
+              </Reveal>
             );
           })}
         </div>
