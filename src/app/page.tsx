@@ -23,10 +23,17 @@ export default function LandingPage() {
     <main className="relative min-h-screen overflow-x-hidden bg-background">
       {/* خلفية متحرّكة */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-[0.5]" />
-        <div className="absolute -top-32 -right-24 size-[34rem] max-w-[80vw] rounded-full bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 blur-3xl animate-blob" />
-        <div className="absolute top-1/3 -left-24 size-[30rem] max-w-[80vw] rounded-full bg-gradient-to-br from-blue-500/25 to-cyan-400/15 blur-3xl animate-blob delay-300" />
-        <div className="absolute bottom-0 right-1/4 size-[28rem] max-w-[80vw] rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/10 blur-3xl animate-blob delay-500" />
+        <div className="absolute inset-0 bg-grid opacity-[0.4]" />
+        {/* كرات لونية تتحرّك ببطء */}
+        <div className="absolute -top-28 -right-20 size-[38rem] max-w-[88vw] rounded-full bg-gradient-to-br from-violet-600/45 to-fuchsia-500/30 blur-3xl animate-blob" />
+        <div className="absolute top-1/3 -left-20 size-[34rem] max-w-[88vw] rounded-full bg-gradient-to-br from-blue-600/40 to-cyan-400/25 blur-3xl animate-blob delay-300" />
+        <div className="absolute -bottom-10 right-1/4 size-[32rem] max-w-[85vw] rounded-full bg-gradient-to-br from-pink-600/35 to-purple-500/25 blur-3xl animate-blob delay-500" />
+        <div className="absolute top-1/4 left-1/3 size-[24rem] max-w-[70vw] rounded-full bg-gradient-to-br from-emerald-500/25 to-teal-400/15 blur-3xl animate-blob delay-700" />
+        {/* أشكال عائمة خفيفة */}
+        <div className="absolute top-28 left-[8%] size-24 rounded-full border border-primary/25 animate-float" />
+        <div className="absolute top-[55%] right-[10%] size-16 rounded-2xl border border-fuchsia-400/25 rotate-12 animate-float-slow" />
+        <div className="absolute bottom-24 left-[20%] size-3 rounded-full bg-primary/40 animate-float-slow" />
+        <div className="absolute top-[40%] right-[28%] size-2.5 rounded-full bg-fuchsia-400/50 animate-float" />
       </div>
 
       {/* Nav */}
@@ -91,30 +98,48 @@ export default function LandingPage() {
         <Reveal delay={150} className="mt-16 max-w-4xl mx-auto">
           <div className="relative">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* صورة إعلانية — موك أب واضح لإعلان */}
               <div className="gradient-border rounded-2xl p-5 text-right hover-lift sm:translate-y-4">
                 <div className="size-11 rounded-xl bg-rose-500/15 text-rose-500 grid place-items-center mb-3"><Palette className="size-6" /></div>
                 <h3 className="font-semibold">صورة إعلانية</h3>
-                <p className="text-xs text-muted-foreground mt-1">«كوب قهوة على رخام بإضاءة دافئة» → صورة في ثوانٍ</p>
-                <div className="mt-3 h-20 rounded-lg bg-gradient-to-br from-amber-400/30 to-rose-500/30 animate-shine" />
+                <p className="text-xs text-muted-foreground mt-1">من وصفٍ بسيط → صورة احترافية في ثوانٍ</p>
+                <div className="mt-3 h-28 rounded-lg overflow-hidden relative bg-gradient-to-br from-amber-300 via-orange-400 to-rose-500">
+                  <div className="absolute inset-0 animate-shine" />
+                  <span className="absolute top-2 right-2 rounded-md bg-black/45 text-white text-[10px] px-2 py-0.5 font-bold backdrop-blur">خصم ٥٠٪</span>
+                  <div className="absolute bottom-3 left-3 size-12 rounded-full bg-white/35 backdrop-blur-sm ring-2 ring-white/40" />
+                  <div className="absolute bottom-4 right-3 text-white text-[11px] font-bold drop-shadow-md leading-tight text-right">
+                    عرض رمضان<br /><span className="text-[9px] font-medium opacity-90">منتجك بإضاءة فاخرة</span>
+                  </div>
+                </div>
               </div>
+
+              {/* خطة تسويق — مقتطف مقروء */}
               <div className="gradient-border rounded-2xl p-5 text-right hover-lift">
                 <div className="size-11 rounded-xl bg-violet-500/15 text-violet-500 grid place-items-center mb-3"><Target className="size-6" /></div>
                 <h3 className="font-semibold">خطة تسويق</h3>
                 <p className="text-xs text-muted-foreground mt-1">خطة شهرية كاملة بمحتوًى وميزانية ومنصّات</p>
-                <div className="mt-3 space-y-1.5">
-                  <div className="h-2.5 rounded bg-muted w-5/6" />
-                  <div className="h-2.5 rounded bg-muted w-4/6" />
-                  <div className="h-2.5 rounded bg-muted w-3/6" />
+                <div className="mt-3 space-y-2 text-[11px] text-right">
+                  <div className="flex items-center justify-end gap-1.5"><span>الأسبوع ١: حملة إطلاق</span><span className="size-1.5 rounded-full bg-violet-500 shrink-0" /></div>
+                  <div className="flex items-center justify-end gap-1.5"><span>٣ منشورات + ريلز أسبوعياً</span><span className="size-1.5 rounded-full bg-blue-500 shrink-0" /></div>
+                  <div className="flex items-center justify-end gap-1.5"><span>ميزانية إعلانات: ٥٠٠ ر.س</span><span className="size-1.5 rounded-full bg-emerald-500 shrink-0" /></div>
+                  <div className="flex items-center justify-end gap-1.5"><span>الهدف: ‎+٣٠٪ وصول</span><span className="size-1.5 rounded-full bg-amber-500 shrink-0" /></div>
                 </div>
               </div>
+
+              {/* فيديو إعلاني */}
               <div className="gradient-border rounded-2xl p-5 text-right hover-lift sm:translate-y-4">
                 <div className="size-11 rounded-xl bg-blue-500/15 text-blue-500 grid place-items-center mb-3"><Video className="size-6" /></div>
                 <h3 className="font-semibold">فيديو إعلاني</h3>
                 <p className="text-xs text-muted-foreground mt-1">فيديو بجودة عالية من وصفٍ أو صورة</p>
-                <div className="mt-3 h-20 rounded-lg bg-gradient-to-br from-blue-500/30 to-cyan-400/30 grid place-items-center">
-                  <div className="size-8 rounded-full bg-white/80 grid place-items-center">
-                    <div className="ml-0.5 size-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-blue-600" />
+                <div className="mt-3 h-28 rounded-lg relative overflow-hidden bg-gradient-to-br from-slate-800 via-blue-900 to-cyan-700">
+                  <div className="absolute inset-0 animate-shine" />
+                  <div className="absolute inset-0 grid place-items-center">
+                    <div className="size-10 rounded-full bg-white/90 grid place-items-center shadow-lg">
+                      <div className="ml-0.5 size-0 border-y-[7px] border-y-transparent border-l-[12px] border-l-blue-600" />
+                    </div>
                   </div>
+                  <span className="absolute bottom-2 left-2 rounded bg-black/50 text-white text-[9px] px-1.5 py-0.5 font-mono">00:08</span>
+                  <span className="absolute bottom-2 right-2 text-white/90 text-[10px] font-semibold">9:16 • HD</span>
                 </div>
               </div>
             </div>
