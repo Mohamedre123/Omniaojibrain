@@ -49,6 +49,13 @@ const CURRENCIES = [
   { value: "EUR", label: "🇪🇺 يورو (€)" },
 ];
 
+const CLAUDE_MODELS = [
+  { id: "claude-opus-4-8", label: "Claude Opus 4.8 (الأقوى)" },
+  { id: "claude-opus-4-7", label: "Claude Opus 4.7" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (متوازن)" },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5 (الأسرع)" },
+];
+
 type AttachedImage = { id: string; name: string; type: string; base64: string; previewUrl: string };
 type Project = { id: string; name: string };
 type Step = "form" | "result";
@@ -59,6 +66,7 @@ export default function LandingPageBuilder() {
   const [projectId, setProjectId] = useState<string>("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [pageType, setPageType] = useState("product");
+  const [model, setModel] = useState("claude-opus-4-8");
   const [style, setStyle] = useState("modern_animated");
   const [title, setTitle] = useState("");
   const [tagline, setTagline] = useState("");
@@ -123,6 +131,16 @@ export default function LandingPageBuilder() {
     }
   }
 
+  // استبدل النصوص النائبة بالصور الفعلية (Data URI) عشان تظهر فعلاً
+  function injectImages(html: string): string {
+    let out = html;
+    images.forEach((img, i) => {
+      const dataUri = `data:${img.type};base64,${img.base64}`;
+      out = out.split(`__IMAGE_${i + 1}__`).join(dataUri);
+    });
+    return out;
+  }
+
   function extractHtml(text: string): string {
     if (!text) return "";
     // جرب استخراج من ```html block
@@ -162,7 +180,7 @@ export default function LandingPageBuilder() {
       cta && `**زرّ الإجراء (CTA Text)**: ${cta}`,
       contact && `**معلومات تواصل / لينك زرّ CTA**: ${contact}`,
       extraNotes && `**ملاحظات إضافية**: ${extraNotes}`,
-      images.length > 0 && `**عدد الصور المرفقة**: ${images.length} صورة (استخدمها كمراجع بصرية للوصف، استخدم placeholders عند الحاجة)`,
+      images.length > 0 && `**الصور المرفقة**: ${images.length} صورة. ضع كل صورة فعلياً في الصفحة عبر وسم <img>، مستخدماً النصوص النائبة بالترتيب: ${images.map((_, i) => `__IMAGE_${i + 1}__`).join("، ")} داخل خاصية src — مثال: <img src="__IMAGE_1__" alt="المنتج" style="width:100%;border-radius:12px">. لا تستخدم روابط خارجية للصور المرفقة، واستعملها في الأماكن المناسبة (Hero، المعرض، البطاقات).`,
     ].filter(Boolean).join("\n");
 
     setLoading(true);
@@ -178,6 +196,8 @@ export default function LandingPageBuilder() {
           tool: "landing_page_advanced",
           input: promptParts,
           project_id: projectId || undefined,
+          provider: "claude",
+          model,
           attachments: images.length > 0
             ? images.map((i) => ({ type: i.type, base64: i.base64 }))
             : undefined,
@@ -240,6 +260,8 @@ ${currentHtml}
           tool: "landing_page_advanced",
           input: editPrompt,
           project_id: projectId || undefined,
+          provider: "claude",
+          model,
         }),
       });
 
@@ -284,7 +306,7 @@ ${currentHtml}
   }
 
   function previewInNewTab() {
-    const html = extractHtml(result);
+    const html = injectImages(extractHtml(result));
     if (!html.trim()) { toast.error("لا يوجد HTML بعد"); return; }
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -293,7 +315,7 @@ ${currentHtml}
   }
 
   function download() {
-    const html = extractHtml(result);
+    const html = injectImages(extractHtml(result));
     if (!html.trim()) { toast.error("لا يوجد HTML بعد"); return; }
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -306,7 +328,7 @@ ${currentHtml}
   }
 
   function copyCode() {
-    navigator.clipboard.writeText(extractHtml(result));
+    navigator.clipboard.writeText(injectImages(extractHtml(result)));
     toast.success("تمّ نسخ الكود");
   }
 
@@ -333,7 +355,7 @@ ${currentHtml}
 
   // ============== Result Step ==============
   if (step === "result") {
-    const htmlContent = extractHtml(result || streamText);
+    const htmlContent = injectImages(extractHtml(result || streamText));
     const hasContent = htmlContent.length > 20;
 
     return (
@@ -453,7 +475,7 @@ ${currentHtml}
                   ref={iframeRef}
                   srcDoc={htmlContent}
                   className="w-full h-full"
-                  sandbox="allow-scripts allow-popups allow-forms"
+                  sandbox="allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation allow-same-origin"
                   title="Preview"
                 />
               </div>
@@ -609,6 +631,21 @@ ${currentHtml}
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="ai-model">موديل الذكاء الاصطناعي (البرمجة بـ Claude)</Label>
+          <select
+            id="ai-model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+          >
+            {CLAUDE_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>{m.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground mt-1">صفحات الهبوط والبرمجة تُولّد بـ Claude — اختر الموديل الأقوى أو الأسرع حسب رغبتك.</p>
         </div>
 
         <div>

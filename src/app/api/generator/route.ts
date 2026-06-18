@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { streamChat, type ChatMessage } from "@/lib/ai/gemini";
+import { streamClaude } from "@/lib/ai/claude";
 import { rateLimit } from "@/lib/rate-limit";
 import { TOOL_PROMPTS, type ToolKey } from "@/lib/ai/tool-prompts";
 import { getTemplate } from "@/lib/templates";
@@ -22,6 +23,8 @@ const schema = z.object({
     )
     .max(4)
     .optional(),
+  provider: z.enum(["gemini", "claude"]).optional(),
+  model: z.string().max(64).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -95,11 +98,20 @@ ${brandColors.length > 0 ? `- **ألوان العلامة (Hex)**: ${brandColors
     },
   ];
 
+  // المزوّد: للّاندينج بيدج والبرمجة نفضّل Claude لو المفتاح موجود
+  const rawObj = (parsed.data ?? {}) as Record<string, unknown>;
+  const wantClaude = rawObj.provider === "claude";
+  const useClaude = wantClaude && !!process.env.ANTHROPIC_API_KEY;
+  const claudeModel = typeof rawObj.model === "string" ? rawObj.model : undefined;
+  const generator = useClaude
+    ? streamClaude({ systemPrompt, messages, model: claudeModel, maxTokens: 32000 })
+    : streamChat({ systemPrompt, messages });
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat({ systemPrompt, messages })) {
+        for await (const chunk of generator) {
           controller.enqueue(encoder.encode(chunk));
         }
       } catch (err) {

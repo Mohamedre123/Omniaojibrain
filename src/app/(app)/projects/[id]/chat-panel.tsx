@@ -43,6 +43,7 @@ export function ChatPanel({
   onSaveDeliverable: SaveFn;
 }) {
   const [input, setInput] = useState("");
+  const [aiModel, setAiModel] = useState("gemini"); // "gemini" أو معرّف موديل Claude
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
@@ -108,6 +109,8 @@ export function ChatPanel({
           conversation_id: convoId,
           message: text || "حلّل الصور المرفقة وقدّم ملاحظاتك",
           attachments: attachmentsForAPI,
+          provider: aiModel === "gemini" ? "gemini" : "claude",
+          model: aiModel === "gemini" ? undefined : aiModel,
         }),
         signal: controller.signal,
       });
@@ -272,6 +275,21 @@ export function ChatPanel({
       </div>
 
       <div className="border-t pt-3 mt-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs text-muted-foreground">الموديل:</span>
+          <select
+            value={aiModel}
+            onChange={(e) => setAiModel(e.target.value)}
+            className="h-8 px-2 rounded-md border border-input bg-background text-xs"
+            title="اختر موديل الذكاء الاصطناعي"
+          >
+            <option value="gemini">Gemini (افتراضي)</option>
+            <option value="claude-opus-4-8">Claude Opus 4.8 (الأقوى)</option>
+            <option value="claude-opus-4-7">Claude Opus 4.7</option>
+            <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+            <option value="claude-haiku-4-5">Claude Haiku 4.5 (الأسرع)</option>
+          </select>
+        </div>
         <FilePreviewList files={files} onRemove={(id) => setFiles((p) => p.filter((f) => f.id !== id))} />
         <div className="flex items-end gap-2">
           <FileUploadButton files={files} onFilesChange={setFiles} disabled={isStreamingHere} />

@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingHelp } from "@/components/floating-help";
 import { AppSidebar, SidebarTrigger } from "@/components/app-sidebar";
 import { AnimatedBackground } from "@/components/animated-background";
+import { PromoBanner } from "@/components/promo-banner";
 
 // 🔒 مهمّ جداً للأمان: كل صفحات الحساب تُرسَم لكل طلبٍ على حدة (لكل مستخدم)،
 // وممنوع تخزينها في أي كاش — يمنع ظهور بيانات مستخدمٍ لمستخدمٍ آخر.
@@ -29,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AnimatedBackground />
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
+        <PromoBanner />
         <header className="glass sticky top-0 z-30 border-b safe-top">
           <div className="flex items-center justify-between gap-1 h-16 px-4 lg:px-6">
             {/* زر القائمة على الموبايل (مخفي على الديسكتوب) */}

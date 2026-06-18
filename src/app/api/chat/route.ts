@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { streamChat, type ChatMessage } from "@/lib/ai/gemini";
+import { streamClaude } from "@/lib/ai/claude";
 import { buildSystemPrompt, type WorkflowMode } from "@/lib/ai/prompts";
 import { getTemplate } from "@/lib/templates";
 import { chatRequestSchema } from "@/lib/validation";
@@ -109,10 +110,18 @@ export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
   let fullResponse = "";
 
+  // اختيار المزوّد: Claude لو طُلب والمفتاح موجود، وإلا Gemini
+  const rawObj = (raw ?? {}) as Record<string, unknown>;
+  const useClaude = rawObj.provider === "claude" && !!process.env.ANTHROPIC_API_KEY;
+  const claudeModel = typeof rawObj.model === "string" ? rawObj.model : undefined;
+  const generator = useClaude
+    ? streamClaude({ systemPrompt, messages, model: claudeModel })
+    : streamChat({ systemPrompt, messages });
+
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of streamChat({ systemPrompt, messages })) {
+        for await (const chunk of generator) {
           fullResponse += chunk;
           controller.enqueue(encoder.encode(chunk));
         }

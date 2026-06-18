@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Brain, Copy, Check, Save } from "lucide-react";
+import { Brain, Copy, Check, Save, Volume2, Share2, Square } from "lucide-react";
 import type { Message } from "@/types/db";
 import { cn } from "@/lib/utils";
 
@@ -20,12 +20,45 @@ export function MessageBubble({
 }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
 
   function copy() {
     navigator.clipboard.writeText(message.content);
     setCopied(true);
     toast.success("تمّ النسخ");
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function speak() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      toast.error("القراءة الصوتية غير مدعومة في متصفحك");
+      return;
+    }
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(message.content);
+    u.lang = "ar-SA";
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+    setSpeaking(true);
+  }
+
+  async function share() {
+    try {
+      if (navigator.share) {
+        await navigator.share({ text: message.content });
+      } else {
+        await navigator.clipboard.writeText(message.content);
+        toast.success("اتنسخت للمشاركة");
+      }
+    } catch {
+      // المستخدم ألغى المشاركة — تجاهل
+    }
   }
 
   return (
@@ -55,13 +88,21 @@ export function MessageBubble({
           )}
           {streaming && <span className="inline-block ml-1 size-2 bg-current animate-pulse rounded-full" />}
         </div>
-        {!isUser && !streaming && message.content && (
-          <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!streaming && message.content && (
+          <div className="flex flex-wrap gap-1 mt-1 opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={copy}>
               {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
               نسخ
             </Button>
-            {onSave && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={speak}>
+              {speaking ? <Square className="size-3" /> : <Volume2 className="size-3" />}
+              {speaking ? "إيقاف" : "قراءة"}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={share}>
+              <Share2 className="size-3" />
+              مشاركة
+            </Button>
+            {!isUser && onSave && (
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onSave}>
                 <Save className="size-3" />
                 حفظ
