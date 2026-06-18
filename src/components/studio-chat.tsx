@@ -590,7 +590,7 @@ export function StudioChat() {
         ) : (
           messages.map((m) => (
             <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-              <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl ${m.role === "user" ? "bg-primary/10 px-4 py-2.5" : "bg-card border p-2.5"}`}>
+              <div className={`max-w-[85%] sm:max-w-[75%] w-fit rounded-2xl text-[15px] leading-relaxed break-words ${m.role === "user" ? "bg-primary text-primary-foreground px-4 py-2.5 shadow-sm" : "bg-card border p-2.5"}`}>
                 {m.refPreview && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={m.refPreview} alt="مرفق" className="mb-2 max-h-40 rounded-lg object-cover" />

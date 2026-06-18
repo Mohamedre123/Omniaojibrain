@@ -68,17 +68,17 @@ export function MessageBubble({
           <Brain className="size-5 text-white" />
         </div>
       )}
-      <div className={cn("group max-w-[85%]", isUser && "ml-auto")}>
+      <div className={cn("group max-w-[85%] min-w-0", isUser && "ml-auto")}>
         <div
           className={cn(
-            "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+            "rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed break-words",
             isUser
-              ? "bg-primary text-primary-foreground rounded-tr-sm"
+              ? "bg-primary text-primary-foreground rounded-tr-sm w-fit ml-auto shadow-sm"
               : "bg-muted rounded-tl-sm"
           )}
         >
           {isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap break-words">{message.content}</p>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-background/50 prose-pre:text-foreground prose-headings:font-bold prose-p:my-2 prose-ul:my-2 prose-ol:my-2">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>

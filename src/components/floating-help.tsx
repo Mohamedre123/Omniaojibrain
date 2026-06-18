@@ -124,7 +124,7 @@ export function FloatingHelp() {
         )}
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+            <div className={`max-w-[85%] w-fit rounded-2xl px-3 py-2 text-sm leading-relaxed break-words ${m.role === "user" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted"}`}>
               {m.role === "user" ? (
                 <p className="whitespace-pre-wrap">{m.content}</p>
               ) : (
