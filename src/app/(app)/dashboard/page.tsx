@@ -22,17 +22,19 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("*")
-    .not("business_type", "in", "(assistant,studio)")
-    .order("updated_at", { ascending: false });
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, onboarded_at")
-    .eq("id", user!.id)
-    .single();
+  // جلب المشاريع والبروفايل بالتوازي — أسرع من واحدة ورا التانية
+  const [{ data: projects }, { data: profile }] = await Promise.all([
+    supabase
+      .from("projects")
+      .select("*")
+      .not("business_type", "in", "(assistant,studio)")
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("full_name, onboarded_at")
+      .eq("id", user!.id)
+      .single(),
+  ]);
 
   const list = (projects ?? []) as Project[];
   const showWelcome = !profile?.onboarded_at;

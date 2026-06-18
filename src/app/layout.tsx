@@ -40,13 +40,22 @@ export const viewport = {
   themeColor: "#7c3aed",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover" as const, // دعم منطقة الأمان على آيفون (notch)
 };
+
+const SUPABASE_ORIGIN = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        {/* تسريع أول اتصال بـ Supabase (تسجيل دخول/بيانات/ملفات) — يقلّل زمن التحميل على كل الأجهزة */}
+        {SUPABASE_ORIGIN && <link rel="preconnect" href={SUPABASE_ORIGIN} crossOrigin="anonymous" />}
+        {SUPABASE_ORIGIN && <link rel="dns-prefetch" href={SUPABASE_ORIGIN} />}
+        <link rel="preconnect" href="https://generativelanguage.googleapis.com" crossOrigin="anonymous" />
+      </head>
       <body className={`${inter.variable} ${arabic.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider>
           <PwaRegister />
