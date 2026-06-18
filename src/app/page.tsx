@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/reveal";
 import { AnimatedBackground } from "@/components/animated-background";
+import { PromoBanner } from "@/components/promo-banner";
 import {
   Brain,
   Sparkles,
@@ -23,6 +24,9 @@ export default function LandingPage() {
   return (
     <main className="relative min-h-screen overflow-x-hidden">
       <AnimatedBackground />
+
+      {/* بانر ترويجي (قبل تسجيل الدخول) */}
+      <PromoBanner />
 
       {/* Nav */}
       <nav className="glass sticky top-0 z-50 border-b safe-top">

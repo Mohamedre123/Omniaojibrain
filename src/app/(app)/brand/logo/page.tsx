@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Award, Loader2, Wand2, Download, Sparkles } from "lucide-react";
+import { Award, Loader2, Wand2, Download } from "lucide-react";
 
 type GenImage = { mimeType: string; data: string };
 

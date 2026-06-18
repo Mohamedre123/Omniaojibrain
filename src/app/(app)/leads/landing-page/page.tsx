@@ -56,6 +56,42 @@ const CLAUDE_MODELS = [
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5 (الأسرع)" },
 ];
 
+// سكربت المحرّر المرئي — يُحقن داخل المعاينة عشان النقر بالماوس + التعديل المباشر
+const EDITOR_SCRIPT = `<script data-oji-editor="1">(function(){
+  var counter=0, cur=null;
+  var style=document.createElement('style'); style.setAttribute('data-oji-editor','1');
+  style.textContent='[data-oji-hover]{outline:2px dashed #7c3aed !important;outline-offset:1px;cursor:pointer}[data-oji-selected]{outline:3px solid #7c3aed !important;outline-offset:1px}';
+  document.head.appendChild(style);
+  function info(el){return {id:el.getAttribute('data-oji-id'),tag:el.tagName.toLowerCase(),text:el.children.length===0?el.textContent:null,isImg:el.tagName.toLowerCase()==='img',html:el.outerHTML};}
+  document.addEventListener('mouseover',function(e){var t=e.target; if(t===document.body||t===document.documentElement||!t.setAttribute)return; t.setAttribute('data-oji-hover','1');},true);
+  document.addEventListener('mouseout',function(e){if(e.target&&e.target.removeAttribute)e.target.removeAttribute('data-oji-hover');},true);
+  document.addEventListener('click',function(e){
+    var t=e.target; if(t===document.body||t===document.documentElement)return;
+    e.preventDefault(); e.stopPropagation();
+    if(cur)cur.removeAttribute('data-oji-selected');
+    if(!t.getAttribute('data-oji-id'))t.setAttribute('data-oji-id','oji'+(++counter));
+    t.setAttribute('data-oji-selected','1'); cur=t;
+    parent.postMessage({source:'oji-editor',type:'select',el:info(t)},'*');
+  },true);
+  window.addEventListener('message',function(e){
+    var d=e.data||{}; if(d.source!=='oji-parent')return;
+    if(d.type==='update'){var el=document.querySelector('[data-oji-id="'+d.id+'"]'); if(!el)return;
+      if(d.prop==='text')el.textContent=d.value;
+      else if(d.prop==='color')el.style.color=d.value;
+      else if(d.prop==='bg')el.style.backgroundColor=d.value;
+      else if(d.prop==='src')el.setAttribute('src',d.value);
+      else if(d.prop==='outerHTML'){try{el.outerHTML=d.value;}catch(x){}}
+    } else if(d.type==='getHtml'){
+      var clone=document.documentElement.cloneNode(true);
+      clone.querySelectorAll('[data-oji-editor]').forEach(function(n){n.remove()});
+      clone.querySelectorAll('[data-oji-id]').forEach(function(n){n.removeAttribute('data-oji-id');n.removeAttribute('data-oji-hover');n.removeAttribute('data-oji-selected')});
+      parent.postMessage({source:'oji-editor',type:'html',html:'<!DOCTYPE html>'+clone.outerHTML},'*');
+    }
+  });
+})();<\/script>`;
+
+type SelectedEl = { id: string; tag: string; text: string | null; isImg: boolean; html: string };
+
 type AttachedImage = { id: string; name: string; type: string; base64: string; previewUrl: string };
 type Project = { id: string; name: string };
 type Step = "form" | "result";
@@ -83,11 +119,74 @@ export default function LandingPageBuilder() {
   const [streamText, setStreamText] = useState("");
   const [result, setResult] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("desktop");
-  const [showCodeMode, setShowCodeMode] = useState<"preview" | "code" | "edit">("preview");
+  const [showCodeMode, setShowCodeMode] = useState<"preview" | "code" | "edit" | "visual">("preview");
   const [editingHtml, setEditingHtml] = useState("");
   const [editInstruction, setEditInstruction] = useState("");
   const [editing, setEditing] = useState(false);
+  const [selectedEl, setSelectedEl] = useState<SelectedEl | null>(null);
+  const [elAi, setElAi] = useState("");
+  const [elAiLoading, setElAiLoading] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const visualIframeRef = useRef<HTMLIFrameElement>(null);
+
+  // استقبال رسائل المحرّر المرئي من داخل المعاينة
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      const d = e.data || {};
+      if (d.source !== "oji-editor") return;
+      if (d.type === "select") setSelectedEl(d.el as SelectedEl);
+      else if (d.type === "html" && typeof d.html === "string") {
+        setResult("```html\n" + d.html + "\n```");
+        setEditingHtml(d.html);
+        toast.success("اتحفظت التعديلات المرئية ✨");
+      }
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
+  function postToVisual(prop: string, value: string) {
+    if (!selectedEl) return;
+    visualIframeRef.current?.contentWindow?.postMessage({ source: "oji-parent", type: "update", id: selectedEl.id, prop, value }, "*");
+  }
+
+  function saveVisualEdits() {
+    visualIframeRef.current?.contentWindow?.postMessage({ source: "oji-parent", type: "getHtml" }, "*");
+  }
+
+  function replaceSelectedImage(file: File | null) {
+    if (!file || !selectedEl?.isImg) return;
+    if (!file.type.startsWith("image/")) { toast.error("الملف لازم صورة"); return; }
+    const reader = new FileReader();
+    reader.onload = () => postToVisual("src", reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function aiEditSelected() {
+    if (!selectedEl || !elAi.trim()) { toast.error("اختر عنصراً واكتب التعديل"); return; }
+    setElAiLoading(true);
+    try {
+      const cleanHtml = selectedEl.html.replace(/\s*data-oji-(id|hover|selected)="[^"]*"/g, "");
+      const prompt = `هذا عنصر HTML واحد من صفحة:\n\n\`\`\`html\n${cleanHtml}\n\`\`\`\n\n**التعديل المطلوب**: ${elAi}\n\nأعد فقط كود هذا العنصر بعد التعديل (نفس الوسم الجذر)، بدون أي شرح، يبدأ مباشرةً بـ \`\`\`html ثم الكود ثم \`\`\`.`;
+      const res = await fetch("/api/generator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool: "landing_page_advanced", input: prompt, provider: "claude", model }),
+      });
+      if (!res.ok || !res.body) { toast.error("تعذّر التعديل"); return; }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      while (true) { const { value, done } = await reader.read(); if (done) break; acc += decoder.decode(value, { stream: true }); }
+      const newHtml = extractHtml(acc);
+      if (newHtml) { postToVisual("outerHTML", newHtml); setElAi(""); setSelectedEl(null); toast.success("عدّل العنصر ✨"); }
+      else toast.error("لم يرجع كود صالح");
+    } catch {
+      toast.error("تعذّر الاتصال");
+    } finally {
+      setElAiLoading(false);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -415,10 +514,16 @@ ${currentHtml}
                     <Code className="size-3" /> كود
                   </button>
                   <button
+                    onClick={() => { setShowCodeMode("visual"); setSelectedEl(null); }}
+                    className={`px-3 py-1.5 text-xs flex items-center gap-1 ${showCodeMode === "visual" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                  >
+                    <Pencil className="size-3" /> تحرير مرئي
+                  </button>
+                  <button
                     onClick={() => setShowCodeMode("edit")}
                     className={`px-3 py-1.5 text-xs flex items-center gap-1 ${showCodeMode === "edit" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
                   >
-                    <Pencil className="size-3" /> تعديل
+                    <Code className="size-3" /> كود/AI
                   </button>
                 </div>
 
@@ -479,6 +584,88 @@ ${currentHtml}
                   title="Preview"
                 />
               </div>
+            </div>
+          )}
+
+          {!loading && hasContent && showCodeMode === "visual" && (
+            <div className="grid lg:grid-cols-[1fr_320px] gap-4">
+              <div className="border-2 rounded-xl overflow-hidden bg-white shadow-xl" style={{ height: "calc(100vh - 240px)", minHeight: 480 }}>
+                <iframe
+                  ref={visualIframeRef}
+                  srcDoc={injectImages(extractHtml(result)) + EDITOR_SCRIPT}
+                  className="w-full h-full"
+                  sandbox="allow-scripts allow-same-origin allow-forms"
+                  title="Visual Editor"
+                />
+              </div>
+
+              <Card className="p-4 space-y-3 h-fit lg:sticky lg:top-32">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold flex items-center gap-1.5"><Pencil className="size-4 text-primary" /> تحرير مرئي</Label>
+                  <Button size="sm" variant="gradient" onClick={saveVisualEdits}><Save className="size-3" /> حفظ</Button>
+                </div>
+
+                {!selectedEl ? (
+                  <p className="text-xs text-muted-foreground leading-relaxed border-2 border-dashed rounded-lg p-3">
+                    🖱️ دوس بالماوس على أي جزء في الصفحة (نص، زر، صورة) عشان تختاره وتعدّله — اللون، الكلام، الصورة، وكل حاجة.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-xs text-muted-foreground">العنصر المحدّد: <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{selectedEl.tag}</span></div>
+
+                    {selectedEl.text !== null && (
+                      <div>
+                        <Label className="text-xs">النص</Label>
+                        <Textarea
+                          defaultValue={selectedEl.text}
+                          onChange={(e) => postToVisual("text", e.target.value)}
+                          rows={3}
+                          className="mt-1 text-sm"
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">لون النص</Label>
+                        <input type="color" onChange={(e) => postToVisual("color", e.target.value)} className="mt-1 w-full h-9 rounded border cursor-pointer" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">لون الخلفية</Label>
+                        <input type="color" onChange={(e) => postToVisual("bg", e.target.value)} className="mt-1 w-full h-9 rounded border cursor-pointer" />
+                      </div>
+                    </div>
+
+                    {selectedEl.isImg && (
+                      <div>
+                        <Label className="text-xs">استبدال الصورة</Label>
+                        <label className="mt-1 flex items-center gap-2 rounded-lg border-2 border-dashed p-2 cursor-pointer hover:border-primary text-xs">
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => replaceSelectedImage(e.target.files?.[0] || null)} />
+                          <Paperclip className="size-4" /> ارفع صورة جديدة
+                        </label>
+                      </div>
+                    )}
+
+                    <div className="border-t pt-3">
+                      <Label className="text-xs flex items-center gap-1"><Wand2 className="size-3 text-primary" /> عدّل العنصر بالـ AI</Label>
+                      <Textarea
+                        value={elAi}
+                        onChange={(e) => setElAi(e.target.value)}
+                        placeholder="مثال: خليه أكبر وبخلفية متدرّجة، أو غيّر الأيقونة"
+                        rows={2}
+                        className="mt-1 text-sm"
+                      />
+                      <Button size="sm" variant="gradient" className="w-full mt-2" onClick={aiEditSelected} disabled={elAiLoading || !elAi.trim()}>
+                        {elAiLoading ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                        {elAiLoading ? "Oji يعدّل..." : "عدّل ده بالـ AI"}
+                      </Button>
+                    </div>
+
+                    <Button size="sm" variant="ghost" className="w-full text-xs" onClick={() => setSelectedEl(null)}>إلغاء التحديد</Button>
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground border-t pt-2">💡 بعد ما تخلص تعديل اضغط «حفظ» عشان تثبّت التغييرات وتقدر تنزّلها.</p>
+              </Card>
             </div>
           )}
 
