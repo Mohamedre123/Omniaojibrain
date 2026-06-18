@@ -305,6 +305,7 @@ export default function LandingPage() {
           </div>
           <p>© {new Date().getFullYear()} Oji Brain — جزءٌ من Oji</p>
           <div className="flex items-center gap-4">
+            <Link href="/contact" className="hover:text-foreground transition-colors">تواصل معنا</Link>
             <Link href="/login" className="hover:text-foreground transition-colors">دخول</Link>
             <Link href="/signup" className="hover:text-foreground transition-colors">حساب جديد</Link>
           </div>

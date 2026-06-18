@@ -20,6 +20,7 @@ import {
   X,
   Brain,
   MessageSquare,
+  Phone,
 } from "lucide-react";
 
 const NAV = [
@@ -37,6 +38,7 @@ const NAV = [
 ];
 
 const FOOTER_NAV = [
+  { href: "/contact", label: "تواصل معنا", icon: Phone },
   { href: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
