@@ -21,6 +21,8 @@ import {
   Brain,
   MessageSquare,
   Phone,
+  Layout,
+  ArrowUpRight,
 } from "lucide-react";
 
 const NAV = [
@@ -147,6 +149,17 @@ export function AppSidebar() {
 
         {/* Footer */}
         <div className="p-3 border-t space-y-1">
+          {/* منشئ المواقع — منصّة Oji المخصّصة (موقع منفصل) */}
+          <Link
+            href="/site-builder"
+            onClick={() => setMobileOpen(false)}
+            className="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-white gradient-brand overflow-hidden mb-1 hover:opacity-95 transition-opacity"
+          >
+            <span aria-hidden className="absolute inset-0 animate-shine" />
+            <Layout className="size-5 relative" />
+            <span className="relative flex-1">منشئ المواقع</span>
+            <ArrowUpRight className="size-4 relative opacity-80 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
           {FOOTER_NAV.map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;
