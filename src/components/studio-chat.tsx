@@ -41,7 +41,7 @@ type ChatMsg = {
   mediaPath?: string; // مسار التخزين
   status?: "loading" | "error" | "done";
   error?: string;
-  refPreview?: string;
+  refPreviews?: string[];
 };
 
 type RefImg = { data: string; mimeType: string; previewUrl: string; name: string };
@@ -101,7 +101,9 @@ export function StudioChat() {
   const [useBrand, setUseBrand] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [ref, setRef] = useState<RefImg | null>(null);
+  const [imgRefs, setImgRefs] = useState<RefImg[]>([]); // صور مرجعية متعددة (حتى 3)
+  const [vidStart, setVidStart] = useState<RefImg | null>(null); // صورة البداية
+  const [vidEnd, setVidEnd] = useState<RefImg | null>(null); // صورة النهاية
   const [elapsed, setElapsed] = useState(0);
 
   const messages = threads[mode];
@@ -151,16 +153,26 @@ export function StudioChat() {
     }));
   }, []);
 
-  function handleFile(file: File | null) {
+  function readFile(file: File | null, cb: (r: RefImg) => void) {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) { toast.error("الصورة أكبر من 5MB"); return; }
     if (!file.type.startsWith("image/")) { toast.error("الملف لازم يكون صورة"); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const r = reader.result as string;
-      setRef({ data: r.split(",")[1] || "", mimeType: file.type, previewUrl: URL.createObjectURL(file), name: file.name });
+      cb({ data: r.split(",")[1] || "", mimeType: file.type, previewUrl: URL.createObjectURL(file), name: file.name });
     };
     reader.readAsDataURL(file);
+  }
+
+  // إضافة صور مرجعية متعددة (وضع الصور — حتى 3)
+  function addImgRefs(files: FileList | null) {
+    if (!files) return;
+    const room = 3 - imgRefs.length;
+    if (room <= 0) { toast.error("الحدّ الأقصى 3 صور مرجعية"); return; }
+    Array.from(files).slice(0, room).forEach((f) =>
+      readFile(f, (r) => setImgRefs((p) => (p.length < 3 ? [...p, r] : p)))
+    );
   }
 
   // يصغّر الصورة المرجعية قبل الإرسال (يقلّل حجم الطلب → يمنع فشل الاتصال ويسرّع)
@@ -255,63 +267,70 @@ export function StudioChat() {
 
   async function send() {
     const text = input.trim();
-    if (!text && !ref) return;
     if (busy) return;
-
     const activeMode = mode;
-    const userText = text || (activeMode === "image" ? "ولّد صورة من المرفق" : "ولّد فيديو من المرفق");
-    const userMsg: ChatMsg = { id: uid(), role: "user", text: userText, refPreview: ref?.previewUrl, kind: activeMode };
+
+    if (activeMode === "image" && !text && imgRefs.length === 0) return;
+    if (activeMode === "video" && !text && !vidStart && !vidEnd) return;
+
+    const userText = text || (activeMode === "image" ? "ولّد صورة من المرفقات" : "ولّد فيديو من الإطارات المرفقة");
+    const previews =
+      activeMode === "image"
+        ? imgRefs.map((r) => r.previewUrl)
+        : [vidStart?.previewUrl, vidEnd?.previewUrl].filter((u): u is string => !!u);
+
+    const userMsg: ChatMsg = { id: uid(), role: "user", text: userText, refPreviews: previews, kind: activeMode };
     const assistantId = uid();
     const assistantMsg: ChatMsg = { id: assistantId, role: "assistant", kind: activeMode, status: "loading" };
 
     setThreads((prev) => ({ ...prev, [activeMode]: [...prev[activeMode], userMsg, assistantMsg] }));
     setInput("");
-    const attachedRef = ref;
-    setRef(null);
     setBusy(true);
 
     if (activeMode === "image") {
-      await runImage(text, userText, assistantId, attachedRef);
+      const attached = imgRefs;
+      setImgRefs([]);
+      await runImage(text, userText, assistantId, attached);
     } else {
-      await runVideo(text, userText, assistantId, attachedRef);
+      const start = vidStart, end = vidEnd;
+      setVidStart(null);
+      setVidEnd(null);
+      await runVideo(text, userText, assistantId, start, end);
     }
   }
 
-  async function runImage(text: string, userText: string, assistantId: string, attachedRef: RefImg | null) {
+  async function runImage(text: string, userText: string, assistantId: string, attachedRefs: RefImg[]) {
     try {
       const brand = await getBrandIdentity();
       const brandContext = brand.text;
 
-      // حل الصورة المرجعية للتعديل: المرفق، أو آخر صورة (ننزّلها base64 لو لازم)
-      let refData: { mimeType: string; data: string } | null = null;
+      const refImages: Array<{ mimeType: string; data: string }> = [];
       let editing = false;
-      if (attachedRef) {
-        refData = { mimeType: attachedRef.mimeType, data: attachedRef.data };
-      } else if (lastImageRef.current) {
-        if (lastImageRef.current.data) {
-          refData = { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data };
-          editing = true;
-        } else if (lastImageRef.current.path) {
-          const dl = await downloadAsBase64(lastImageRef.current.path);
-          if (dl) {
-            refData = dl;
-            lastImageRef.current.data = dl.data;
-            editing = true;
-          }
+
+      if (attachedRefs.length > 0) {
+        // المستخدم رفع صورة أو أكتر → استخدمها كلها كمرجع (حتى 3)
+        for (const r of attachedRefs.slice(0, 3)) {
+          refImages.push(await shrinkImage(r.data, r.mimeType));
         }
+      } else if (lastImageRef.current) {
+        // مفيش مرفقات → تعديل على آخر صورة
+        let last = lastImageRef.current.data ? { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data } : null;
+        if (!last && lastImageRef.current.path) {
+          const dl = await downloadAsBase64(lastImageRef.current.path);
+          if (dl) { last = dl; lastImageRef.current.data = dl.data; }
+        }
+        if (last) { refImages.push(await shrinkImage(last.data, last.mimeType)); editing = true; }
       }
 
       const editNote = editing
         ? " IMPORTANT: An existing generated image is attached. Apply the user's requested change to THAT image while keeping everything else identical (same subject, composition, identity). Only change what the user asked."
-        : attachedRef
-        ? " IMPORTANT: A reference image is attached — keep the product/subject identity (logo, packaging, shape) 100% identical; only build the requested scene around it."
+        : attachedRefs.length > 0
+        ? ` IMPORTANT: ${attachedRefs.length} reference image(s) are attached — keep the product/subject identity (logo, packaging, shape, faces) 100% identical to the reference(s); only build the requested scene around them.`
         : "";
 
-      // الصور المرجعية (مصغّرة): (المرجع/آخر صورة) + الشعار كمرجع ألوان للتوليد الجديد فقط
-      const refImages: Array<{ mimeType: string; data: string }> = [];
-      if (refData) refImages.push(await shrinkImage(refData.data, refData.mimeType));
+      // الشعار كمرجع ألوان للتوليد الجديد فقط (لو فيه مكان)
       let logoNote = "";
-      if (brand.logo && !attachedRef && !editing && refImages.length < 3) {
+      if (brand.logo && attachedRefs.length === 0 && !editing && refImages.length < 3) {
         refImages.push(await shrinkImage(brand.logo.data, brand.logo.mimeType, 512));
         logoNote = " A brand LOGO image is also attached ONLY as a color & style reference — match the brand's exact color palette and visual identity from it. Do NOT draw or include the logo itself in the output unless explicitly requested.";
       }
@@ -381,24 +400,26 @@ export function StudioChat() {
     }
   }
 
-  async function runVideo(text: string, userText: string, assistantId: string, attachedRef: RefImg | null) {
+  async function runVideo(text: string, userText: string, assistantId: string, start: RefImg | null, end: RefImg | null) {
     setElapsed(0);
     try {
       let startImg: { mimeType: string; data: string } | null = null;
-      if (attachedRef) {
-        startImg = { mimeType: attachedRef.mimeType, data: attachedRef.data };
+      if (start) {
+        startImg = await shrinkImage(start.data, start.mimeType);
       } else if (lastImageRef.current?.data) {
-        startImg = { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data };
+        startImg = await shrinkImage(lastImageRef.current.data, lastImageRef.current.mimeType);
       }
+      const endImg = end ? await shrinkImage(end.data, end.mimeType) : null;
 
       const res = await fetch("/api/video-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: text,
+          prompt: text || "حرّك المشهد بين صورة البداية والنهاية بسلاسة سينمائية",
           aspect: vidAspect,
           model: vidQuality,
           refImage: startImg ?? undefined,
+          endImage: endImg ?? undefined,
         }),
       });
       if (handle401(res)) { setBusy(false); return; }
@@ -470,7 +491,9 @@ export function StudioChat() {
     if (busy) return;
     if (mode === "image") lastImageRef.current = null;
     setThreads((prev) => ({ ...prev, [mode]: [] }));
-    setRef(null);
+    setImgRefs([]);
+    setVidStart(null);
+    setVidEnd(null);
     const cid = convoIds.current?.[mode];
     if (cid) void clearStudioConversation(cid);
     toast.success("بدأنا من جديد ✨");
@@ -591,9 +614,13 @@ export function StudioChat() {
           messages.map((m) => (
             <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
               <div className={`max-w-[85%] sm:max-w-[75%] w-fit rounded-2xl text-[15px] leading-relaxed break-words ${m.role === "user" ? "bg-primary text-primary-foreground px-4 py-2.5 shadow-sm" : "bg-card border p-2.5"}`}>
-                {m.refPreview && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.refPreview} alt="مرفق" className="mb-2 max-h-40 rounded-lg object-cover" />
+                {m.refPreviews && m.refPreviews.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {m.refPreviews.map((u, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={i} src={u} alt="مرفق" className="size-16 rounded-lg object-cover border" />
+                    ))}
+                  </div>
                 )}
                 {m.text && (
                   <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${m.role === "assistant" && (m.imageSrc || m.videoSrc) ? "px-1.5 pt-1" : ""}`}>
@@ -640,21 +667,59 @@ export function StudioChat() {
 
       {/* شريط الإدخال */}
       <div className="border-t bg-card/60 backdrop-blur px-3 sm:px-4 py-3 safe-bottom">
-        {ref && (
-          <div className="mb-2 inline-flex items-center gap-2 rounded-lg border bg-background p-1.5 pr-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ref.previewUrl} alt={ref.name} className="size-10 rounded object-cover" />
-            <span className="text-xs text-muted-foreground max-w-[120px] truncate">{ref.name}</span>
-            <button onClick={() => setRef(null)} className="size-5 rounded-full hover:bg-muted grid place-items-center">
-              <X className="size-3.5" />
-            </button>
+        {/* مرفقات وضع الصور — حتى 3 صور مرجعية */}
+        {mode === "image" && imgRefs.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {imgRefs.map((r, i) => (
+              <div key={i} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.previewUrl} alt={r.name} className="size-12 rounded-lg object-cover border" />
+                <button
+                  onClick={() => setImgRefs((p) => p.filter((_, idx) => idx !== i))}
+                  className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-destructive text-white grid place-items-center shadow"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
+
+        {/* مرفقات وضع الفيديو — صورة بداية + صورة نهاية */}
+        {mode === "video" && (
+          <div className="mb-2 flex gap-2">
+            {([
+              { label: "صورة البداية", img: vidStart, set: setVidStart },
+              { label: "صورة النهاية", img: vidEnd, set: setVidEnd },
+            ] as const).map((slot) => (
+              <div key={slot.label} className="flex-1">
+                {slot.img ? (
+                  <div className="relative h-16 rounded-lg border overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={slot.img.previewUrl} alt={slot.label} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{slot.label}</span>
+                    <button onClick={() => slot.set(null)} className="absolute top-1 right-1 size-5 rounded-full bg-destructive text-white grid place-items-center">
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className={`h-16 rounded-lg border-2 border-dashed grid place-items-center cursor-pointer hover:border-primary transition-colors text-[11px] text-muted-foreground gap-1 ${busy ? "opacity-50 pointer-events-none" : ""}`}>
+                    <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => readFile(e.target.files?.[0] || null, slot.set)} />
+                    <Paperclip className="size-4" /> {slot.label}
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
-          <label className={`shrink-0 size-11 rounded-xl border grid place-items-center cursor-pointer hover:border-primary transition-colors ${busy ? "opacity-50 pointer-events-none" : ""}`}>
-            <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => handleFile(e.target.files?.[0] || null)} />
-            <Paperclip className="size-5 text-muted-foreground" />
-          </label>
+          {mode === "image" && (
+            <label className={`shrink-0 size-11 rounded-xl border grid place-items-center cursor-pointer hover:border-primary transition-colors relative ${busy || imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
+              <input type="file" accept="image/*" multiple className="hidden" disabled={busy || imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />
+              <Paperclip className="size-5 text-muted-foreground" />
+            </label>
+          )}
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -665,14 +730,21 @@ export function StudioChat() {
             disabled={busy}
             className="resize-none min-h-11 max-h-32 py-2.5"
           />
-          <Button variant="gradient" size="icon" onClick={() => void send()} disabled={busy || (!input.trim() && !ref)} className="shrink-0 size-11 rounded-xl" title="إرسال">
+          <Button
+            variant="gradient"
+            size="icon"
+            onClick={() => void send()}
+            disabled={busy || (mode === "image" ? !input.trim() && imgRefs.length === 0 : !input.trim() && !vidStart && !vidEnd)}
+            className="shrink-0 size-11 rounded-xl"
+            title="إرسال"
+          >
             {busy ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
           </Button>
         </div>
         <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
           {mode === "image"
-            ? "💡 شات الصور وشات الفيديو منفصلين، ومحفوظين على حسابك — بيظهروا على أي جهاز تسجّل منه."
-            : "🎬 شات الفيديو منفصل، ومحفوظ على حسابك ويتزامن على كل أجهزتك. ممكن ترفق صورة بداية."}
+            ? "💡 تقدر ترفق حتى 3 صور مرجعية (زي Gemini). الشات محفوظ ويتزامن على كل أجهزتك."
+            : "🎬 ارفق صورة بداية و/أو نهاية (Start & End frame). الشات محفوظ ويتزامن على كل أجهزتك."}
         </p>
       </div>
     </div>

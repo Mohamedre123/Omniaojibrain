@@ -18,6 +18,13 @@ const startSchema = z.object({
       data: z.string().max(10 * 1024 * 1024),
     })
     .optional(),
+  // صورة النهاية (End frame) — مدعومة في Veo 3.1
+  endImage: z
+    .object({
+      mimeType: z.string().max(50),
+      data: z.string().max(10 * 1024 * 1024),
+    })
+    .optional(),
 });
 
 // 🎬 Veo 3.1 أولاً ثم 3.0 (المُختبَر) كـ fallback
@@ -54,19 +61,25 @@ export async function POST(req: NextRequest) {
   const key = getKey();
   if (!key) return NextResponse.json({ error: "مفتاح Gemini غير مضبوط في الخادم" }, { status: 500 });
 
-  // instance — مع صورة بداية لو موجودة
-  const instance: Record<string, unknown> = { prompt: body.prompt };
-  if (body.refImage) {
-    instance.image = {
-      bytesBase64Encoded: body.refImage.data,
-      mimeType: body.refImage.mimeType,
-    };
-  }
-
   const errors: string[] = [];
 
   for (const model of VIDEO_MODELS[body.model]) {
     try {
+      // instance يُبنى لكل موديل — صورة النهاية (lastFrame) مدعومة في Veo 3.1 فقط
+      const instance: Record<string, unknown> = { prompt: body.prompt };
+      if (body.refImage) {
+        instance.image = {
+          bytesBase64Encoded: body.refImage.data,
+          mimeType: body.refImage.mimeType,
+        };
+      }
+      if (body.endImage && model.includes("3.1")) {
+        instance.lastFrame = {
+          bytesBase64Encoded: body.endImage.data,
+          mimeType: body.endImage.mimeType,
+        };
+      }
+
       const res = await fetch(`${GL_BASE}/models/${model}:predictLongRunning`, {
         method: "POST",
         headers: {
