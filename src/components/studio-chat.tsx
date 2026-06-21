@@ -42,6 +42,7 @@ type ChatMsg = {
   status?: "loading" | "error" | "done";
   error?: string;
   refPreviews?: string[];
+  elapsedSec?: number; // عدّاد وقت توليد الفيديو لكل رسالة
 };
 
 type RefImg = { data: string; mimeType: string; previewUrl: string; name: string };
@@ -99,12 +100,10 @@ export function StudioChat() {
   const [vidAspect, setVidAspect] = useState<"16:9" | "9:16">("16:9");
   const [vidQuality, setVidQuality] = useState<"fast" | "quality">("fast");
   const [useBrand, setUseBrand] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [imgRefs, setImgRefs] = useState<RefImg[]>([]); // صور مرجعية متعددة (حتى 3)
   const [vidStart, setVidStart] = useState<RefImg | null>(null); // صورة البداية
   const [vidEnd, setVidEnd] = useState<RefImg | null>(null); // صورة النهاية
-  const [elapsed, setElapsed] = useState(0);
 
   const messages = threads[mode];
 
@@ -112,8 +111,8 @@ export function StudioChat() {
   const brandLogoCache = useRef<{ url: string; logo: { data: string; mimeType: string } | null } | null>(null);
   const convoIds = useRef<{ image: string; video: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // مؤقّتات مستقلّة لكل فيديو جارٍ — يسمح بأكثر من توليد في نفس الوقت بدون توقّف
+  const timersRef = useRef<Map<string, { poll?: ReturnType<typeof setInterval>; timer?: ReturnType<typeof setInterval> }>>(new Map());
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -121,11 +120,14 @@ export function StudioChat() {
     });
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages, elapsed, mode, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [messages, mode, scrollToBottom]);
 
-  useEffect(() => () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    if (timerRef.current) clearInterval(timerRef.current);
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach((t) => { if (t.poll) clearInterval(t.poll); if (t.timer) clearInterval(t.timer); });
+      timers.clear();
+    };
   }, []);
 
   // ☁️ حمّل المحادثات من السحابة (تتزامن على كل الأجهزة)
@@ -260,14 +262,24 @@ export function StudioChat() {
     }
   }
 
-  function stopTimers() {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  function stopTimersFor(id: string) {
+    const t = timersRef.current.get(id);
+    if (t) {
+      if (t.poll) clearInterval(t.poll);
+      if (t.timer) clearInterval(t.timer);
+      timersRef.current.delete(id);
+    }
+  }
+
+  function bumpElapsed(id: string) {
+    setThreads((prev) => ({
+      ...prev,
+      video: prev.video.map((m) => (m.id === id ? { ...m, elapsedSec: (m.elapsedSec || 0) + 1 } : m)),
+    }));
   }
 
   async function send() {
     const text = input.trim();
-    if (busy) return;
     const activeMode = mode;
 
     if (activeMode === "image" && !text && imgRefs.length === 0) return;
@@ -285,17 +297,17 @@ export function StudioChat() {
 
     setThreads((prev) => ({ ...prev, [activeMode]: [...prev[activeMode], userMsg, assistantMsg] }));
     setInput("");
-    setBusy(true);
 
+    // بنشغّلها في الخلفية — العميل يقدر يكمّل ويبعت تاني بدون ما يستنى
     if (activeMode === "image") {
       const attached = imgRefs;
       setImgRefs([]);
-      await runImage(text, userText, assistantId, attached);
+      void runImage(text, userText, assistantId, attached);
     } else {
       const start = vidStart, end = vidEnd;
       setVidStart(null);
       setVidEnd(null);
-      await runVideo(text, userText, assistantId, start, end);
+      void runVideo(text, userText, assistantId, start, end);
     }
   }
 
@@ -357,12 +369,11 @@ export function StudioChat() {
       } finally {
         clearTimeout(clientTimeout);
       }
-      if (handle401(res)) { setBusy(false); return; }
+      if (handle401(res)) return;
       const data = await res.json();
       if (!res.ok || !data.images?.length) {
         updateMsg("image", assistantId, { status: "error", error: data.error || "تعذّر التوليد" });
         toast.error(data.error || "تعذّر التوليد");
-        setBusy(false);
         return;
       }
 
@@ -395,13 +406,10 @@ export function StudioChat() {
       const msg = aborted ? "أخذ وقتاً أطول من المتوقّع — جرّب وضع «سريع ⚡» أو حاول تاني" : "تعذّر الاتصال — تأكد من الإنترنت وحاول مرة أخرى";
       updateMsg("image", assistantId, { status: "error", error: msg });
       toast.error(msg);
-    } finally {
-      setBusy(false);
     }
   }
 
   async function runVideo(text: string, userText: string, assistantId: string, start: RefImg | null, end: RefImg | null) {
-    setElapsed(0);
     try {
       let startImg: { mimeType: string; data: string } | null = null;
       if (start) {
@@ -422,33 +430,31 @@ export function StudioChat() {
           endImage: endImg ?? undefined,
         }),
       });
-      if (handle401(res)) { setBusy(false); return; }
+      if (handle401(res)) return;
       const data = await res.json();
       if (!res.ok || !data.operationName) {
         updateMsg("video", assistantId, { status: "error", error: data.error || "تعذّر بدء التوليد" });
         toast.error(data.error || "تعذّر بدء التوليد");
-        setBusy(false);
         return;
       }
 
-      updateMsg("video", assistantId, { text: "بصنع الفيديو دلوقتي 🎬 — عادةً من دقيقة لـ 3 دقايق، سيبك في الصفحة." });
-      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+      updateMsg("video", assistantId, { text: "بصنع الفيديو دلوقتي 🎬 — عادةً من دقيقة لـ 3 دقايق. تقدر تكمّل شغلك عادي.", elapsedSec: 0 });
 
       const opName = data.operationName as string;
-      pollRef.current = setInterval(async () => {
+      const timer = setInterval(() => bumpElapsed(assistantId), 1000);
+      const poll = setInterval(async () => {
         try {
           const pollRes = await fetch(`/api/video-generate?op=${encodeURIComponent(opName)}`);
           const pollData = await pollRes.json();
 
           if (pollData.error && pollData.done !== false) {
-            stopTimers();
+            stopTimersFor(assistantId);
             updateMsg("video", assistantId, { status: "error", error: pollData.error });
             toast.error(pollData.error);
-            setBusy(false);
             return;
           }
           if (pollData.done && pollData.videoUri) {
-            stopTimers();
+            stopTimersFor(assistantId);
             const proxyUrl = `/api/video-generate?download=${encodeURIComponent(pollData.videoUri)}`;
             updateMsg("video", assistantId, { text: "خلص التوليد — بحضّر المعاينة… ⏳" });
             const replyText = "🎬 الفيديو جاهز! اتحفظ في ملفاتي تلقائياً.";
@@ -474,21 +480,21 @@ export function StudioChat() {
             } catch {
               updateMsg("video", assistantId, { status: "done", videoSrc: proxyUrl, text: "🎬 الفيديو جاهز!" });
             }
-            setBusy(false);
           }
         } catch {
           // تجاهل أخطاء polling المؤقتة
         }
       }, 5_000);
+
+      timersRef.current.set(assistantId, { timer, poll });
     } catch {
+      stopTimersFor(assistantId);
       updateMsg("video", assistantId, { status: "error", error: "تعذّر الاتصال" });
       toast.error("تعذّر الاتصال");
-      setBusy(false);
     }
   }
 
   function newSession() {
-    if (busy) return;
     if (mode === "image") lastImageRef.current = null;
     setThreads((prev) => ({ ...prev, [mode]: [] }));
     setImgRefs([]);
@@ -541,7 +547,7 @@ export function StudioChat() {
           <Link href="/studio/library" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
             <FolderOpen className="size-4" /> ملفاتي
           </Link>
-          <Button variant="ghost" size="sm" onClick={newSession} disabled={busy} className="text-xs">
+          <Button variant="ghost" size="sm" onClick={newSession} className="text-xs">
             <RotateCcw className="size-3.5" /> جديد
           </Button>
         </div>
@@ -551,7 +557,6 @@ export function StudioChat() {
             <button
               key={a.value}
               onClick={() => (mode === "image" ? setImgAspect(a.value) : setVidAspect(a.value as "16:9" | "9:16"))}
-              disabled={busy}
               className={`px-2.5 py-1 rounded-md text-xs border transition-all ${
                 currentAspect === a.value ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/50"
               }`}
@@ -561,14 +566,14 @@ export function StudioChat() {
           ))}
           {mode === "image" && (
             <div className="inline-flex rounded-md border overflow-hidden text-xs">
-              <button onClick={() => setImgQuality("fast")} disabled={busy} className={`px-2.5 py-1 ${imgQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
-              <button onClick={() => setImgQuality("high")} disabled={busy} className={`px-2.5 py-1 ${imgQuality === "high" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
+              <button onClick={() => setImgQuality("fast")} className={`px-2.5 py-1 ${imgQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
+              <button onClick={() => setImgQuality("high")} className={`px-2.5 py-1 ${imgQuality === "high" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
             </div>
           )}
           {mode === "video" && (
             <div className="inline-flex rounded-md border overflow-hidden text-xs">
-              <button onClick={() => setVidQuality("fast")} disabled={busy} className={`px-2.5 py-1 ${vidQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
-              <button onClick={() => setVidQuality("quality")} disabled={busy} className={`px-2.5 py-1 ${vidQuality === "quality" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
+              <button onClick={() => setVidQuality("fast")} className={`px-2.5 py-1 ${vidQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
+              <button onClick={() => setVidQuality("quality")} className={`px-2.5 py-1 ${vidQuality === "quality" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
             </div>
           )}
           <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer mr-auto">
@@ -631,7 +636,7 @@ export function StudioChat() {
                 {m.status === "loading" && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground px-1.5 py-1.5">
                     <Loader2 className="size-4 animate-spin" />
-                    {m.kind === "video" ? <span>بصنع الفيديو… {elapsed > 0 ? fmt(elapsed) : ""}</span> : <span>بصمّم الصورة…</span>}
+                    {m.kind === "video" ? <span>بصنع الفيديو… {m.elapsedSec ? fmt(m.elapsedSec) : ""}</span> : <span>بصمّم الصورة…</span>}
                   </div>
                 )}
 
@@ -703,8 +708,8 @@ export function StudioChat() {
                     </button>
                   </div>
                 ) : (
-                  <label className={`h-16 rounded-lg border-2 border-dashed grid place-items-center cursor-pointer hover:border-primary transition-colors text-[11px] text-muted-foreground gap-1 ${busy ? "opacity-50 pointer-events-none" : ""}`}>
-                    <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => readFile(e.target.files?.[0] || null, slot.set)} />
+                  <label className="h-16 rounded-lg border-2 border-dashed grid place-items-center cursor-pointer hover:border-primary transition-colors text-[11px] text-muted-foreground gap-1">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => readFile(e.target.files?.[0] || null, slot.set)} />
                     <Paperclip className="size-4" /> {slot.label}
                   </label>
                 )}
@@ -715,8 +720,8 @@ export function StudioChat() {
 
         <div className="flex items-end gap-2">
           {mode === "image" && (
-            <label className={`shrink-0 size-11 rounded-xl border grid place-items-center cursor-pointer hover:border-primary transition-colors relative ${busy || imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
-              <input type="file" accept="image/*" multiple className="hidden" disabled={busy || imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />
+            <label className={`shrink-0 size-11 rounded-xl border grid place-items-center cursor-pointer hover:border-primary transition-colors relative ${imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
+              <input type="file" accept="image/*" multiple className="hidden" disabled={imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />
               <Paperclip className="size-5 text-muted-foreground" />
             </label>
           )}
@@ -727,18 +732,17 @@ export function StudioChat() {
             placeholder={mode === "image" ? "اكتب وصف الصورة أو طلب تعديل…" : "اكتب وصف الفيديو…"}
             rows={1}
             dir="auto"
-            disabled={busy}
             className="resize-none min-h-11 max-h-32 py-2.5"
           />
           <Button
             variant="gradient"
             size="icon"
             onClick={() => void send()}
-            disabled={busy || (mode === "image" ? !input.trim() && imgRefs.length === 0 : !input.trim() && !vidStart && !vidEnd)}
+            disabled={mode === "image" ? !input.trim() && imgRefs.length === 0 : !input.trim() && !vidStart && !vidEnd}
             className="shrink-0 size-11 rounded-xl"
             title="إرسال"
           >
-            {busy ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
+            <Send className="size-5" />
           </Button>
         </div>
         <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
