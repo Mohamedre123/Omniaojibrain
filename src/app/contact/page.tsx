@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Brain, Phone, Headphones, AlertCircle, MessageCircle, ArrowRight } from "lucide-react";
+import { Brain, Phone, Headphones, AlertCircle, MessageCircle, ArrowRight, Mail } from "lucide-react";
 import { AnimatedBackground } from "@/components/animated-background";
 import { Reveal } from "@/components/reveal";
 
@@ -8,7 +8,17 @@ export const metadata = {
   description: "قنوات التواصل مع فريق Oji Brain: الهاتف، الشكاوى، وخدمة العملاء.",
 };
 
-const CHANNELS = [
+type Channel = {
+  label: string;
+  desc: string;
+  icon: typeof Phone;
+  color: string;
+  number?: string;
+  wa?: string;
+  email?: string;
+};
+
+const CHANNELS: Channel[] = [
   {
     label: "رقم الهاتف",
     desc: "للاستفسارات العامة والتواصل المباشر",
@@ -32,6 +42,13 @@ const CHANNELS = [
     wa: "966576913063",
     icon: Headphones,
     color: "from-emerald-500 to-teal-600",
+  },
+  {
+    label: "بريد الشكاوى",
+    desc: "راسلنا بأيّ شكوى أو ملاحظة وسنردّ عليك",
+    email: "ojiagency1@gmail.com",
+    icon: Mail,
+    color: "from-blue-500 to-indigo-600",
   },
 ];
 
@@ -69,32 +86,43 @@ export default function ContactPage() {
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
           {CHANNELS.map((c, i) => (
-            <Reveal key={c.number} delay={i * 100}>
+            <Reveal key={c.label} delay={i * 100}>
               <div className="gradient-border rounded-2xl p-6 h-full hover-lift flex flex-col">
                 <div className={`size-12 rounded-xl bg-gradient-to-br ${c.color} grid place-items-center text-white mb-4`}>
                   <c.icon className="size-6" />
                 </div>
                 <h2 className="text-lg font-bold">{c.label}</h2>
                 <p className="text-sm text-muted-foreground mt-1 leading-relaxed flex-1">{c.desc}</p>
-                <p dir="ltr" className="mt-4 text-lg font-bold tracking-wide text-right" style={{ direction: "ltr" }}>
-                  {c.number}
+                <p dir="ltr" className="mt-4 text-base sm:text-lg font-bold tracking-wide text-right break-all" style={{ direction: "ltr" }}>
+                  {c.email || c.number}
                 </p>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <a
-                    href={`tel:${c.number}`}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg gradient-brand text-white text-sm font-medium h-10 px-3 hover:opacity-90 transition-opacity"
-                  >
-                    <Phone className="size-4" /> اتصال
-                  </a>
-                  <a
-                    href={`https://wa.me/${c.wa}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border text-sm font-medium h-10 px-3 hover:bg-accent transition-colors"
-                  >
-                    <MessageCircle className="size-4 text-emerald-500" /> واتساب
-                  </a>
-                </div>
+                {c.email ? (
+                  <div className="mt-4">
+                    <a
+                      href={`mailto:${c.email}`}
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg gradient-brand text-white text-sm font-medium h-10 px-3 hover:opacity-90 transition-opacity"
+                    >
+                      <Mail className="size-4" /> راسلنا بالبريد
+                    </a>
+                  </div>
+                ) : (
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <a
+                      href={`tel:${c.number}`}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg gradient-brand text-white text-sm font-medium h-10 px-3 hover:opacity-90 transition-opacity"
+                    >
+                      <Phone className="size-4" /> اتصال
+                    </a>
+                    <a
+                      href={`https://wa.me/${c.wa}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border text-sm font-medium h-10 px-3 hover:bg-accent transition-colors"
+                    >
+                      <MessageCircle className="size-4 text-emerald-500" /> واتساب
+                    </a>
+                  </div>
+                )}
               </div>
             </Reveal>
           ))}
