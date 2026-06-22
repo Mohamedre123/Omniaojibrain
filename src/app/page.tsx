@@ -56,8 +56,8 @@ export default function LandingPage() {
             <span className="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
           {/* نص أقصر على الموبايل */}
-          <span className="sm:hidden">Nano Banana 2 و Veo</span>
-          <span className="hidden sm:inline">مدعومٌ بأحدث نماذج الذكاء الاصطناعي — Nano Banana 2 و Veo</span>
+          <span className="sm:hidden">مدعومٌ بـ Nano Banana 2 · Veo · Claude · ElevenLabs</span>
+          <span className="hidden sm:inline">مدعومٌ بأحدث نماذج الذكاء الاصطناعي — Nano Banana 2 و Veo و Claude و ElevenLabs</span>
         </div>
         <h1 className="mx-auto max-w-4xl text-3xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.2] sm:leading-[1.15] animate-fade-up delay-100">
           عقلُ مشروعك <span className="text-gradient animate-gradient">الإبداعي</span>
