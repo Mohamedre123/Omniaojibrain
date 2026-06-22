@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingHelp } from "@/components/floating-help";
 import { AppSidebar, SidebarTrigger } from "@/components/app-sidebar";
 import { AnimatedBackground } from "@/components/animated-background";
+import { SiteFooter } from "@/components/site-footer";
 
 // 🔒 مهمّ جداً للأمان: كل صفحات الحساب تُرسَم لكل طلبٍ على حدة (لكل مستخدم)،
 // وممنوع تخزينها في أي كاش — يمنع ظهور بيانات مستخدمٍ لمستخدمٍ آخر.
@@ -44,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         <main className="flex-1">{children}</main>
+        <SiteFooter />
       </div>
       <FloatingHelp />
     </div>

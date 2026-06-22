@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Brain, Phone, Headphones, AlertCircle, MessageCircle, ArrowRight, Mail } from "lucide-react";
 import { AnimatedBackground } from "@/components/animated-background";
+import { SiteFooter } from "@/components/site-footer";
 import { Reveal } from "@/components/reveal";
 
 export const metadata = {
@@ -84,18 +85,24 @@ export default function ContactPage() {
           </p>
         </Reveal>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+        <div className="mt-12 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:grid sm:grid-cols-2 lg:grid-cols-4 max-w-5xl lg:mx-auto">
           {CHANNELS.map((c, i) => (
-            <Reveal key={c.label} delay={i * 100}>
+            <Reveal key={c.label} delay={i * 100} className="min-w-[80%] shrink-0 snap-center sm:min-w-0 sm:shrink">
               <div className="gradient-border rounded-2xl p-6 h-full hover-lift flex flex-col">
                 <div className={`size-12 rounded-xl bg-gradient-to-br ${c.color} grid place-items-center text-white mb-4`}>
                   <c.icon className="size-6" />
                 </div>
                 <h2 className="text-lg font-bold">{c.label}</h2>
                 <p className="text-sm text-muted-foreground mt-1 leading-relaxed flex-1">{c.desc}</p>
-                <p dir="ltr" className="mt-4 text-base sm:text-lg font-bold tracking-wide text-right break-all" style={{ direction: "ltr" }}>
-                  {c.email || c.number}
-                </p>
+                {c.email ? (
+                  <p dir="ltr" className="mt-4 text-base font-bold tracking-wide text-right break-all" style={{ direction: "ltr" }}>
+                    {c.email}
+                  </p>
+                ) : (
+                  <a href={`tel:${c.number}`} dir="ltr" className="mt-4 block text-base sm:text-lg font-bold tracking-wide text-right break-all hover:text-primary transition-colors" style={{ direction: "ltr" }}>
+                    {c.number}
+                  </a>
+                )}
                 {c.email ? (
                   <div className="mt-4">
                     <a
@@ -134,6 +141,7 @@ export default function ContactPage() {
           </p>
         </Reveal>
       </section>
+      <SiteFooter />
     </main>
   );
 }

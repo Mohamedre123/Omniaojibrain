@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Brain } from "lucide-react";
 import { AnimatedBackground } from "@/components/animated-background";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,8 +18,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
       <div className="flex-1 grid place-items-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border bg-card/80 backdrop-blur-xl shadow-xl p-6 animate-fade-up">{children}</div>
+        <div className="w-full max-w-md rounded-2xl border bg-card/85 backdrop-blur-md shadow-xl p-6 animate-fade-up">{children}</div>
       </div>
+      <SiteFooter />
     </div>
   );
 }

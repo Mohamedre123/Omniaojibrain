@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/reveal";
 import { AnimatedBackground } from "@/components/animated-background";
+import { SiteFooter } from "@/components/site-footer";
 import {
   Brain,
   Sparkles,
@@ -17,7 +18,6 @@ import {
   ArrowLeft,
   Check,
   Star,
-  Phone,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -293,35 +293,7 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-10 safe-bottom">
-        <div className="container mx-auto px-4 space-y-6">
-          {/* تواصل معنا — بارز */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
-            <span className="text-sm text-muted-foreground">عندك سؤال أو محتاج مساعدة؟</span>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 rounded-full gradient-brand text-white text-sm font-semibold px-5 py-2.5 hover:opacity-90 transition-opacity"
-            >
-              <Phone className="size-4" /> تواصل معنا
-            </Link>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground border-t pt-6">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-md gradient-brand grid place-items-center"><Brain className="size-4 text-white" /></div>
-              <span className="font-semibold text-foreground">Oji Brain</span>
-            </div>
-            <p>© {new Date().getFullYear()} Oji Brain — جزءٌ من Oji</p>
-            <div className="flex items-center gap-4 flex-wrap justify-center">
-              <Link href="/contact" className="hover:text-foreground transition-colors">تواصل معنا</Link>
-              <Link href="/refund" className="hover:text-foreground transition-colors">سياسة الاسترداد</Link>
-              <Link href="/login" className="hover:text-foreground transition-colors">دخول</Link>
-              <Link href="/signup" className="hover:text-foreground transition-colors">حساب جديد</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

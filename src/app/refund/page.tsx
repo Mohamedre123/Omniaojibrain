@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Brain, ArrowRight, ShieldCheck } from "lucide-react";
 import { AnimatedBackground } from "@/components/animated-background";
+import { SiteFooter } from "@/components/site-footer";
 import { Reveal } from "@/components/reveal";
 
 export const metadata = {
@@ -76,6 +77,7 @@ export default function RefundPage() {
           </p>
         </Reveal>
       </section>
+      <SiteFooter />
     </main>
   );
 }

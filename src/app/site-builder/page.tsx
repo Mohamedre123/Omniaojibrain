@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Brain, Layout, ArrowRight, ArrowUpRight, Check, Wand2, Globe, Smartphone, Zap } from "lucide-react";
 import { AnimatedBackground } from "@/components/animated-background";
+import { SiteFooter } from "@/components/site-footer";
 import { Reveal } from "@/components/reveal";
 
 export const metadata = {
@@ -110,6 +111,7 @@ export default function SiteBuilderPage() {
           </div>
         </Reveal>
       </section>
+      <SiteFooter />
     </main>
   );
 }
