@@ -49,26 +49,25 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="container mx-auto px-4 pt-16 sm:pt-24 pb-16 text-center">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-accent/50 px-4 py-1.5 text-sm animate-fade-up">
+      <section className="container mx-auto px-4 pt-12 sm:pt-24 pb-16 text-center">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border bg-accent/50 px-3.5 py-1.5 text-xs sm:text-sm animate-fade-up">
           <span className="relative flex size-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
             <span className="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
-          <span>مدعومٌ بأحدث نماذج الذكاء الاصطناعي — Nano Banana 2 و Veo</span>
+          {/* نص أقصر على الموبايل */}
+          <span className="sm:hidden">Nano Banana 2 و Veo</span>
+          <span className="hidden sm:inline">مدعومٌ بأحدث نماذج الذكاء الاصطناعي — Nano Banana 2 و Veo</span>
         </div>
-        <h1 className="mx-auto max-w-4xl text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.15] animate-fade-up delay-100">
+        <h1 className="mx-auto max-w-4xl text-3xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.2] sm:leading-[1.15] animate-fade-up delay-100">
           عقلُ مشروعك <span className="text-gradient animate-gradient">الإبداعي</span>
           <br />
           في مكانٍ واحد
         </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed animate-fade-up delay-200">
-          منصةُ ذكاءٍ اصطناعيٍّ تفهمك بأيّ لغةٍ ولهجة. اشرح فكرتك، واحصل على
-          <span className="text-foreground font-medium"> استراتيجية</span>،
-          <span className="text-foreground font-medium"> صورٍ وفيديوهاتٍ احترافية</span>، و
-          <span className="text-foreground font-medium"> محتوًى جاهز</span> للتنفيذ.
+        <p className="mx-auto mt-4 sm:mt-6 max-w-xl text-sm sm:text-lg text-muted-foreground leading-relaxed animate-fade-up delay-200">
+          ذكاءٌ اصطناعيٌّ يفهمك بأيّ لهجة — استراتيجية، صور، فيديو، ومحتوى جاهز للتنفيذ.
         </p>
-        <div className="mt-10 flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 animate-fade-up delay-300">
+        <div className="mt-7 sm:mt-10 flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 animate-fade-up delay-300">
           <Button asChild size="lg" variant="gradient" className="h-14 px-8 text-base w-full sm:w-auto hover-lift">
             <Link href="/signup">
               ابدأ مشروعك الأول
