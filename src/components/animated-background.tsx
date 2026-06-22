@@ -8,19 +8,19 @@ export function AnimatedBackground() {
       {/* شبكة خفيفة */}
       <div className="absolute inset-0 bg-grid opacity-[0.3]" />
 
-      {/* طبقة Aurora دوّارة */}
+      {/* طبقة Aurora دوّارة — مخفية على الموبايل لتفادي مشاكل العرض/الاختفاء */}
       <div
-        className="absolute left-1/2 top-1/2 size-[160vmax] -translate-x-1/2 -translate-y-1/2 blur-3xl opacity-60 animate-aurora"
+        className="hidden md:block absolute left-1/2 top-1/2 size-[120vmax] -translate-x-1/2 -translate-y-1/2 blur-2xl opacity-50 animate-aurora"
         style={{
           background:
-            "conic-gradient(from 0deg, oklch(0.55 0.19 255 / 0.35), oklch(0.66 0.15 210 / 0.28), oklch(0.66 0.21 330 / 0.30), oklch(0.6 0.18 160 / 0.22), oklch(0.55 0.19 255 / 0.35))",
+            "conic-gradient(from 0deg, oklch(0.55 0.19 255 / 0.30), oklch(0.66 0.15 210 / 0.24), oklch(0.66 0.21 330 / 0.26), oklch(0.6 0.18 160 / 0.18), oklch(0.55 0.19 255 / 0.30))",
         }}
       />
 
       {/* كرات لونية تتحرّك ببطء */}
-      <div className="absolute -top-24 -right-16 size-[34rem] max-w-[85vw] rounded-full bg-gradient-to-br from-indigo-600/35 to-blue-500/20 blur-3xl animate-blob" />
-      <div className="absolute top-1/3 -left-20 size-[32rem] max-w-[85vw] rounded-full bg-gradient-to-br from-cyan-500/30 to-sky-400/18 blur-3xl animate-blob delay-300" />
-      <div className="absolute -bottom-12 right-1/4 size-[30rem] max-w-[82vw] rounded-full bg-gradient-to-br from-fuchsia-600/28 to-pink-500/18 blur-3xl animate-blob delay-500" />
+      <div className="absolute -top-24 -right-16 size-[30rem] max-w-[80vw] rounded-full bg-gradient-to-br from-indigo-600/30 to-blue-500/18 blur-2xl animate-blob" />
+      <div className="absolute top-1/3 -left-20 size-[28rem] max-w-[80vw] rounded-full bg-gradient-to-br from-cyan-500/25 to-sky-400/15 blur-2xl animate-blob delay-300" />
+      <div className="absolute -bottom-12 right-1/4 size-[26rem] max-w-[78vw] rounded-full bg-gradient-to-br from-fuchsia-600/24 to-pink-500/15 blur-2xl animate-blob delay-500" />
 
       {/* أشكال عائمة خفيفة */}
       <div className="absolute top-28 left-[8%] size-24 rounded-full border border-primary/20 animate-float" />

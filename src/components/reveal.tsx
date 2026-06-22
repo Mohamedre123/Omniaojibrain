@@ -37,10 +37,10 @@ export function Reveal({
   return (
     <Tag
       ref={ref}
-      style={{ transitionDelay: `${delay}ms` }}
+      style={{ transitionDelay: `${delay}ms`, willChange: show ? "auto" : "opacity, transform" }}
       className={cn(
-        "transition-all duration-700 ease-out will-change-transform",
-        show ? "opacity-100 translate-y-0 blur-0" : "opacity-0 translate-y-8 blur-[2px]",
+        "transition-all duration-700 ease-out",
+        show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         className
       )}
     >

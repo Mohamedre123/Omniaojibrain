@@ -102,7 +102,7 @@ export function AppSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-0 right-0 h-screen w-[min(80vw,16rem)] lg:w-64 border-l border-border/60 bg-card/80 backdrop-blur-xl z-50 flex flex-col transition-transform duration-300 safe-top",
+          "fixed lg:sticky top-0 right-0 h-screen w-[min(80vw,16rem)] lg:w-64 border-l border-border/60 bg-card/90 backdrop-blur-md z-50 flex flex-col transition-transform duration-300 safe-top",
           mobileOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
         )}
       >
