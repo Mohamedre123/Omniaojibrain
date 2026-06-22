@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Mic, Pause, Download, Loader2, Volume2, Info, Play } from "lucide-react";
+import { Mic, Pause, Download, Loader2, Volume2, Play } from "lucide-react";
 
 type SpeechVoice = { name: string; lang: string; default: boolean };
 
@@ -22,6 +22,17 @@ const EL_VOICES = [
   { id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", gender: "ذكر", style: "شاب ودود" },
 ];
 
+// أصوات Gemini (نفس أصوات Google AI Studio)
+const GEMINI_VOICES = [
+  { id: "Kore", desc: "حازم" }, { id: "Puck", desc: "متفائل" }, { id: "Zephyr", desc: "مشرق" },
+  { id: "Charon", desc: "إعلامي" }, { id: "Fenrir", desc: "متحمّس" }, { id: "Leda", desc: "شبابي" },
+  { id: "Aoede", desc: "نسيم خفيف" }, { id: "Orus", desc: "حازم" }, { id: "Autonoe", desc: "مشرق" },
+  { id: "Callirrhoe", desc: "مرتاح" }, { id: "Enceladus", desc: "هامس" }, { id: "Iapetus", desc: "واضح" },
+  { id: "Algieba", desc: "ناعم" }, { id: "Despina", desc: "ناعم" }, { id: "Erinome", desc: "واضح" },
+  { id: "Achird", desc: "ودود" }, { id: "Sulafat", desc: "دافئ" }, { id: "Gacrux", desc: "ناضج" },
+  { id: "Pulcherrima", desc: "جريء" }, { id: "Vindemiatrix", desc: "لطيف" },
+];
+
 const STYLE_PRESETS = [
   { label: "🎙️ إذاعي محترف", stability: 0.7, similarity: 0.8, style: 0.1 },
   { label: "📢 إعلاني حماسي", stability: 0.4, similarity: 0.75, style: 0.6 },
@@ -32,7 +43,8 @@ const STYLE_PRESETS = [
 
 export default function VoiceOverPage() {
   const [text, setText] = useState("");
-  const [provider, setProvider] = useState<"browser" | "elevenlabs">("elevenlabs");
+  const [provider, setProvider] = useState<"browser" | "elevenlabs" | "gemini">("gemini");
+  const [gemVoice, setGemVoice] = useState(GEMINI_VOICES[0].id);
   const [voices, setVoices] = useState<SpeechVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState("");
   const [rate, setRate] = useState(1);
@@ -81,17 +93,21 @@ export default function VoiceOverPage() {
     } else {
       try {
         const preset = STYLE_PRESETS[presetIdx];
+        const body = provider === "gemini"
+          ? { text, provider: "gemini", voiceId: gemVoice }
+          : {
+              text,
+              provider: "elevenlabs",
+              voiceId: elVoiceId,
+              stability: preset.stability,
+              similarity: preset.similarity,
+              style: preset.style,
+              speakerBoost: true,
+            };
         const res = await fetch("/api/voice-generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            voiceId: elVoiceId,
-            stability: preset.stability,
-            similarity: preset.similarity,
-            style: preset.style,
-            speakerBoost: true,
-          }),
+          body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!res.ok) { toast.error(data.error || "تعذّر التوليد"); setGenerating(false); return; }
@@ -130,29 +146,43 @@ export default function VoiceOverPage() {
         </p>
       </div>
 
-      <Card className="p-3 mb-4 flex gap-2">
+      <Card className="p-3 mb-4 grid grid-cols-3 gap-2">
         <button
-          onClick={() => setProvider("browser")}
-          className={`flex-1 p-3 rounded-md text-sm transition-all ${provider === "browser" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          onClick={() => setProvider("gemini")}
+          className={`p-3 rounded-md text-sm transition-all ${provider === "gemini" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
         >
-          🎙️ صوت المتصفّح <span className="text-[10px] block opacity-80">مجاني • فوري</span>
+          🤖 Gemini <span className="text-[10px] block opacity-80">أصوات Google AI</span>
         </button>
         <button
           onClick={() => setProvider("elevenlabs")}
-          className={`flex-1 p-3 rounded-md text-sm transition-all ${provider === "elevenlabs" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          className={`p-3 rounded-md text-sm transition-all ${provider === "elevenlabs" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
         >
-          🎵 ElevenLabs <span className="text-[10px] block opacity-80">احترافي • مدفوع</span>
+          🎵 ElevenLabs <span className="text-[10px] block opacity-80">احترافي</span>
+        </button>
+        <button
+          onClick={() => setProvider("browser")}
+          className={`p-3 rounded-md text-sm transition-all ${provider === "browser" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+        >
+          🎙️ المتصفّح <span className="text-[10px] block opacity-80">مجاني</span>
         </button>
       </Card>
 
       <Card className="p-5 space-y-4">
-        {provider === "elevenlabs" && (
-          <Card className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 flex items-start gap-2 text-sm">
-            <Info className="size-4 text-emerald-700 shrink-0 mt-0.5" />
-            <div className="text-emerald-900 dark:text-emerald-200">
-              ✅ ElevenLabs مفعّل. اختر الصوت والاستايل، اكتب النصّ، واضغط توليد.
-            </div>
-          </Card>
+        {provider === "gemini" && (
+          <div>
+            <Label htmlFor="gem-voice">الصوت (أصوات Google AI Studio)</Label>
+            <select
+              id="gem-voice"
+              value={gemVoice}
+              onChange={(e) => setGemVoice(e.target.value)}
+              className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+            >
+              {GEMINI_VOICES.map((v) => (
+                <option key={v.id} value={v.id}>{v.id} — {v.desc}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">🤖 يفهم العربية وكل اللغات — اكتب النص بأي لهجة.</p>
+          </div>
         )}
 
         {provider === "elevenlabs" && (
@@ -254,8 +284,8 @@ export default function VoiceOverPage() {
             </div>
             <audio ref={audioRef} src={audioUrl} controls autoPlay className="w-full" />
             <div className="flex justify-end mt-2">
-              <a href={audioUrl} download={`oji-voiceover-${Date.now()}.mp3`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-                <Download className="size-3" /> تنزيل MP3
+              <a href={audioUrl} download={`oji-voiceover-${Date.now()}.${audioUrl.startsWith("data:audio/wav") ? "wav" : "mp3"}`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                <Download className="size-3" /> تنزيل الصوت
               </a>
             </div>
           </Card>
