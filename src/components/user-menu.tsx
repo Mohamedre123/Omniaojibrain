@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -22,7 +21,6 @@ export function UserMenu({
   email: string;
   avatarUrl: string | null;
 }) {
-  const router = useRouter();
   const initials = fullName
     .split(" ")
     .map((s) => s[0])
@@ -32,9 +30,9 @@ export function UserMenu({
 
   async function signOut() {
     const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
+    // scope local = خروج فوري بدون انتظار إبطال التوكن على السيرفر (أسرع بكثير)
+    try { await supabase.auth.signOut({ scope: "local" }); } catch {}
+    window.location.href = "/";
   }
 
   return (

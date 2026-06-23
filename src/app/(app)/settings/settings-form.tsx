@@ -17,6 +17,43 @@ export function SettingsForm({ profile, userEmail }: { profile: Profile | null; 
   const [logoUrl, setLogoUrl] = useState<string>(profile?.brand_logo_url ?? "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
+  // تغيير البريد عبر رمز يُرسَل للبريد الحالي
+  const [emailStep, setEmailStep] = useState<"idle" | "code">("idle");
+  const [newEmail, setNewEmail] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  async function sendEmailCode() {
+    const target = newEmail.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(target)) { toast.error("اكتب بريداً صحيحاً"); return; }
+    if (target === userEmail.toLowerCase()) { toast.error("هذا بريدك الحالي بالفعل"); return; }
+    setEmailBusy(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.reauthenticate();
+      if (error) { toast.error("تعذّر إرسال الرمز", { description: error.message }); return; }
+      setEmailStep("code");
+      toast.success("أرسلنا رمزاً (6 أرقام) إلى بريدك الحالي");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function confirmEmailChange() {
+    const code = emailCode.replace(/\D/g, "");
+    if (code.length < 6) { toast.error("اكتب الرمز كاملاً"); return; }
+    setEmailBusy(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ email: newEmail.trim().toLowerCase(), nonce: code });
+      if (error) { toast.error("تعذّر تغيير البريد", { description: error.message }); return; }
+      toast.success("تمّ — راجِع بريدك الجديد لتأكيد التغيير", { duration: 6000 });
+      setEmailStep("idle"); setNewEmail(""); setEmailCode("");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
   async function handleLogoUpload(file: File | null) {
     if (!file) return;
     if (!file.type.startsWith("image/")) { toast.error("الملف لازم يكون صورة"); return; }
@@ -88,7 +125,45 @@ export function SettingsForm({ profile, userEmail }: { profile: Profile | null; 
 
       <div className="space-y-2">
         <Label>البريد الإلكتروني</Label>
-        <Input value={userEmail} disabled className="opacity-60" />
+        <Input value={userEmail} disabled className="opacity-60" dir="ltr" />
+
+        {emailStep === "idle" ? (
+          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+            <Input
+              type="email"
+              dir="ltr"
+              placeholder="بريد إلكتروني جديد"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+            />
+            <Button type="button" variant="outline" onClick={sendEmailCode} disabled={emailBusy || !newEmail.trim()} className="shrink-0 w-full sm:w-auto">
+              {emailBusy && <Loader2 className="size-4 animate-spin" />} إرسال رمز للبريد الحالي
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-lg border p-3 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              أرسلنا رمزاً إلى بريدك الحالي. اكتبه لتأكيد التغيير إلى <span dir="ltr" className="font-medium">{newEmail}</span>.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                inputMode="numeric"
+                dir="ltr"
+                placeholder="رمز مكوّن من 6 أرقام"
+                value={emailCode}
+                onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ""))}
+                maxLength={10}
+              />
+              <Button type="button" variant="gradient" onClick={confirmEmailChange} disabled={emailBusy || emailCode.length < 6} className="shrink-0 w-full sm:w-auto">
+                {emailBusy && <Loader2 className="size-4 animate-spin" />} تأكيد التغيير
+              </Button>
+            </div>
+            <button type="button" onClick={() => { setEmailStep("idle"); setEmailCode(""); }} className="text-xs text-muted-foreground hover:text-foreground">
+              إلغاء
+            </button>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">لتغيير بريدك: اكتب البريد الجديد، نرسل رمزاً لبريدك الحالي، ثم أكّد.</p>
       </div>
 
       <div className="space-y-2">

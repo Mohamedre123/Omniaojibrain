@@ -1,8 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/reveal";
 import { AnimatedBackground } from "@/components/animated-background";
 import { SiteFooter } from "@/components/site-footer";
+
+// لازم ديناميكي عشان يفحص الجلسة لكل زيارة
+export const dynamic = "force-dynamic";
 import {
   Brain,
   Sparkles,
@@ -20,7 +25,12 @@ import {
   Star,
 } from "lucide-react";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // لو العميل مسجّل دخول وجلسته صالحة → وجّهه للداشبورد تلقائياً
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard");
+
   return (
     <main className="relative min-h-screen overflow-x-hidden">
       <AnimatedBackground />
