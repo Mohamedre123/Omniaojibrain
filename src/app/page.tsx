@@ -278,6 +278,49 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing teaser */}
+      <section id="pricing" className="container mx-auto px-4 py-20 sm:py-24">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold">باقاتٌ تنمو مع مشروعك</h2>
+          <p className="mt-3 text-muted-foreground">الشات مجانيٌّ للجميع — واختر باقةً لفتح التوليد (صور، فيديو، صوت، لاندينج).</p>
+        </Reveal>
+
+        <div className="mt-12 grid gap-5 sm:grid-cols-3 max-w-4xl mx-auto">
+          {[
+            { name: "البداية", price: "199", note: "أساسيات التوليد والصور", popular: false },
+            { name: "الاحترافي", price: "349", note: "فيديو + لاندينج + Claude + ElevenLabs", popular: true },
+            { name: "بريميم", price: "799", note: "بلا حدود + أقوى الموديلات", popular: false },
+          ].map((p, i) => (
+            <Reveal key={p.name} delay={i * 90}>
+              <Link
+                href="/pricing"
+                className={`relative block h-full rounded-2xl border bg-card/85 backdrop-blur-md p-6 hover-lift ${p.popular ? "border-primary ring-2 ring-primary/30 sm:scale-[1.04]" : "border-border/60"}`}
+              >
+                {p.popular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full gradient-brand text-white text-xs font-bold px-3 py-1 shadow">⭐ الأنسب</span>
+                )}
+                <h3 className="text-lg font-bold">{p.name}</h3>
+                <div className="mt-2 flex items-end gap-1">
+                  <span className="text-3xl font-bold text-gradient">{p.price}</span>
+                  <span className="text-sm text-muted-foreground mb-1">ج.م / شهرياً</span>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{p.note}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm text-primary font-medium">
+                  التفاصيل <ArrowLeft className="size-4" />
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={120} className="mt-8 text-center">
+          <Button asChild size="lg" variant="gradient" className="h-14 px-8">
+            <Link href="/pricing">استعرض كل الباقات والعملات <ArrowLeft className="size-5" /></Link>
+          </Button>
+          <p className="mt-3 text-xs text-muted-foreground">أسعار بعملات متعددة (مصري / سعودي / دولار) في صفحة الباقات.</p>
+        </Reveal>
+      </section>
+
       {/* CTA */}
       <section className="container mx-auto px-4 pb-24">
         <Reveal>
