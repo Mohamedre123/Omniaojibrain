@@ -23,6 +23,7 @@ import {
   Phone,
   Layout,
   ArrowUpRight,
+  Tag,
 } from "lucide-react";
 
 const NAV = [
@@ -40,6 +41,7 @@ const NAV = [
 ];
 
 const FOOTER_NAV = [
+  { href: "/pricing", label: "الباقات", icon: Tag },
   { href: "/contact", label: "تواصل معنا", icon: Phone },
   { href: "/settings", label: "الإعدادات", icon: Settings },
 ];

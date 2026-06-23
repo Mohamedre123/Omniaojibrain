@@ -96,12 +96,12 @@ export default async function LandingPage() {
           مجانيٌّ للبدء • بدون بطاقةٍ ائتمانية • حسابٌ مستقلٌّ لكلّ مستخدم
         </p>
 
-        {/* معاينة تفاعلية للتطبيق */}
-        <Reveal delay={150} className="mt-16 max-w-4xl mx-auto">
+        {/* معاينة تفاعلية للتطبيق — سحب أفقي على الموبايل */}
+        <Reveal delay={150} className="mt-12 sm:mt-16 max-w-4xl mx-auto">
           <div className="relative">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:grid sm:grid-cols-3 text-right">
               {/* صورة إعلانية — موك أب واضح لإعلان */}
-              <div className="gradient-border rounded-2xl p-5 text-right hover-lift sm:translate-y-4">
+              <div className="gradient-border rounded-2xl p-5 text-right hover-lift min-w-[80%] shrink-0 snap-center sm:min-w-0 sm:shrink sm:translate-y-4">
                 <div className="size-11 rounded-xl bg-rose-500/15 text-rose-500 grid place-items-center mb-3"><Palette className="size-6" /></div>
                 <h3 className="font-semibold">صورة إعلانية</h3>
                 <p className="text-xs text-muted-foreground mt-1">من وصفٍ بسيط → صورة احترافية في ثوانٍ</p>
@@ -116,7 +116,7 @@ export default async function LandingPage() {
               </div>
 
               {/* خطة تسويق — مقتطف مقروء */}
-              <div className="gradient-border rounded-2xl p-5 text-right hover-lift">
+              <div className="gradient-border rounded-2xl p-5 text-right hover-lift min-w-[80%] shrink-0 snap-center sm:min-w-0 sm:shrink">
                 <div className="size-11 rounded-xl bg-violet-500/15 text-violet-500 grid place-items-center mb-3"><Target className="size-6" /></div>
                 <h3 className="font-semibold">خطة تسويق</h3>
                 <p className="text-xs text-muted-foreground mt-1">خطة شهرية كاملة بمحتوًى وميزانية ومنصّات</p>
@@ -129,7 +129,7 @@ export default async function LandingPage() {
               </div>
 
               {/* فيديو إعلاني */}
-              <div className="gradient-border rounded-2xl p-5 text-right hover-lift sm:translate-y-4">
+              <div className="gradient-border rounded-2xl p-5 text-right hover-lift min-w-[80%] shrink-0 snap-center sm:min-w-0 sm:shrink sm:translate-y-4">
                 <div className="size-11 rounded-xl bg-blue-500/15 text-blue-500 grid place-items-center mb-3"><Video className="size-6" /></div>
                 <h3 className="font-semibold">فيديو إعلاني</h3>
                 <p className="text-xs text-muted-foreground mt-1">فيديو بجودة عالية من وصفٍ أو صورة</p>
@@ -146,6 +146,48 @@ export default async function LandingPage() {
               </div>
             </div>
           </div>
+        </Reveal>
+      </section>
+
+      {/* Pricing teaser — تحت معاينة المميزات مباشرةً */}
+      <section id="pricing" className="container mx-auto px-4 pb-8 sm:pb-12">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold">باقاتٌ تنمو مع مشروعك</h2>
+          <p className="mt-2 text-sm sm:text-base text-muted-foreground">الشات مجانيٌّ للجميع — واختر باقةً لفتح التوليد.</p>
+        </Reveal>
+
+        <div className="mt-8 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:grid sm:grid-cols-3 max-w-4xl lg:mx-auto">
+          {[
+            { name: "البداية", price: "199", note: "أساسيات التوليد والصور", popular: false },
+            { name: "الاحترافي", price: "349", note: "فيديو + لاندينج + Claude + ElevenLabs", popular: true },
+            { name: "بريميم", price: "799", note: "بلا حدود + أقوى الموديلات", popular: false },
+          ].map((p, i) => (
+            <Reveal key={p.name} delay={i * 90} className="min-w-[78%] shrink-0 snap-center sm:min-w-0 sm:shrink">
+              <Link
+                href="/pricing"
+                className={`relative block h-full rounded-2xl border bg-card/85 backdrop-blur-md p-6 hover-lift ${p.popular ? "border-primary ring-2 ring-primary/30 sm:scale-[1.04]" : "border-border/60"}`}
+              >
+                {p.popular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full gradient-brand text-white text-xs font-bold px-3 py-1 shadow">⭐ الأنسب</span>
+                )}
+                <h3 className="text-lg font-bold">{p.name}</h3>
+                <div className="mt-2 flex items-end gap-1">
+                  <span className="text-3xl font-bold text-gradient">{p.price}</span>
+                  <span className="text-sm text-muted-foreground mb-1">ج.م / شهرياً</span>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{p.note}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm text-primary font-medium">
+                  التفاصيل والاشتراك <ArrowLeft className="size-4" />
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={120} className="mt-6 text-center">
+          <Button asChild variant="gradient" className="h-12 px-8">
+            <Link href="/pricing">استعرض كل الباقات والعملات <ArrowLeft className="size-5" /></Link>
+          </Button>
         </Reveal>
       </section>
 
@@ -276,49 +318,6 @@ export default async function LandingPage() {
             </Reveal>
           ))}
         </div>
-      </section>
-
-      {/* Pricing teaser */}
-      <section id="pricing" className="container mx-auto px-4 py-20 sm:py-24">
-        <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold">باقاتٌ تنمو مع مشروعك</h2>
-          <p className="mt-3 text-muted-foreground">الشات مجانيٌّ للجميع — واختر باقةً لفتح التوليد (صور، فيديو، صوت، لاندينج).</p>
-        </Reveal>
-
-        <div className="mt-12 grid gap-5 sm:grid-cols-3 max-w-4xl mx-auto">
-          {[
-            { name: "البداية", price: "199", note: "أساسيات التوليد والصور", popular: false },
-            { name: "الاحترافي", price: "349", note: "فيديو + لاندينج + Claude + ElevenLabs", popular: true },
-            { name: "بريميم", price: "799", note: "بلا حدود + أقوى الموديلات", popular: false },
-          ].map((p, i) => (
-            <Reveal key={p.name} delay={i * 90}>
-              <Link
-                href="/pricing"
-                className={`relative block h-full rounded-2xl border bg-card/85 backdrop-blur-md p-6 hover-lift ${p.popular ? "border-primary ring-2 ring-primary/30 sm:scale-[1.04]" : "border-border/60"}`}
-              >
-                {p.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full gradient-brand text-white text-xs font-bold px-3 py-1 shadow">⭐ الأنسب</span>
-                )}
-                <h3 className="text-lg font-bold">{p.name}</h3>
-                <div className="mt-2 flex items-end gap-1">
-                  <span className="text-3xl font-bold text-gradient">{p.price}</span>
-                  <span className="text-sm text-muted-foreground mb-1">ج.م / شهرياً</span>
-                </div>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{p.note}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm text-primary font-medium">
-                  التفاصيل <ArrowLeft className="size-4" />
-                </span>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-
-        <Reveal delay={120} className="mt-8 text-center">
-          <Button asChild size="lg" variant="gradient" className="h-14 px-8">
-            <Link href="/pricing">استعرض كل الباقات والعملات <ArrowLeft className="size-5" /></Link>
-          </Button>
-          <p className="mt-3 text-xs text-muted-foreground">أسعار بعملات متعددة (مصري / سعودي / دولار) في صفحة الباقات.</p>
-        </Reveal>
       </section>
 
       {/* CTA */}
