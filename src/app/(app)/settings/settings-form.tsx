@@ -47,11 +47,22 @@ export function SettingsForm({ profile, userEmail }: { profile: Profile | null; 
     setEmailBusy(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.verifyOtp({ email: pendingEmail, token, type: "email_change" });
+      const { data, error } = await supabase.auth.verifyOtp({ email: pendingEmail, token, type: "email_change" });
       if (error) { toast.error("الكود غير صحيح أو منتهي", { description: error.message }); return; }
-      toast.success("تمّ تغيير بريدك ✓");
-      setEmailStep("idle"); setEmailCode(""); setNewEmail(""); setPendingEmail("");
-      setTimeout(() => window.location.reload(), 1200);
+
+      // تأكّد إن البريد اتغيّر فعلاً (مع "Secure email change" المفعّل بيحتاج تأكيد على البريدين)
+      const { data: fresh } = await supabase.auth.getUser();
+      const changed = (fresh?.user?.email || data?.user?.email || "").toLowerCase() === pendingEmail.toLowerCase();
+      if (changed) {
+        toast.success("تمّ تغيير بريدك ✓");
+        setEmailStep("idle"); setEmailCode(""); setNewEmail(""); setPendingEmail("");
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        toast.message("تم تأكيد هذا البريد", {
+          description: "التغيير محتاج تأكيداً إضافياً على بريدك القديم (إعداد الأمان). افحص رسالة وصلت لبريدك القديم وأكّدها.",
+          duration: 8000,
+        });
+      }
     } finally {
       setEmailBusy(false);
     }
