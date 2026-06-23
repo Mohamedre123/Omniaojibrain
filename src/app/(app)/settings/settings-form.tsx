@@ -17,26 +17,41 @@ export function SettingsForm({ profile, userEmail }: { profile: Profile | null; 
   const [logoUrl, setLogoUrl] = useState<string>(profile?.brand_logo_url ?? "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // تغيير البريد عبر رابط تأكيد (قالب Supabase المنفصل — لا يؤثّر على كود إنشاء الحساب)
+  // تغيير البريد عبر كود (OTP) — لا يؤثّر على كود إنشاء الحساب
   const [newEmail, setNewEmail] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailStep, setEmailStep] = useState<"idle" | "code">("idle");
   const [emailBusy, setEmailBusy] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
 
-  async function changeEmail() {
+  async function sendEmailCode() {
     const target = newEmail.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(target)) { toast.error("اكتب بريداً صحيحاً"); return; }
     if (target === userEmail.toLowerCase()) { toast.error("هذا بريدك الحالي بالفعل"); return; }
     setEmailBusy(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.updateUser(
-        { email: target },
-        { emailRedirectTo: `${window.location.origin}/auth/callback` }
-      );
-      if (error) { toast.error("تعذّر تغيير البريد", { description: error.message }); return; }
-      setEmailSent(true);
-      setNewEmail("");
-      toast.success("بعتنا رابط تأكيد — افتح الرسالة في بريدك الجديد لإتمام التغيير", { duration: 7000 });
+      const { error } = await supabase.auth.updateUser({ email: target });
+      if (error) { toast.error("تعذّر إرسال الكود", { description: error.message }); return; }
+      setPendingEmail(target);
+      setEmailStep("code");
+      toast.success("بعتنا كوداً لبريدك الجديد — اكتبه لتأكيد التغيير");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function confirmEmailCode() {
+    const token = emailCode.replace(/\D/g, "");
+    if (token.length < 6) { toast.error("اكتب الكود كاملاً"); return; }
+    setEmailBusy(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.verifyOtp({ email: pendingEmail, token, type: "email_change" });
+      if (error) { toast.error("الكود غير صحيح أو منتهي", { description: error.message }); return; }
+      toast.success("تمّ تغيير بريدك ✓");
+      setEmailStep("idle"); setEmailCode(""); setNewEmail(""); setPendingEmail("");
+      setTimeout(() => window.location.reload(), 1200);
     } finally {
       setEmailBusy(false);
     }
@@ -115,24 +130,44 @@ export function SettingsForm({ profile, userEmail }: { profile: Profile | null; 
         <Label>البريد الإلكتروني</Label>
         <Input value={userEmail} disabled className="opacity-60" dir="ltr" />
 
-        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <Input
-            type="email"
-            dir="ltr"
-            placeholder="بريد إلكتروني جديد"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-          />
-          <Button type="button" variant="outline" onClick={changeEmail} disabled={emailBusy || !newEmail.trim()} className="shrink-0 w-full sm:w-auto">
-            {emailBusy && <Loader2 className="size-4 animate-spin" />} تغيير البريد
-          </Button>
-        </div>
-        {emailSent ? (
-          <p className="text-xs text-emerald-600 dark:text-emerald-400">
-            ✅ بعتنا رابط تأكيد لبريدك الجديد — افتح الرسالة لإتمام التغيير، وبعدها سجّل دخول بالبريد الجديد.
-          </p>
+        {emailStep === "idle" ? (
+          <>
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <Input
+                type="email"
+                dir="ltr"
+                placeholder="بريد إلكتروني جديد"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+              <Button type="button" variant="outline" onClick={sendEmailCode} disabled={emailBusy || !newEmail.trim()} className="shrink-0 w-full sm:w-auto">
+                {emailBusy && <Loader2 className="size-4 animate-spin" />} إرسال الكود
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">لتغيير بريدك: اكتب البريد الجديد، نرسل كوداً، ثم أكّده.</p>
+          </>
         ) : (
-          <p className="text-xs text-muted-foreground">لتغيير بريدك: اكتب البريد الجديد ثم اضغط «تغيير البريد»، وافتح رابط التأكيد في رسالتك.</p>
+          <div className="rounded-lg border p-3 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              بعتنا كوداً إلى <span dir="ltr" className="font-medium">{pendingEmail}</span>. اكتبه لتأكيد التغيير.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                inputMode="numeric"
+                dir="ltr"
+                placeholder="الكود (6 أرقام)"
+                value={emailCode}
+                onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ""))}
+                maxLength={10}
+              />
+              <Button type="button" variant="gradient" onClick={confirmEmailCode} disabled={emailBusy || emailCode.length < 6} className="shrink-0 w-full sm:w-auto">
+                {emailBusy && <Loader2 className="size-4 animate-spin" />} تأكيد التغيير
+              </Button>
+            </div>
+            <button type="button" onClick={() => { setEmailStep("idle"); setEmailCode(""); }} className="text-xs text-muted-foreground hover:text-foreground">
+              إلغاء
+            </button>
+          </div>
         )}
       </div>
 
