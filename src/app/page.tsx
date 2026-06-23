@@ -46,6 +46,7 @@ export default async function LandingPage() {
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <Link href="#features" className="hover:text-foreground transition-colors">الإمكانيات</Link>
+            <Link href="/pricing" className="hover:text-foreground transition-colors">الباقات</Link>
             <Link href="#how" className="hover:text-foreground transition-colors">كيف يعمل</Link>
             <Link href="#faq" className="hover:text-foreground transition-colors">الأسئلة</Link>
           </div>

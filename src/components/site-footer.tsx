@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Brain, Phone, RotateCcw, Layout } from "lucide-react";
+import { Brain, Phone, RotateCcw, Layout, Tag } from "lucide-react";
 
 /** فوتر موحّد يظهر في كل الصفحات (قبل وبعد تسجيل الدخول) */
 export function SiteFooter() {
@@ -19,6 +19,9 @@ export function SiteFooter() {
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
           <Link href="/contact" className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
             <Phone className="size-3.5" /> تواصل معنا
+          </Link>
+          <Link href="/pricing" className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
+            <Tag className="size-3.5" /> الباقات
           </Link>
           <Link href="/refund" className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
             <RotateCcw className="size-3.5" /> سياسة الاسترداد
