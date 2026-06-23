@@ -73,6 +73,7 @@ const PLANS = [
 
 export default function PricingPage() {
   const [cur, setCur] = useState<Cur>("EGP");
+  const [agreed, setAgreed] = useState(false);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden flex flex-col">
@@ -123,8 +124,20 @@ export default function PricingPage() {
           </div>
         </Reveal>
 
+        {/* الموافقة على الشروط قبل الدفع */}
+        <div className="mt-8 max-w-2xl mx-auto flex items-start justify-center gap-2.5 rounded-xl border bg-card/70 backdrop-blur p-3.5 text-sm">
+          <input id="agree" type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 size-4 shrink-0" />
+          <label htmlFor="agree" className="text-muted-foreground leading-relaxed cursor-pointer">
+            أوافق على{" "}
+            <Link href="/terms" className="text-primary hover:underline">الشروط والأحكام</Link>،{" "}
+            <Link href="/privacy" className="text-primary hover:underline">سياسة الخصوصية</Link>، و
+            <Link href="/subscription" className="text-primary hover:underline">سياسة الاشتراك والإلغاء</Link>{" "}
+            قبل المتابعة للدفع.
+          </label>
+        </div>
+
         {/* الباقات: سحب أفقي على الموبايل، 3 أعمدة على الكمبيوتر */}
-        <div className="mt-10 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible md:grid md:grid-cols-3 md:items-stretch max-w-5xl lg:mx-auto">
+        <div className="mt-6 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible md:grid md:grid-cols-3 md:items-stretch max-w-5xl lg:mx-auto">
           {PLANS.map((p, i) => (
             <Reveal
               key={p.id}
@@ -159,12 +172,21 @@ export default function PricingPage() {
 
                 {p.locked && <p className="mt-4 text-xs text-muted-foreground">🔒 {p.locked}</p>}
 
-                <Link
-                  href="/signup"
-                  className={`mt-6 inline-flex items-center justify-center gap-2 h-12 rounded-xl font-semibold transition-opacity hover:opacity-90 ${p.popular ? "gradient-brand text-white" : "border bg-background"}`}
-                >
-                  اختر {p.name}
-                </Link>
+                {agreed ? (
+                  <Link
+                    href="/signup"
+                    className={`mt-6 inline-flex items-center justify-center gap-2 h-12 rounded-xl font-semibold transition-opacity hover:opacity-90 ${p.popular ? "gradient-brand text-white" : "border bg-background"}`}
+                  >
+                    اختر {p.name}
+                  </Link>
+                ) : (
+                  <span
+                    title="فعّل الموافقة على الشروط أولاً"
+                    className={`mt-6 inline-flex items-center justify-center gap-2 h-12 rounded-xl font-semibold opacity-50 cursor-not-allowed ${p.popular ? "gradient-brand text-white" : "border bg-background"}`}
+                  >
+                    اختر {p.name}
+                  </span>
+                )}
               </div>
             </Reveal>
           ))}
