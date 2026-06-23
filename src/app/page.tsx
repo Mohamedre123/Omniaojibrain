@@ -39,11 +39,14 @@ export default function LandingPage() {
             <Link href="#how" className="hover:text-foreground transition-colors">كيف يعمل</Link>
             <Link href="#faq" className="hover:text-foreground transition-colors">الأسئلة</Link>
           </div>
-          <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" className="hidden sm:inline-flex">
-              <Link href="/login">تسجيل الدخول</Link>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button asChild variant="ghost" className="px-3 sm:px-4">
+              <Link href="/login">
+                <span className="sm:hidden">دخول</span>
+                <span className="hidden sm:inline">تسجيل الدخول</span>
+              </Link>
             </Button>
-            <Button asChild variant="gradient"><Link href="/signup">ابدأ مجاناً</Link></Button>
+            <Button asChild variant="gradient" className="px-3 sm:px-4"><Link href="/signup">ابدأ مجاناً</Link></Button>
           </div>
         </div>
       </nav>
