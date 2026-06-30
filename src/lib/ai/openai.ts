@@ -62,7 +62,8 @@ export async function* streamOpenAI(opts: {
     },
     body: JSON.stringify({
       model,
-      max_tokens: opts.maxTokens ?? 8000,
+      // موديلات GPT-5 تتطلّب max_completion_tokens بدل max_tokens
+      max_completion_tokens: opts.maxTokens ?? 8000,
       messages,
       stream: true,
     }),
