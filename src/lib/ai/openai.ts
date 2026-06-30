@@ -5,13 +5,14 @@ import type { ChatMessage } from "./gemini";
 
 const API_URL = "https://api.openai.com/v1/chat/completions";
 
-// موديلات ChatGPT المتاحة للاختيار
+// موديلات ChatGPT المتاحة للاختيار (الأحدث)
 export const OPENAI_MODELS = [
-  { id: "gpt-4o", label: "ChatGPT (GPT-4o)" },
-  { id: "gpt-4o-mini", label: "ChatGPT (GPT-4o mini — الأسرع)" },
+  { id: "gpt-5.5", label: "ChatGPT (GPT-5.5 — الأقوى)" },
+  { id: "gpt-5.4", label: "ChatGPT (GPT-5.4)" },
+  { id: "gpt-5.4-mini", label: "ChatGPT (GPT-5.4 mini — الأسرع)" },
 ] as const;
 
-export const DEFAULT_OPENAI_MODEL = "gpt-4o";
+export const DEFAULT_OPENAI_MODEL = "gpt-5.4";
 
 export function isValidOpenAIModel(m: string | undefined): m is string {
   return !!m && OPENAI_MODELS.some((x) => x.id === m);

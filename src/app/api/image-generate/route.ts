@@ -23,7 +23,46 @@ const schema = z.object({
   brandContext: z.string().max(1000).optional(),
   aspect: z.string().optional(),
   quality: z.enum(["fast", "high"]).optional().default("fast"),
+  provider: z.enum(["gemini", "openai"]).optional().default("gemini"),
 });
+
+/** توليد صورة عبر OpenAI (GPT Image / gpt-image-1) */
+function openaiSize(aspect?: string): string {
+  switch (aspect) {
+    case "9:16":
+    case "9:16-reel":
+    case "2:3":
+      return "1024x1536";
+    case "16:9":
+    case "fb-cover":
+      return "1536x1024";
+    default:
+      return "1024x1024";
+  }
+}
+
+async function generateOpenAIImage(prompt: string, aspect?: string): Promise<{ images: Array<{ mimeType: string; data: string }>; error?: string }> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return { images: [], error: "مفتاح ChatGPT (OPENAI_API_KEY) غير مضبوط في الخادم" };
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 180_000);
+    const res = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: "gpt-image-1", prompt, size: openaiSize(aspect), n: 1 }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (!res.ok) return { images: [], error: `ChatGPT: ${String(data?.error?.message || res.status).slice(0, 180)}` };
+    const b64 = data?.data?.[0]?.b64_json as string | undefined;
+    if (!b64) return { images: [], error: "ChatGPT: لم تُرجَع صورة" };
+    return { images: [{ mimeType: "image/png", data: b64 }] };
+  } catch (e) {
+    return { images: [], error: `ChatGPT: ${e instanceof Error ? e.message.slice(0, 120) : "failed"}` };
+  }
+}
 
 // 🎨 الستايل الأساسي لكل توليد
 const MASTER_PHOTO_STYLE = `Ultra-High Resolution 8K Photorealistic Commercial Advertising Photography, razor-sharp focus, soft diffused studio lighting, subtle rim lighting, rich clean colors, luxury brand aesthetic, full-frame camera quality, shallow depth of field, magazine-quality composition.`;
@@ -142,6 +181,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
   }
   const body = parsed.data;
+
+  // ===== مسار ChatGPT (GPT Image) =====
+  if (body.provider === "openai") {
+    const oPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}`;
+    const r = await generateOpenAIImage(oPrompt, body.aspect);
+    if (r.images.length > 0) return NextResponse.json({ images: r.images, model: "gpt-image-1" });
+    return NextResponse.json({ error: r.error || "تعذّر التوليد" }, { status: 503 });
+  }
 
   const keys = getKeys();
   if (keys.length === 0) {
