@@ -41,28 +41,41 @@ function openaiSize(aspect?: string): string {
   }
 }
 
+// أحدث موديلات صور OpenAI أولاً (gpt-image-2) ثم البدائل
+const OPENAI_IMAGE_MODELS = ["gpt-image-2", "gpt-image-1.5", "gpt-image-1"];
+
 async function generateOpenAIImage(prompt: string, aspect?: string): Promise<{ images: Array<{ mimeType: string; data: string }>; error?: string }> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return { images: [], error: "مفتاح ChatGPT (OPENAI_API_KEY) غير مضبوط في الخادم" };
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 180_000);
-    const res = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      // أقوى موديل صور من OpenAI بأعلى جودة
-      body: JSON.stringify({ model: "gpt-image-1", prompt, size: openaiSize(aspect), quality: "high", n: 1 }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    const data = await res.json();
-    if (!res.ok) return { images: [], error: `ChatGPT: ${String(data?.error?.message || res.status).slice(0, 180)}` };
-    const b64 = data?.data?.[0]?.b64_json as string | undefined;
-    if (!b64) return { images: [], error: "ChatGPT: لم تُرجَع صورة" };
-    return { images: [{ mimeType: "image/png", data: b64 }] };
-  } catch (e) {
-    return { images: [], error: `ChatGPT: ${e instanceof Error ? e.message.slice(0, 120) : "failed"}` };
+  const errors: string[] = [];
+  for (const model of OPENAI_IMAGE_MODELS) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 200_000);
+      const res = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        // أعلى جودة متاحة
+        body: JSON.stringify({ model, prompt, size: openaiSize(aspect), quality: "high", n: 1 }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      const data = await res.json();
+      if (res.ok) {
+        const b64 = data?.data?.[0]?.b64_json as string | undefined;
+        if (b64) return { images: [{ mimeType: "image/png", data: b64 }] };
+        errors.push(`${model}: لم تُرجَع صورة`);
+        continue;
+      }
+      const msg = String(data?.error?.message || res.status);
+      errors.push(`${model}: ${msg.slice(0, 120)}`);
+      // لو الموديل غير متاح، جرّب اللي بعده؛ غير كده اوقف
+      if (!/model|not found|does not exist|unsupported/i.test(msg)) break;
+    } catch (e) {
+      errors.push(`${model}: ${e instanceof Error ? e.message.slice(0, 100) : "failed"}`);
+    }
   }
+  return { images: [], error: `ChatGPT: ${errors.slice(0, 2).join(" | ")}` };
 }
 
 // 🎨 الستايل الأساسي لكل توليد
@@ -187,7 +200,7 @@ export async function POST(req: NextRequest) {
   if (body.provider === "openai") {
     const oPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}`;
     const r = await generateOpenAIImage(oPrompt, body.aspect);
-    if (r.images.length > 0) return NextResponse.json({ images: r.images, model: "gpt-image-1" });
+    if (r.images.length > 0) return NextResponse.json({ images: r.images, model: "gpt-image-2" });
     return NextResponse.json({ error: r.error || "تعذّر التوليد" }, { status: 503 });
   }
 
