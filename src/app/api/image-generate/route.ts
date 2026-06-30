@@ -50,7 +50,8 @@ async function generateOpenAIImage(prompt: string, aspect?: string): Promise<{ i
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "gpt-image-1", prompt, size: openaiSize(aspect), n: 1 }),
+      // أقوى موديل صور من OpenAI بأعلى جودة
+      body: JSON.stringify({ model: "gpt-image-1", prompt, size: openaiSize(aspect), quality: "high", n: 1 }),
       signal: controller.signal,
     });
     clearTimeout(timer);
