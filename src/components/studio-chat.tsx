@@ -24,6 +24,7 @@ import {
   RotateCcw,
   FolderOpen,
   Wand2,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -546,6 +547,9 @@ export function StudioChat() {
 
           <div className="flex-1" />
 
+          <Link href="/studio/bulk" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
+            <Layers className="size-4" /> بالجملة
+          </Link>
           <Link href="/studio/library" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
             <FolderOpen className="size-4" /> ملفاتي
           </Link>
