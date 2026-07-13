@@ -26,6 +26,7 @@ import {
   Layout,
   ArrowUpRight,
   Tag,
+  Gift,
 } from "lucide-react";
 
 const NAV = [
@@ -45,6 +46,7 @@ const NAV = [
 ];
 
 const FOOTER_NAV = [
+  { href: "/referral", label: "ادعُ صديقاً 🎁", icon: Gift },
   { href: "/pricing", label: "الباقات", icon: Tag },
   { href: "/contact", label: "تواصل معنا", icon: Phone },
   { href: "/settings", label: "الإعدادات", icon: Settings },
