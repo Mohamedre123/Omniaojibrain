@@ -547,6 +547,9 @@ export function StudioChat() {
 
           <div className="flex-1" />
 
+          <Link href="/studio/edit" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
+            <Wand2 className="size-4" /> تحرير
+          </Link>
           <Link href="/studio/bulk" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
             <Layers className="size-4" /> بالجملة
           </Link>
