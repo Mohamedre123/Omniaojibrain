@@ -182,6 +182,11 @@ export function SettingsForm({ profile, userEmail }: { profile: Profile | null; 
         )}
       </div>
 
+      <a href="/brand/manage" className="flex items-center justify-between gap-2 rounded-lg border bg-primary/5 border-primary/30 px-4 py-3 text-sm hover:bg-primary/10 transition-colors">
+        <span className="font-medium">✨ عندك أكتر من علامة؟ احفظها وفعّل أيها بضغطة</span>
+        <span className="text-primary shrink-0">علاماتي ←</span>
+      </a>
+
       <div className="space-y-2">
         <Label htmlFor="brand_name">اسمُ العلامة التجارية</Label>
         <Input id="brand_name" name="brand_name" defaultValue={profile?.brand_name ?? ""} placeholder="مثلاً: Oji Studio" />
