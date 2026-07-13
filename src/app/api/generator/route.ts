@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       projectSection = `\n## سياقُ المشروع
 - **النوع**: ${template.name}
 - **اسم المشروع**: ${project.name}
-${project.brief ? `- **وصفُ المشروع**: ${project.brief}` : ""}`;
+${project.brief ? `- **وصفُ المشروع**: ${project.brief}` : ""}${project.knowledge ? `\n\n## قاعدة معرفة المشروع (استند إليها)\n${String(project.knowledge).slice(0, 8000)}` : ""}`;
     }
   }
 

@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   const project = convo.project;
   const template = getTemplate(project?.business_type ?? "general");
 
-  const systemPrompt = buildSystemPrompt({
+  let systemPrompt = buildSystemPrompt({
     mode: convo.mode as WorkflowMode,
     template,
     projectBrief: project?.brief ?? undefined,
@@ -83,6 +83,11 @@ export async function POST(req: NextRequest) {
     brandName: profile?.brand_name ?? undefined,
     brandColors: (profile?.brand_colors as string[] | undefined) ?? undefined,
   });
+
+  // قاعدة معرفة المشروع — يستند إليها الـ AI في إجاباته
+  if (project?.knowledge) {
+    systemPrompt += `\n\n## قاعدة معرفة المشروع (مصدرٌ موثوق — استند إليه في إجاباتك ولا تخالفه)\n${String(project.knowledge).slice(0, 8000)}`;
+  }
 
   const messages: ChatMessage[] = [
     ...(history ?? []).map((m): ChatMessage => ({
