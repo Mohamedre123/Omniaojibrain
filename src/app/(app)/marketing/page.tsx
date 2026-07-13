@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon, Share2, Recycle } from "lucide-react";
+import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon, Share2, Recycle, GalleryHorizontalEnd } from "lucide-react";
 
 const TOOLS = [
   { href: "/marketing/repurpose", icon: Recycle, title: "إعادة تدوير المحتوى", description: "فكرة واحدة → بوست + ريلز + ستوري + تغريدة + إيميل + هاشتاجات", color: "from-teal-500 to-emerald-600", badge: "✨ جديد" },
+  { href: "/marketing/carousel", icon: GalleryHorizontalEnd, title: "تصميم كاروسيل", description: "موضوع → كاروسيل 5–7 شرائح جاهزة للتصميم", color: "from-fuchsia-500 to-pink-600", badge: "✨ جديد" },
   { href: "/marketing/publisher", icon: Share2, title: "النشر المباشر", description: "انشر على واتساب/فيسبوك/تويتر/لينكدإن من مكان واحد", color: "from-emerald-500 to-green-600", badge: "🚀 جديد" },
   { href: "/marketing/hashtags", icon: Hash, title: "مولّد هاشتاجات ذكي", description: "30 هاشتاج مقسّمة بحسب الحجم والمجال", color: "from-blue-500 to-cyan-600" },
   { href: "/marketing/variations", icon: Shuffle, title: "A/B Variations", description: "5 نسخ من نفس النصّ بأساليبَ مختلفة", color: "from-violet-500 to-purple-600" },
