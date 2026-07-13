@@ -27,6 +27,62 @@ const TEMPLATES: Template[] = [
   { cat: "عروض ومناسبات", title: "جمعة بيضاء", prompt: "اكتب حملة الجمعة البيضاء لـ [النشاط]: عنوان جذّاب، نص العرض، وإحساس بالإلحاح (FOMO)." },
 ];
 
+const PHOTO_GROUPS: { title: string; items: { ar: string; en: string }[] }[] = [
+  {
+    title: "💡 الإضاءة",
+    items: [
+      { ar: "إضاءة استوديو ناعمة", en: "soft diffused studio lighting" },
+      { ar: "إضاءة ذهبية (غروب)", en: "golden hour warm lighting" },
+      { ar: "إضاءة خلفية (Rim)", en: "backlight rim lighting" },
+      { ar: "إضاءة نيون", en: "vibrant neon lighting" },
+      { ar: "إضاءة دراماتيكية", en: "dramatic chiaroscuro lighting" },
+      { ar: "إضاءة نافذة طبيعية", en: "natural soft window light" },
+      { ar: "High-key مشرقة", en: "high-key bright lighting" },
+      { ar: "Low-key غامقة", en: "low-key moody lighting" },
+    ],
+  },
+  {
+    title: "📐 الزوايا",
+    items: [
+      { ar: "زاوية منخفضة (قوة)", en: "dramatic low-angle shot" },
+      { ar: "زاوية عالية", en: "high-angle shot" },
+      { ar: "مستوى العين", en: "eye-level angle" },
+      { ar: "من فوق (Flat lay)", en: "top-down flat-lay composition" },
+      { ar: "زاوية مائلة", en: "dutch angle" },
+    ],
+  },
+  {
+    title: "🎬 اللقطات",
+    items: [
+      { ar: "لقطة واسعة", en: "wide establishing shot" },
+      { ar: "لقطة متوسطة", en: "medium shot" },
+      { ar: "لقطة قريبة", en: "close-up shot" },
+      { ar: "ماكرو (تفاصيل)", en: "extreme macro close-up" },
+      { ar: "لقطة كاملة", en: "full shot" },
+    ],
+  },
+  {
+    title: "📷 الكاميرا والعدسة",
+    items: [
+      { ar: "بورتريه 85mm", en: "85mm portrait lens" },
+      { ar: "عدسة واسعة 35mm", en: "35mm wide lens" },
+      { ar: "عمق ميدان ضحل (Bokeh)", en: "shallow depth of field, creamy bokeh" },
+      { ar: "دقة 8K حادة", en: "ultra-sharp 8K resolution" },
+      { ar: "تصوير سينمائي", en: "cinematic film look" },
+    ],
+  },
+  {
+    title: "🎨 الستايل",
+    items: [
+      { ar: "واقعي فوتوغرافي", en: "photorealistic" },
+      { ar: "بسيط (Minimal)", en: "clean minimalist style" },
+      { ar: "3D Render", en: "3D render, octane" },
+      { ar: "ألوان مائية", en: "watercolor illustration" },
+      { ar: "فيكتور مسطّح", en: "flat vector illustration" },
+    ],
+  },
+];
+
 export default function TemplatesPage() {
   const [cat, setCat] = useState("الكل");
   const [copied, setCopied] = useState<string | null>(null);
@@ -74,6 +130,37 @@ export default function TemplatesPage() {
             </Button>
           </Card>
         ))}
+      </div>
+
+      {/* مرجع التصوير — إضاءة/زوايا/لقطات/كاميرا */}
+      <div className="mt-12">
+        <h2 className="text-xl font-bold">🎥 مرجع التصوير الاحترافي</h2>
+        <p className="text-sm text-muted-foreground mt-1">مش عارف تظبط تصميمك؟ دوس على أي عنصر عشان تنسخه وتضيفه لوصف الصورة (نوع الإضاءة، الزاوية، اللقطة…).</p>
+        <div className="mt-5 space-y-5">
+          {PHOTO_GROUPS.map((g) => (
+            <div key={g.title}>
+              <h3 className="text-sm font-semibold mb-2">{g.title}</h3>
+              <div className="flex flex-wrap gap-2">
+                {g.items.map((it) => (
+                  <button
+                    key={it.en}
+                    onClick={() => {
+                      navigator.clipboard.writeText(it.en);
+                      setCopied(it.en);
+                      toast.success(`اتنسخ: ${it.ar} — ضيفه لوصف الصورة`);
+                      setTimeout(() => setCopied(null), 1200);
+                    }}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all ${copied === it.en ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/50"}`}
+                    title={it.en}
+                  >
+                    {copied === it.en ? <Check className="size-3" /> : <Copy className="size-3" />}
+                    {it.ar}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
