@@ -109,7 +109,7 @@ export function ChatPanel({
           conversation_id: convoId,
           message: text || "حلّل الصور المرفقة وقدّم ملاحظاتك",
           attachments: attachmentsForAPI,
-          provider: aiModel === "gemini" ? "gemini" : aiModel.startsWith("gpt") ? "openai" : "claude",
+          provider: aiModel === "gemini" ? "gemini" : "claude",
           model: aiModel === "gemini" ? undefined : aiModel,
         }),
         signal: controller.signal,
@@ -284,9 +284,6 @@ export function ChatPanel({
             title="اختر موديل الذكاء الاصطناعي"
           >
             <option value="gemini">Gemini (افتراضي)</option>
-            <option value="gpt-5.5">ChatGPT (GPT-5.5 — الأقوى)</option>
-            <option value="gpt-5.4">ChatGPT (GPT-5.4)</option>
-            <option value="gpt-5.4-mini">ChatGPT (GPT-5.4 mini — الأسرع)</option>
             <option value="claude-opus-4-8">Claude Opus 4.8 (الأقوى)</option>
             <option value="claude-opus-4-7">Claude Opus 4.7</option>
             <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>

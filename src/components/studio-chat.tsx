@@ -98,7 +98,6 @@ export function StudioChat() {
   const [input, setInput] = useState("");
   const [imgAspect, setImgAspect] = useState("1:1");
   const [imgQuality, setImgQuality] = useState<"fast" | "high">("fast");
-  const [imgProvider, setImgProvider] = useState<"gemini" | "openai">("gemini");
   const [vidAspect, setVidAspect] = useState<"16:9" | "9:16">("16:9");
   const [vidQuality, setVidQuality] = useState<"fast" | "quality">("fast");
   const [useBrand, setUseBrand] = useState(true);
@@ -364,7 +363,6 @@ export function StudioChat() {
             brandContext: brandContext || undefined,
             aspect: imgAspect,
             quality: imgQuality,
-            provider: imgProvider,
             refImages: refImages.length > 0 ? refImages : undefined,
           }),
           signal: controller.signal,
@@ -574,18 +572,10 @@ export function StudioChat() {
             </button>
           ))}
           {mode === "image" && (
-            <>
-              <div className="inline-flex rounded-md border overflow-hidden text-xs">
-                <button onClick={() => setImgProvider("gemini")} className={`px-2.5 py-1 ${imgProvider === "gemini" ? "bg-primary text-primary-foreground" : "bg-card"}`}>Nano Banana</button>
-                <button onClick={() => setImgProvider("openai")} className={`px-2.5 py-1 ${imgProvider === "openai" ? "bg-primary text-primary-foreground" : "bg-card"}`}>ChatGPT</button>
-              </div>
-              {imgProvider === "gemini" && (
-                <div className="inline-flex rounded-md border overflow-hidden text-xs">
-                  <button onClick={() => setImgQuality("fast")} className={`px-2.5 py-1 ${imgQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
-                  <button onClick={() => setImgQuality("high")} className={`px-2.5 py-1 ${imgQuality === "high" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
-                </div>
-              )}
-            </>
+            <div className="inline-flex rounded-md border overflow-hidden text-xs">
+              <button onClick={() => setImgQuality("fast")} className={`px-2.5 py-1 ${imgQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
+              <button onClick={() => setImgQuality("high")} className={`px-2.5 py-1 ${imgQuality === "high" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
+            </div>
           )}
           {mode === "video" && (
             <div className="inline-flex rounded-md border overflow-hidden text-xs">
