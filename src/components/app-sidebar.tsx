@@ -17,6 +17,9 @@ import {
   Users,
   LayoutTemplate,
   BookOpen,
+  CheckSquare,
+  Star,
+  Rocket,
   Settings,
   Menu,
   X,
@@ -42,10 +45,13 @@ const NAV = [
   { href: "/knowledge", label: "قاعدة المعرفة", icon: BookOpen, color: "text-lime-500" },
   { href: "/business", label: "أدوات الأعمال", icon: Briefcase, color: "text-indigo-500" },
   { href: "/team", label: "الفريق", icon: Users, color: "text-teal-500" },
+  { href: "/tasks", label: "مهامي", icon: CheckSquare, color: "text-amber-500" },
+  { href: "/favorites", label: "المفضّلة", icon: Star, color: "text-yellow-500" },
   { href: "/learn", label: "التعلّم", icon: GraduationCap, color: "text-pink-500" },
 ];
 
 const FOOTER_NAV = [
+  { href: "/start", label: "ابدأ مع Oji", icon: Rocket },
   { href: "/referral", label: "ادعُ صديقاً 🎁", icon: Gift },
   { href: "/pricing", label: "الباقات", icon: Tag },
   { href: "/contact", label: "تواصل معنا", icon: Phone },

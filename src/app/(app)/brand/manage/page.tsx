@@ -101,6 +101,46 @@ export default function BrandManagePage() {
     toast.success("اتحذفت");
   }
 
+  async function exportPDF() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: p } = await supabase.from("profiles").select("brand_name, brand_voice, brand_colors").eq("id", user.id).maybeSingle();
+    const W = 794, H = 1123;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const ctx = c.getContext("2d"); if (!ctx) return;
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#4f6ef7"; ctx.fillRect(0, 0, W, 130);
+    ctx.direction = "rtl"; ctx.textAlign = "right";
+    ctx.fillStyle = "#fff"; ctx.font = "bold 40px sans-serif";
+    ctx.fillText("هوية العلامة — Brand Kit", W - 50, 82);
+    let y = 220; ctx.fillStyle = "#111827"; ctx.font = "bold 30px sans-serif";
+    ctx.fillText(`الاسم: ${(p?.brand_name as string) || "—"}`, W - 50, y); y += 70;
+    ctx.font = "22px sans-serif"; ctx.fillStyle = "#374151";
+    const voice = ((p?.brand_voice as string) || "—").slice(0, 120);
+    ctx.fillText(`النبرة: ${voice}`, W - 50, y); y += 80;
+    const colors = (p?.brand_colors as string[]) || [];
+    if (colors.length) {
+      ctx.fillStyle = "#111827"; ctx.font = "bold 26px sans-serif"; ctx.fillText("الألوان:", W - 50, y); y += 40;
+      colors.slice(0, 6).forEach((col, i) => {
+        ctx.fillStyle = col; ctx.fillRect(W - 50 - (i + 1) * 100, y, 90, 90);
+        ctx.fillStyle = "#111827"; ctx.font = "16px monospace"; ctx.textAlign = "center";
+        ctx.fillText(col, W - 50 - (i * 100) - 45, y + 115); ctx.textAlign = "right";
+      });
+      y += 180;
+    }
+    ctx.fillStyle = "#9ca3af"; ctx.font = "18px sans-serif";
+    ctx.fillText("Oji Brain — oji-brain.site", W - 50, H - 50);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "px", format: [W, H] });
+      doc.addImage(c.toDataURL("image/png"), "PNG", 0, 0, W, H);
+      doc.save("oji-brand-kit.pdf");
+    } catch {
+      toast.error("تعذّر التصدير");
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -131,6 +171,7 @@ export default function BrandManagePage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">بيحفظ بيانات الهوية الحالية من الإعدادات (الاسم، النبرة، الألوان، الشعار).</p>
+            <Button onClick={exportPDF} variant="outline" className="w-full mt-3">📄 تصدير Brand Kit PDF</Button>
           </Card>
 
           {loading ? (
