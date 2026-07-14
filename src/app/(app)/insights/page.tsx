@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, Search, Clock, Flame, Calculator, LineChart } from "lucide-react";
+import { TrendingUp, Search, Clock, Flame, Calculator, LineChart, UserSearch } from "lucide-react";
 
 const TOOLS = [
+  { href: "/insights/persona", icon: UserSearch, title: "شخصية العميل المثالي", description: "Buyer Persona: أهدافه، ألمه، اعتراضاته، قنواته", color: "from-indigo-500 to-violet-600", badge: "✨ جديد" },
   { href: "/insights/competitor", icon: Search, title: "تحليل المنافسين الذكي", description: "Oji يبحث عن منافسيك تلقائياً ويحلّلهم", color: "from-rose-500 to-pink-600", badge: "🤖 AI Search" },
   { href: "/insights/performance", icon: LineChart, title: "تتبّع الأداء", description: "ادخل أرقامك → تحليل وتوصيات", color: "from-violet-500 to-purple-600" },
   { href: "/insights/best-times", icon: Clock, title: "أفضل أوقات النشر", description: "اقتراح ساعات النشر لكلّ منصّة", color: "from-blue-500 to-cyan-600" },
