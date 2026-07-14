@@ -6,130 +6,110 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, UserPlus, Crown, Mail, Check, Copy, Info } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Users, Loader2, UserPlus, Trash2, Shield } from "lucide-react";
 
-type Project = { id: string; name: string };
+type Member = { id: string; member_email: string; role: string; created_at: string };
+
+const ROLES: Record<string, string> = { admin: "مدير", editor: "محرّر", viewer: "مشاهد" };
 
 export default function TeamPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectId, setProjectId] = useState<string>("");
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteLink, setInviteLink] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("editor");
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [needsTable, setNeedsTable] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("projects")
-        .select("id, name")
-        .order("updated_at", { ascending: false });
-      setProjects((data as Project[]) || []);
-      if (data && data.length > 0) setProjectId((data[0] as Project).id);
-    })();
-  }, []);
-
-  async function generateInvite() {
-    if (!projectId) { toast.error("اختر مشروعاً"); return; }
-    setCreating(true);
-
+  async function load() {
     const supabase = createClient();
-
-    // فعّل المشاركة بـ token جديد على المشروع
-    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map((b) => b.toString(16).padStart(2, "0")).join("");
-
-    const { error } = await supabase
-      .from("projects")
-      .update({ share_token: token, is_shared: true })
-      .eq("id", projectId);
-
-    setCreating(false);
-
-    if (error) { toast.error("حدثت مشكلة"); return; }
-
-    const url = `${window.location.origin}/share/${token}`;
-    setInviteLink(url);
-    toast.success("تمّ توليد لينك الفريق");
+    const { data, error } = await supabase.from("team_members").select("*").order("created_at", { ascending: false });
+    if (error) { setNeedsTable(true); setLoading(false); return; }
+    setMembers((data as Member[]) || []);
+    setLoading(false);
   }
 
-  function copyLink() {
-    navigator.clipboard.writeText(inviteLink);
-    toast.success("اتنسخ");
+  useEffect(() => { void load(); }, []);
+
+  async function invite() {
+    const target = email.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(target)) { toast.error("اكتب بريداً صحيحاً"); return; }
+    setAdding(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      if (target === user.email?.toLowerCase()) { toast.error("ده بريدك أنت"); return; }
+      const { error } = await supabase.from("team_members").insert({ owner_id: user.id, member_email: target, role });
+      if (error) { toast.error("تعذّر الإضافة", { description: error.message }); return; }
+      toast.success("اتضاف العضو ✓");
+      setEmail("");
+      void load();
+    } finally {
+      setAdding(false);
+    }
   }
 
-  function shareViaEmail() {
-    if (!inviteEmail.trim() || !inviteLink) { toast.error("ضيف الإيميل والّد لينك"); return; }
-    const subject = encodeURIComponent("دعوة للانضمام لمشروع في Oji Brain");
-    const body = encodeURIComponent(`أهلاً،\n\nأشاركك مشروعاً في Oji Brain لاستعراض المحتوى والموافقة عليه.\n\n${inviteLink}\n\nشكراً`);
-    window.open(`mailto:${inviteEmail}?subject=${subject}&body=${body}`);
+  async function remove(m: Member) {
+    const supabase = createClient();
+    const { error } = await supabase.from("team_members").delete().eq("id", m.id);
+    if (error) { toast.error("تعذّر الحذف"); return; }
+    setMembers((prev) => prev.filter((x) => x.id !== m.id));
+    toast.success("اتحذف");
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Users className="size-7 text-primary" />
-          الفريق والمشاركة
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          شارك مشاريعك مع فريقك أو عميلك للاطّلاع والموافقة
-        </p>
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2"><Users className="size-7 text-primary" /> الفريق</h1>
+        <p className="text-muted-foreground mt-1 text-sm">أضف أعضاء فريقك بأدوارٍ مختلفة لإدارة حسابك ومشاريعك.</p>
       </div>
 
-      <Card className="p-3 mb-4 bg-blue-50 dark:bg-blue-950/30 border-blue-300 flex items-start gap-2 text-sm">
-        <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
-        <div>
-          النسخة المتاحة دلوقتي: مشاركة Read-Only للمشروع. التعاون الكامل (تعليقات، Workspace مشترك، Approval Flow) في الطريق.
-        </div>
-      </Card>
-
-      <Card className="p-5 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-semibold mb-2">
-          <Crown className="size-4 text-amber-500" /> أنت مالك هذا الـ Workspace
-        </div>
-
-        <div>
-          <Label htmlFor="proj">اختر المشروع</Label>
-          <select
-            id="proj"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-          >
-            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
-
-        <Button onClick={generateInvite} disabled={creating || !projectId} variant="gradient" className="w-full">
-          <UserPlus className="size-4" /> توليد لينك مشاركة
-        </Button>
-
-        {inviteLink && (
-          <Card className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300">
-            <Label className="text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
-              <Check className="size-3" /> اللينك جاهز
-            </Label>
-            <div className="flex gap-2 mt-2">
-              <Input value={inviteLink} readOnly className="font-mono text-xs" />
-              <Button variant="outline" size="icon" onClick={copyLink}>
-                <Copy className="size-3" />
+      {needsTable ? (
+        <Card className="p-5 text-sm">
+          ⚠️ الميزة تحتاج تفعيلاً: شغّل كود جدول <code>team_members</code> في Supabase مرة واحدة، ثم حدّث الصفحة.
+        </Card>
+      ) : (
+        <>
+          <Card className="p-5 mb-5">
+            <Label>دعوة عضو جديد</Label>
+            <div className="mt-2 flex flex-col sm:flex-row gap-2">
+              <Input type="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="بريد العضو الإلكتروني" className="flex-1" />
+              <select value={role} onChange={(e) => setRole(e.target.value)} className="h-10 px-3 rounded-md border border-input bg-background text-sm">
+                <option value="admin">مدير</option>
+                <option value="editor">محرّر</option>
+                <option value="viewer">مشاهد</option>
+              </select>
+              <Button onClick={invite} disabled={adding || !email.trim()} variant="gradient" className="shrink-0">
+                {adding ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />} إضافة
               </Button>
             </div>
-
-            <div className="mt-3 pt-3 border-t border-emerald-300/50">
-              <Label className="text-sm">أرسل عبر بريد</Label>
-              <div className="flex gap-2 mt-1">
-                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="member@email.com" type="email" />
-                <Button variant="gradient" onClick={shareViaEmail}>
-                  <Mail className="size-3" /> إرسال
-                </Button>
-              </div>
-            </div>
           </Card>
-        )}
-      </Card>
+
+          {loading ? (
+            <div className="grid place-items-center py-10"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
+          ) : members.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-8">لسه مفيش أعضاء. أضف أول عضو في فريقك.</p>
+          ) : (
+            <div className="space-y-2">
+              {members.map((m) => (
+                <Card key={m.id} className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-10 rounded-full gradient-brand text-white grid place-items-center font-bold shrink-0">{m.member_email[0]?.toUpperCase()}</div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate" dir="ltr">{m.member_email}</p>
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Shield className="size-3" /> {ROLES[m.role] || m.role}</span>
+                    </div>
+                  </div>
+                  <Button onClick={() => remove(m)} variant="ghost" size="icon" className="text-destructive shrink-0"><Trash2 className="size-4" /></Button>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-6 text-xs text-muted-foreground">💡 وصول الأعضاء الكامل لمشاريعك يُفعّل في تحديثٍ قادم — حالياً هذه إدارة الأعضاء والأدوار.</p>
+        </>
+      )}
     </div>
   );
 }
