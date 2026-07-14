@@ -12,7 +12,6 @@ import { saveImageToLibrary } from "@/lib/media-library";
 type Ref = { data: string; mimeType: string; previewUrl: string };
 
 const ACTIONS = [
-  { label: "🧹 إزالة الخلفية", instr: "Remove the background completely and place the main subject cleanly on a pure white background. Keep the subject 100% identical." },
   { label: "🏢 خلفية استوديو", instr: "Replace the background with a clean professional studio backdrop with soft lighting. Keep the subject identical." },
   { label: "✨ تحسين الجودة", instr: "Enhance this image to ultra-high 8K quality: sharpen details, improve lighting and colors. Keep everything identical." },
   { label: "🎬 لمسة سينمائية", instr: "Apply a cinematic color grade and dramatic lighting while keeping the subject identical." },
@@ -23,7 +22,9 @@ export default function EditImagePage() {
   const [ref, setRef] = useState<Ref | null>(null);
   const [instr, setInstr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [removingBg, setRemovingBg] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [transparent, setTransparent] = useState(false);
 
   function handleFile(file: File | null) {
     if (!file) return;
@@ -55,10 +56,37 @@ export default function EditImagePage() {
     });
   }
 
+  // إزالة خلفية حقيقية (PNG شفاف) — تشتغل على جهاز العميل
+  async function removeBg() {
+    if (!ref) { toast.error("ارفع صورة أولاً"); return; }
+    setRemovingBg(true); setResult(null); setTransparent(false);
+    const t = toast.loading("جاري إزالة الخلفية… (أول مرة بتحمّل الموديل، استنى شوية)");
+    try {
+      const { removeBackground } = await import("@imgly/background-removal");
+      const blob = await removeBackground(`data:${ref.mimeType};base64,${ref.data}`);
+      const objUrl = URL.createObjectURL(blob);
+      setResult(objUrl);
+      setTransparent(true);
+      // احفظ في ملفاتي كـ PNG شفاف
+      const b64 = await new Promise<string>((res) => {
+        const r = new FileReader();
+        r.onload = () => res(((r.result as string) || "").split(",")[1] || "");
+        r.readAsDataURL(blob);
+      });
+      if (b64) void saveImageToLibrary(b64, "image/png").then((ok) => { if (ok) toast.success("اتحفظت في ملفاتي (PNG شفاف)"); });
+      toast.dismiss(t);
+    } catch (e) {
+      toast.dismiss(t);
+      toast.error("تعذّرت إزالة الخلفية", { description: e instanceof Error ? e.message.slice(0, 100) : undefined });
+    } finally {
+      setRemovingBg(false);
+    }
+  }
+
   async function run(instruction: string) {
     if (!ref) { toast.error("ارفع صورة أولاً"); return; }
     if (!instruction.trim()) { toast.error("اختر تعديلاً أو اكتب المطلوب"); return; }
-    setBusy(true); setResult(null);
+    setBusy(true); setResult(null); setTransparent(false);
     try {
       const small = await shrink(ref.data, ref.mimeType);
       const res = await fetch("/api/image-generate", {
@@ -104,9 +132,14 @@ export default function EditImagePage() {
           </label>
         )}
 
+        {/* إزالة خلفية حقيقية — PNG شفاف */}
+        <Button onClick={removeBg} disabled={removingBg || busy || !ref} variant="outline" className="w-full">
+          {removingBg ? <Loader2 className="size-4 animate-spin" /> : "🧹"} إزالة الخلفية (PNG شفاف حقيقي)
+        </Button>
+
         <div className="flex flex-wrap gap-2">
           {ACTIONS.map((a) => (
-            <button key={a.label} onClick={() => run(a.instr)} disabled={busy || !ref} className="rounded-full border px-3 py-1.5 text-xs hover:border-primary disabled:opacity-50">
+            <button key={a.label} onClick={() => run(a.instr)} disabled={busy || removingBg || !ref} className="rounded-full border px-3 py-1.5 text-xs hover:border-primary disabled:opacity-50">
               {a.label}
             </button>
           ))}
@@ -125,12 +158,18 @@ export default function EditImagePage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-primary">النتيجة</span>
             <div className="flex items-center gap-3">
-              <a href={result} download={`oji-edit-${Date.now()}.png`} className="inline-flex items-center gap-1 text-sm text-primary"><Download className="size-4" /> تحميل</a>
+              <a href={result} download={`oji-edit-${Date.now()}.png`} className="inline-flex items-center gap-1 text-sm text-primary"><Download className="size-4" /> تحميل PNG</a>
               <Link href="/studio/library" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"><FolderOpen className="size-4" /> ملفاتي</Link>
             </div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={result} alt="النتيجة" className="w-full rounded-lg" />
+          <img
+            src={result}
+            alt="النتيجة"
+            className="w-full rounded-lg"
+            style={transparent ? { backgroundImage: "linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%)", backgroundSize: "20px 20px", backgroundPosition: "0 0,0 10px,10px -10px,-10px 0" } : undefined}
+          />
+          {transparent && <p className="text-xs text-muted-foreground mt-2">✅ خلفية شفافة فعلاً — المربّعات دي بس عشان تبيّن الشفافية.</p>}
         </Card>
       )}
     </div>
