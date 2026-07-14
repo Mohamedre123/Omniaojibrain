@@ -25,8 +25,6 @@ import {
   FolderOpen,
   Wand2,
   Layers,
-  QrCode,
-  Palette,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -547,17 +545,8 @@ export function StudioChat() {
 
           <div className="flex-1" />
 
-          <Link href="/studio/edit" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
-            <Wand2 className="size-4" /> تحرير
-          </Link>
-          <Link href="/studio/qr" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
-            <QrCode className="size-4" /> QR
-          </Link>
-          <Link href="/studio/colors" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
-            <Palette className="size-4" /> ألوان
-          </Link>
-          <Link href="/studio/bulk" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
-            <Layers className="size-4" /> بالجملة
+          <Link href="/studio/tools" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
+            <Layers className="size-4" /> أدوات الصور
           </Link>
           <Link href="/studio/library" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
             <FolderOpen className="size-4" /> ملفاتي
