@@ -37,6 +37,7 @@ const NAV = [
   { href: "/assistant", label: "المساعد العام", icon: MessageSquare, color: "text-violet-500" },
   { href: "/studio", label: "الاستوديو", icon: ImageIcon, color: "text-rose-500" },
   { href: "/templates", label: "مكتبة القوالب", icon: LayoutTemplate, color: "text-teal-500" },
+  { href: "/prompts", label: "برومبتات احترافية", icon: Sparkles, color: "text-fuchsia-500" },
   { href: "/calendar", label: "التقويم", icon: Calendar, color: "text-emerald-500" },
   { href: "/marketing", label: "التسويق", icon: Megaphone, color: "text-orange-500" },
   { href: "/insights", label: "الرؤى والتحليلات", icon: TrendingUp, color: "text-cyan-500" },

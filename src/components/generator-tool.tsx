@@ -210,6 +210,40 @@ export function GeneratorTool({
     URL.revokeObjectURL(url);
   }
 
+  // HTML منسّق للنتيجة (يدعم العربي وكل اللغات)
+  function resultHtml(): string {
+    const body = result
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/^### (.*)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.*)$/gm, "<h1>$1</h1>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/^\s*[-*] (.*)$/gm, "<li>$1</li>")
+      .replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br/>");
+    return `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${title}</title>
+<style>body{font-family:'Segoe UI','Tahoma',sans-serif;direction:rtl;line-height:1.9;color:#111;padding:32px;max-width:800px;margin:auto}h1,h2,h3{color:#4f6ef7}li{margin:4px 0}</style>
+</head><body><h1>${title}</h1><p>${body}</p><hr/><small>Oji Brain — oji-brain.site</small></body></html>`;
+  }
+
+  // تصدير Word (.doc) — يفتح في Word مع دعم العربي الكامل
+  function downloadWord() {
+    const blob = new Blob(["﻿", resultHtml()], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title}-${Date.now()}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // تصدير PDF — نافذة طباعة (يحفظها المستخدم PDF) بدعم العربي
+  function downloadPdf() {
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("اسمح بالنوافذ المنبثقة للتصدير"); return; }
+    w.document.write(resultHtml() + "<script>window.onload=()=>{window.print()}<\/script>");
+    w.document.close();
+  }
+
   async function saveToLibrary() {
     if (!projectId) {
       toast.error("اختر مشروعاً أولاً لحفظ النتيجة فيه");
@@ -377,6 +411,12 @@ export function GeneratorTool({
                 )}
                 <Button variant="outline" size="sm" onClick={copyResult}>
                   <Copy className="size-3" /> نسخ
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadWord}>
+                  <Download className="size-3" /> Word
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadPdf}>
+                  <Download className="size-3" /> PDF
                 </Button>
                 {projectId && (
                   <Button variant="gradient" size="sm" onClick={saveToLibrary}>

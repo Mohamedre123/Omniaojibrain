@@ -534,8 +534,8 @@ export function StudioChat() {
 
           <div className="flex-1" />
 
-          <Link href="/studio/tools" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
-            <Layers className="size-4" /> أدوات الصور
+          <Link href="/studio/tools" className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium rounded-full border border-primary/40 bg-primary/10 text-primary px-3 py-1 hover:bg-primary/20 transition-colors">
+            <Layers className="size-4" /> 🧰 أدوات الصور
           </Link>
           <Link href="/studio/library" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
             <FolderOpen className="size-4" /> ملفاتي
