@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { saveImageToLibrary, saveVideoToLibrary, downloadAsBase64 } from "@/lib/media-library";
+import { saveImageToLibrary, saveVideoToLibrary } from "@/lib/media-library";
 import {
   ensureStudioConversations,
   loadStudioMessages,
@@ -318,32 +318,21 @@ export function StudioChat() {
       const brandContext = brand.text;
 
       const refImages: Array<{ mimeType: string; data: string }> = [];
-      let editing = false;
 
+      // كل برومبت = صورة جديدة تماماً. التعديل على صورة موجودة يكون برفع الصورة (أو من أداة «تحرير»).
       if (attachedRefs.length > 0) {
-        // المستخدم رفع صورة أو أكتر → استخدمها كلها كمرجع (حتى 3)
         for (const r of attachedRefs.slice(0, 3)) {
           refImages.push(await shrinkImage(r.data, r.mimeType));
         }
-      } else if (lastImageRef.current) {
-        // مفيش مرفقات → تعديل على آخر صورة
-        let last = lastImageRef.current.data ? { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data } : null;
-        if (!last && lastImageRef.current.path) {
-          const dl = await downloadAsBase64(lastImageRef.current.path);
-          if (dl) { last = dl; lastImageRef.current.data = dl.data; }
-        }
-        if (last) { refImages.push(await shrinkImage(last.data, last.mimeType)); editing = true; }
       }
 
-      const editNote = editing
-        ? " IMPORTANT: An existing generated image is attached. Apply the user's requested change to THAT image while keeping everything else identical (same subject, composition, identity). Only change what the user asked."
-        : attachedRefs.length > 0
+      const editNote = attachedRefs.length > 0
         ? ` IMPORTANT: ${attachedRefs.length} reference image(s) are attached — keep the product/subject identity (logo, packaging, shape, faces) 100% identical to the reference(s); only build the requested scene around them.`
         : "";
 
       // الشعار كمرجع ألوان للتوليد الجديد فقط (لو فيه مكان)
       let logoNote = "";
-      if (brand.logo && attachedRefs.length === 0 && !editing && refImages.length < 3) {
+      if (brand.logo && attachedRefs.length === 0 && refImages.length < 3) {
         refImages.push(await shrinkImage(brand.logo.data, brand.logo.mimeType, 512));
         logoNote = " A brand LOGO image is also attached ONLY as a color & style reference — match the brand's exact color palette and visual identity from it. Do NOT draw or include the logo itself in the output unless explicitly requested.";
       }
@@ -379,7 +368,7 @@ export function StudioChat() {
       }
 
       const img = data.images[0] as { data: string; mimeType: string };
-      const replyText = editing ? "عدّلت الصورة ✨ — تقدر تكمّل تعديل تاني، أو تبدأ صورة جديدة." : "اتفضّل الصورة 🎨 — قولّي لو عايز أعدّل أي حاجة فيها.";
+      const replyText = "اتفضّل الصورة 🎨 — لتعديلها ارفعها في أداة «تحرير»، أو اكتب برومبت جديد لصورة تانية.";
       updateMsg("image", assistantId, {
         status: "done",
         imageSrc: `data:${img.mimeType};base64,${img.data}`,
