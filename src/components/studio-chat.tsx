@@ -7,11 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { saveImageToLibrary, saveVideoToLibrary } from "@/lib/media-library";
 import {
-  ensureStudioConversations,
+  listStudioSessions,
+  createStudioSession,
+  deleteStudioSession,
   loadStudioMessages,
   addStudioMessage,
-  clearStudioConversation,
   type CloudMsg,
+  type StudioSession,
 } from "@/lib/studio-cloud";
 import {
   ImageIcon as ImageLucide,
@@ -21,7 +23,8 @@ import {
   Paperclip,
   X,
   Send,
-  RotateCcw,
+  Plus,
+  Trash2,
   FolderOpen,
   Wand2,
   Layers,
@@ -106,11 +109,13 @@ export function StudioChat() {
   const [vidStart, setVidStart] = useState<RefImg | null>(null); // صورة البداية
   const [vidEnd, setVidEnd] = useState<RefImg | null>(null); // صورة النهاية
 
+  const [sessions, setSessions] = useState<Record<Mode, StudioSession[]>>({ image: [], video: [] });
+  const [currentSession, setCurrentSession] = useState<Record<Mode, string>>({ image: "", video: "" });
+
   const messages = threads[mode];
 
   const lastImageRef = useRef<{ data?: string; mimeType: string; path?: string } | null>(null);
   const brandLogoCache = useRef<{ url: string; logo: { data: string; mimeType: string } | null } | null>(null);
-  const convoIds = useRef<{ image: string; video: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // مؤقّتات مستقلّة لكل فيديو جارٍ — يسمح بأكثر من توليد في نفس الوقت بدون توقّف
   const timersRef = useRef<Map<string, { poll?: ReturnType<typeof setInterval>; timer?: ReturnType<typeof setInterval> }>>(new Map());
@@ -131,23 +136,75 @@ export function StudioChat() {
     };
   }, []);
 
-  // ☁️ حمّل المحادثات من السحابة (تتزامن على كل الأجهزة)
+  // ☁️ حمّل السيشنات من السحابة (تتزامن على كل الأجهزة) — كل وضع له عدّة سيشنات
   useEffect(() => {
     (async () => {
-      const ids = await ensureStudioConversations();
-      convoIds.current = ids;
-      if (ids) {
-        const [img, vid] = await Promise.all([
-          loadStudioMessages(ids.image, "image"),
-          loadStudioMessages(ids.video, "video"),
-        ]);
-        setThreads({ image: img.map(cloudToChat), video: vid.map(cloudToChat) });
-        const lastImg = [...img].reverse().find((m) => m.mediaPath && m.imageSrc);
-        if (lastImg?.mediaPath) lastImageRef.current = { mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath };
-      }
+      const setup = async (m: Mode) => {
+        let list = await listStudioSessions(m);
+        if (list.length === 0) {
+          const id = await createStudioSession(m, "جلسة 1");
+          if (id) list = [{ id, title: "جلسة 1", updatedAt: new Date().toISOString() }];
+        }
+        return list;
+      };
+      const [imgList, vidList] = await Promise.all([setup("image"), setup("video")]);
+      setSessions({ image: imgList, video: vidList });
+      const imgCur = imgList[0]?.id || "";
+      const vidCur = vidList[0]?.id || "";
+      setCurrentSession({ image: imgCur, video: vidCur });
+
+      const [img, vid] = await Promise.all([
+        imgCur ? loadStudioMessages(imgCur, "image") : Promise.resolve([]),
+        vidCur ? loadStudioMessages(vidCur, "video") : Promise.resolve([]),
+      ]);
+      setThreads({ image: img.map(cloudToChat), video: vid.map(cloudToChat) });
+      const lastImg = [...img].reverse().find((mm) => mm.mediaPath && mm.imageSrc);
+      if (lastImg?.mediaPath) lastImageRef.current = { mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath };
       setLoadingHistory(false);
     })();
   }, []);
+
+  async function switchSession(m: Mode, id: string) {
+    if (!id || id === currentSession[m]) return;
+    setCurrentSession((p) => ({ ...p, [m]: id }));
+    const msgs = await loadStudioMessages(id, m);
+    setThreads((p) => ({ ...p, [m]: msgs.map(cloudToChat) }));
+    if (m === "image") {
+      const lastImg = [...msgs].reverse().find((mm) => mm.mediaPath && mm.imageSrc);
+      lastImageRef.current = lastImg?.mediaPath ? { mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath } : null;
+    }
+  }
+
+  async function createNewSession() {
+    const list = sessions[mode];
+    const title = `جلسة ${list.length + 1}`;
+    const id = await createStudioSession(mode, title);
+    if (!id) { toast.error("تعذّر إنشاء جلسة"); return; }
+    setSessions((p) => ({ ...p, [mode]: [{ id, title, updatedAt: new Date().toISOString() }, ...p[mode]] }));
+    setCurrentSession((p) => ({ ...p, [mode]: id }));
+    setThreads((p) => ({ ...p, [mode]: [] }));
+    if (mode === "image") lastImageRef.current = null;
+    toast.success("جلسة جديدة ✨");
+  }
+
+  async function removeSession() {
+    const id = currentSession[mode];
+    if (!id) return;
+    const rest = sessions[mode].filter((s) => s.id !== id);
+    await deleteStudioSession(id);
+    if (rest.length === 0) {
+      const nid = await createStudioSession(mode, "جلسة 1");
+      const nlist = nid ? [{ id: nid, title: "جلسة 1", updatedAt: new Date().toISOString() }] : [];
+      setSessions((p) => ({ ...p, [mode]: nlist }));
+      setCurrentSession((p) => ({ ...p, [mode]: nid || "" }));
+      setThreads((p) => ({ ...p, [mode]: [] }));
+    } else {
+      setSessions((p) => ({ ...p, [mode]: rest }));
+      await switchSession(mode, rest[0].id);
+    }
+    if (mode === "image") lastImageRef.current = null;
+    toast.success("اتحذفت الجلسة");
+  }
 
   const updateMsg = useCallback((m: Mode, id: string, patch: Partial<ChatMsg>) => {
     setThreads((prev) => ({
@@ -299,20 +356,21 @@ export function StudioChat() {
     setThreads((prev) => ({ ...prev, [activeMode]: [...prev[activeMode], userMsg, assistantMsg] }));
     setInput("");
 
+    const sid = currentSession[activeMode];
     // بنشغّلها في الخلفية — العميل يقدر يكمّل ويبعت تاني بدون ما يستنى
     if (activeMode === "image") {
       const attached = imgRefs;
       setImgRefs([]);
-      void runImage(text, userText, assistantId, attached);
+      void runImage(text, userText, assistantId, attached, sid);
     } else {
       const start = vidStart, end = vidEnd;
       setVidStart(null);
       setVidEnd(null);
-      void runVideo(text, userText, assistantId, start, end);
+      void runVideo(text, userText, assistantId, start, end, sid);
     }
   }
 
-  async function runImage(text: string, userText: string, assistantId: string, attachedRefs: RefImg[]) {
+  async function runImage(text: string, userText: string, assistantId: string, attachedRefs: RefImg[], sessionId: string) {
     try {
       const brand = await getBrandIdentity();
       const brandContext = brand.text;
@@ -383,7 +441,7 @@ export function StudioChat() {
         toast.success("اتحفظت في 📁 ملفاتي", { id: "autosave" });
         updateMsg("image", assistantId, { mediaPath: path });
         lastImageRef.current = { data: img.data, mimeType: img.mimeType, path };
-        const cid = convoIds.current?.image;
+        const cid = sessionId;
         if (cid) {
           await addStudioMessage({ convoId: cid, role: "user", text: userText });
           await addStudioMessage({ convoId: cid, role: "assistant", text: replyText, mediaPath: path, mediaType: img.mimeType });
@@ -399,7 +457,7 @@ export function StudioChat() {
     }
   }
 
-  async function runVideo(text: string, userText: string, assistantId: string, start: RefImg | null, end: RefImg | null) {
+  async function runVideo(text: string, userText: string, assistantId: string, start: RefImg | null, end: RefImg | null, sessionId: string) {
     try {
       let startImg: { mimeType: string; data: string } | null = null;
       if (start) {
@@ -458,7 +516,7 @@ export function StudioChat() {
                 if (path) {
                   toast.success("اتحفظ في 📁 ملفاتي", { id: "autosave-vid" });
                   updateMsg("video", assistantId, { mediaPath: path });
-                  const cid = convoIds.current?.video;
+                  const cid = sessionId;
                   if (cid) {
                     await addStudioMessage({ convoId: cid, role: "user", text: userText });
                     await addStudioMessage({ convoId: cid, role: "assistant", text: replyText, mediaPath: path, mediaType: "video" });
@@ -482,17 +540,6 @@ export function StudioChat() {
       updateMsg("video", assistantId, { status: "error", error: "تعذّر الاتصال" });
       toast.error("تعذّر الاتصال");
     }
-  }
-
-  function newSession() {
-    if (mode === "image") lastImageRef.current = null;
-    setThreads((prev) => ({ ...prev, [mode]: [] }));
-    setImgRefs([]);
-    setVidStart(null);
-    setVidEnd(null);
-    const cid = convoIds.current?.[mode];
-    if (cid) void clearStudioConversation(cid);
-    toast.success("بدأنا من جديد ✨");
   }
 
   function downloadMedia(src: string, ext: string) {
@@ -540,9 +587,26 @@ export function StudioChat() {
           <Link href="/studio/library" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-primary">
             <FolderOpen className="size-4" /> ملفاتي
           </Link>
-          <Button variant="ghost" size="sm" onClick={newSession} className="text-xs">
-            <RotateCcw className="size-3.5" /> جديد
+        </div>
+
+        {/* السيشنات — كل جلسة محفوظة وتكمّل من حيث وقفت */}
+        <div className="flex items-center gap-1.5">
+          <select
+            value={currentSession[mode]}
+            onChange={(e) => void switchSession(mode, e.target.value)}
+            className="flex-1 h-8 px-2 rounded-md border border-input bg-background text-xs max-w-[220px]"
+            title="اختر جلسة"
+          >
+            {sessions[mode].map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+          </select>
+          <Button variant="outline" size="sm" onClick={() => void createNewSession()} className="text-xs h-8">
+            <Plus className="size-3.5" /> جلسة جديدة
           </Button>
+          {sessions[mode].length > 0 && (
+            <Button variant="ghost" size="icon" onClick={() => void removeSession()} className="size-8 text-destructive" title="حذف الجلسة">
+              <Trash2 className="size-3.5" />
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
