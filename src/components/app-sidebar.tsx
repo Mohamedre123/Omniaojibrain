@@ -42,6 +42,7 @@ const NAV = [
   { href: "/marketing", label: "التسويق", icon: Megaphone, color: "text-orange-500" },
   { href: "/insights", label: "الرؤى والتحليلات", icon: TrendingUp, color: "text-cyan-500" },
   { href: "/leads", label: "جذب العملاء", icon: Target, color: "text-amber-500" },
+  { href: "/bio", label: "صفحة الروابط", icon: LayoutTemplate, color: "text-cyan-500" },
   { href: "/brand", label: "هوية العلامة", icon: Sparkles, color: "text-purple-500" },
   { href: "/knowledge", label: "قاعدة المعرفة", icon: BookOpen, color: "text-lime-500" },
   { href: "/business", label: "أدوات الأعمال", icon: Briefcase, color: "text-indigo-500" },
