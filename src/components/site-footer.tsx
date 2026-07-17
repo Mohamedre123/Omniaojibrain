@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Brain, Phone, RotateCcw, Layout, Tag, FileText, Shield, RefreshCw } from "lucide-react";
+import { Brain, Phone, RotateCcw, Layout, Tag, FileText, Shield, RefreshCw, ShoppingBag } from "lucide-react";
 
 /** فوتر موحّد يظهر في كل الصفحات (قبل وبعد تسجيل الدخول) */
 export function SiteFooter() {
@@ -25,6 +25,9 @@ export function SiteFooter() {
           </Link>
           <Link href="/site-builder" className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
             <Layout className="size-3.5" /> منشئ المواقع
+          </Link>
+          <Link href="/agency" className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
+            <ShoppingBag className="size-3.5" /> Oji Agency
           </Link>
           <Link href="/terms" className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
             <FileText className="size-3.5" /> الشروط والأحكام

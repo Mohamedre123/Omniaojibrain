@@ -30,6 +30,7 @@ import {
   ArrowUpRight,
   Tag,
   Gift,
+  ShoppingBag,
 } from "lucide-react";
 
 const NAV = [
@@ -165,6 +166,17 @@ export function AppSidebar() {
 
         {/* Footer */}
         <div className="p-3 border-t space-y-1">
+          {/* Oji Agency — الوكالة الرسمية للتسويق الإلكتروني */}
+          <Link
+            href="/agency"
+            onClick={() => setMobileOpen(false)}
+            className="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 overflow-hidden mb-1 hover:opacity-95 transition-opacity"
+          >
+            <span aria-hidden className="absolute inset-0 animate-shine" />
+            <ShoppingBag className="size-5 relative" />
+            <span className="relative flex-1">Oji Agency — تسويق</span>
+            <ArrowUpRight className="size-4 relative opacity-80 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
           {/* منشئ المواقع — منصّة Oji المخصّصة (موقع منفصل) */}
           <Link
             href="/site-builder"

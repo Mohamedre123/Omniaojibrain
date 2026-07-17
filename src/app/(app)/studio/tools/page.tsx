@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Wand2, Stamp, Crop, FileArchive, QrCode, Palette, Layers, FolderOpen, ArrowRight } from "lucide-react";
+import { Wand2, Stamp, Crop, FileArchive, QrCode, Palette, Layers, FolderOpen, ArrowRight, Aperture } from "lucide-react";
 
 const TOOLS = [
+  { href: "/studio/shots", icon: Aperture, title: "9 لقطات (Shots)", desc: "صورة منتج → 9 زوايا بنفس الهوية", color: "from-rose-500 to-orange-600" },
   { href: "/studio/edit", icon: Wand2, title: "تحرير الصور", desc: "إزالة خلفية (PNG شفاف) وتعديلات ذكية", color: "from-violet-500 to-purple-600" },
   { href: "/studio/watermark", icon: Stamp, title: "علامة مائية / لوجو", desc: "حطّ لوجوك على الصور", color: "from-rose-500 to-pink-600" },
   { href: "/studio/resize", icon: Crop, title: "تغيير المقاس", desc: "اضبط مقاس أي منصّة تلقائياً", color: "from-blue-500 to-cyan-600" },
