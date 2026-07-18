@@ -63,7 +63,10 @@ export default function EditImagePage() {
     const t = toast.loading("جاري إزالة الخلفية… (أول مرة بتحمّل الموديل، استنى شوية)");
     try {
       const { removeBackground } = await import("@imgly/background-removal");
-      const blob = await removeBackground(`data:${ref.mimeType};base64,${ref.data}`);
+      const blob = await removeBackground(`data:${ref.mimeType};base64,${ref.data}`, {
+        // مصدر موثوق لملفات الموديل (يحلّ Failed to fetch)
+        publicPath: "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1/dist/",
+      });
       const objUrl = URL.createObjectURL(blob);
       setResult(objUrl);
       setTransparent(true);

@@ -22,9 +22,17 @@ const ANGLES = [
   { label: "مشهد حياتي", instr: "in a tasteful lifestyle scene, still same subject" },
 ];
 
+const ASPECTS = [
+  { label: "مربّع 1:1", value: "1:1" },
+  { label: "بورتريه 4:5", value: "4:5" },
+  { label: "ستوري 9:16", value: "9:16" },
+  { label: "أفقي 16:9", value: "16:9" },
+];
+
 export default function ShotsPage() {
   const [ref, setRef] = useState<{ data: string; mimeType: string; previewUrl: string } | null>(null);
   const [shots, setShots] = useState<Shot[]>([]);
+  const [aspect, setAspect] = useState("1:1");
   const [busy, setBusy] = useState(false);
 
   function handleFile(file: File | null) {
@@ -62,11 +70,17 @@ export default function ShotsPage() {
 
     await Promise.all(ANGLES.map((a, i) => (async () => {
       try {
-        const prompt = `Professional studio photograph of the SAME subject as the reference image, shown from: ${a.instr}. CRITICAL: keep the subject's identity 100% identical — exact same product/person, shape, colors, logo, packaging, facial features and details. Only change the camera angle/composition. 8K ultra-realistic, clean commercial lighting.`;
+        const prompt = `First, understand the reference image: identify the subject type (a garment/clothing/abaya, a person/model, a product, food, etc.) and its key details. Then produce a professional photograph of the SAME subject shown from: ${a.instr}.
+CRITICAL identity rules:
+- Keep the subject 100% identical to the reference: exact same shape, colors, logo, packaging, patterns, and — for clothing — the exact same fabric, material, texture, stitching, folds and design details.
+- For a person: keep the same face, body, and outfit details.
+- Only change the camera angle / composition; do NOT change the subject itself.
+Present it the way this type of subject is best displayed (e.g., clothing on a model or elegant flat-lay showing fabric detail).
+8K ultra-realistic, clean professional commercial lighting. Aspect ratio ${aspect}.`;
         const res = await fetch("/api/image-generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, quality: "high", provider: "gemini", aspect: "1:1", refImages: [small] }),
+          body: JSON.stringify({ prompt, quality: "high", provider: "gemini", aspect, refImages: [small] }),
         });
         const data = await res.json();
         if (!res.ok || !data.images?.length) { setShots((p) => p.map((s, idx) => idx === i ? { ...s, status: "error", error: data.error || "فشل" } : s)); return; }
@@ -104,6 +118,14 @@ export default function ShotsPage() {
             <Paperclip className="size-6" /> ارفع صورة المنتج / الشخص
           </label>
         )}
+        <div>
+          <p className="text-sm font-medium mb-1">المقاس</p>
+          <div className="flex flex-wrap gap-2">
+            {ASPECTS.map((a) => (
+              <button key={a.value} onClick={() => setAspect(a.value)} className={`px-3 py-1.5 rounded-md text-xs border transition-all ${aspect === a.value ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/50"}`}>{a.label}</button>
+            ))}
+          </div>
+        </div>
         <Button onClick={generate} disabled={busy || !ref} variant="gradient" size="lg" className="w-full">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Aperture className="size-4" />} {busy ? "جاري توليد 9 لقطات…" : "توليد 9 لقطات"}
         </Button>
