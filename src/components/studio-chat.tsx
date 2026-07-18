@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { saveImageToLibrary, saveVideoToLibrary } from "@/lib/media-library";
+import { saveImageToLibrary, saveVideoToLibrary, downloadAsBase64 } from "@/lib/media-library";
 import {
   listStudioSessions,
   createStudioSession,
@@ -101,6 +101,7 @@ export function StudioChat() {
   const [input, setInput] = useState("");
   const [imgAspect, setImgAspect] = useState("1:1");
   const [imgQuality, setImgQuality] = useState<"fast" | "high">("fast");
+  const [editMode, setEditMode] = useState(false); // تعديل على آخر صورة بدل توليد جديدة
   const [vidAspect, setVidAspect] = useState<"16:9" | "9:16">("16:9");
   const [vidQuality, setVidQuality] = useState<"fast" | "quality">("fast");
   const [useBrand, setUseBrand] = useState(true);
@@ -361,7 +362,7 @@ export function StudioChat() {
     if (activeMode === "image") {
       const attached = imgRefs;
       setImgRefs([]);
-      void runImage(text, userText, assistantId, attached, sid);
+      void runImage(text, userText, assistantId, attached, sid, editMode);
     } else {
       const start = vidStart, end = vidEnd;
       setVidStart(null);
@@ -370,27 +371,38 @@ export function StudioChat() {
     }
   }
 
-  async function runImage(text: string, userText: string, assistantId: string, attachedRefs: RefImg[], sessionId: string) {
+  async function runImage(text: string, userText: string, assistantId: string, attachedRefs: RefImg[], sessionId: string, useEdit: boolean) {
     try {
       const brand = await getBrandIdentity();
       const brandContext = brand.text;
 
       const refImages: Array<{ mimeType: string; data: string }> = [];
+      let editing = false;
 
-      // كل برومبت = صورة جديدة تماماً. التعديل على صورة موجودة يكون برفع الصورة (أو من أداة «تحرير»).
       if (attachedRefs.length > 0) {
+        // المستخدم رفق صورة/صور → مرجع للهوية
         for (const r of attachedRefs.slice(0, 3)) {
           refImages.push(await shrinkImage(r.data, r.mimeType));
         }
+      } else if (useEdit && lastImageRef.current) {
+        // وضع «تعديل» مفعّل → عدّل على آخر صورة اتعملت
+        let last = lastImageRef.current.data ? { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data } : null;
+        if (!last && lastImageRef.current.path) {
+          const dl = await downloadAsBase64(lastImageRef.current.path);
+          if (dl) { last = dl; lastImageRef.current.data = dl.data; }
+        }
+        if (last) { refImages.push(await shrinkImage(last.data, last.mimeType)); editing = true; }
       }
 
-      const editNote = attachedRefs.length > 0
+      const editNote = editing
+        ? " IMPORTANT: An existing generated image is attached. Apply ONLY the user's requested change to THAT exact image while keeping everything else 100% identical (same subject, composition, background, colors, identity). Do not regenerate a different image."
+        : attachedRefs.length > 0
         ? ` IMPORTANT: ${attachedRefs.length} reference image(s) are attached — keep the product/subject identity (logo, packaging, shape, faces) 100% identical to the reference(s); only build the requested scene around them.`
         : "";
 
       // الشعار كمرجع ألوان للتوليد الجديد فقط (لو فيه مكان)
       let logoNote = "";
-      if (brand.logo && attachedRefs.length === 0 && refImages.length < 3) {
+      if (brand.logo && attachedRefs.length === 0 && !editing && refImages.length < 3) {
         refImages.push(await shrinkImage(brand.logo.data, brand.logo.mimeType, 512));
         logoNote = " A brand LOGO image is also attached ONLY as a color & style reference — match the brand's exact color palette and visual identity from it. Do NOT draw or include the logo itself in the output unless explicitly requested.";
       }
@@ -426,7 +438,9 @@ export function StudioChat() {
       }
 
       const img = data.images[0] as { data: string; mimeType: string };
-      const replyText = "اتفضّل الصورة 🎨 — لتعديلها ارفعها في أداة «تحرير»، أو اكتب برومبت جديد لصورة تانية.";
+      const replyText = editing
+        ? "عدّلت الصورة ✨ — التعديل مفعّل، فأي طلب جاي هيتعدّل على دي. اقفل «تعديل» عشان صورة جديدة."
+        : "اتفضّل الصورة 🎨 — فعّل زرّ «تعديل» عشان تعدّل عليها، أو اكتب برومبت جديد لصورة تانية.";
       updateMsg("image", assistantId, {
         status: "done",
         imageSrc: `data:${img.mimeType};base64,${img.data}`,
@@ -626,6 +640,15 @@ export function StudioChat() {
               <button onClick={() => setImgQuality("fast")} className={`px-2.5 py-1 ${imgQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
               <button onClick={() => setImgQuality("high")} className={`px-2.5 py-1 ${imgQuality === "high" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
             </div>
+          )}
+          {mode === "image" && (
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              title="لما يكون مفعّل، التوليد يعدّل على آخر صورة بدل ما يعمل جديدة"
+              className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors ${editMode ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/50"}`}
+            >
+              ✏️ تعديل {editMode ? "(مفعّل)" : ""}
+            </button>
           )}
           {mode === "video" && (
             <div className="inline-flex rounded-md border overflow-hidden text-xs">

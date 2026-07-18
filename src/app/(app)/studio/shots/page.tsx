@@ -33,6 +33,7 @@ export default function ShotsPage() {
   const [ref, setRef] = useState<{ data: string; mimeType: string; previewUrl: string } | null>(null);
   const [shots, setShots] = useState<Shot[]>([]);
   const [aspect, setAspect] = useState("1:1");
+  const [hint, setHint] = useState("");
   const [busy, setBusy] = useState(false);
 
   function handleFile(file: File | null) {
@@ -70,13 +71,15 @@ export default function ShotsPage() {
 
     await Promise.all(ANGLES.map((a, i) => (async () => {
       try {
-        const prompt = `First, understand the reference image: identify the subject type (a garment/clothing/abaya, a person/model, a product, food, etc.) and its key details. Then produce a professional photograph of the SAME subject shown from: ${a.instr}.
+        const focusLine = hint.trim() ? `The item to focus on is: ${hint.trim()}. Extract and feature exactly this item from the reference image.` : "First, identify the main subject/product in the reference image and focus on it.";
+        const prompt = `${focusLine}
+Then produce a CINEMATIC professional photograph of that SAME subject shown from: ${a.instr}.
 CRITICAL identity rules:
 - Keep the subject 100% identical to the reference: exact same shape, colors, logo, packaging, patterns, and — for clothing — the exact same fabric, material, texture, stitching, folds and design details.
-- For a person: keep the same face, body, and outfit details.
+- For a person wearing the product: keep the same face and the exact same garment; for a macro/detail shot, extract and zoom into the fabric/material texture of that exact garment.
 - Only change the camera angle / composition; do NOT change the subject itself.
-Present it the way this type of subject is best displayed (e.g., clothing on a model or elegant flat-lay showing fabric detail).
-8K ultra-realistic, clean professional commercial lighting. Aspect ratio ${aspect}.`;
+Present it the way this type of subject is best displayed (on a model, elegant scene, or a detail close-up showing material). Editorial, high-fashion, cinematic lighting.
+8K ultra-realistic. Aspect ratio ${aspect}.`;
         const res = await fetch("/api/image-generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -118,6 +121,16 @@ Present it the way this type of subject is best displayed (e.g., clothing on a m
             <Paperclip className="size-6" /> ارفع صورة المنتج / الشخص
           </label>
         )}
+        <div>
+          <p className="text-sm font-medium mb-1">ركّز على إيه؟ (اختياري)</p>
+          <input
+            value={hint}
+            onChange={(e) => setHint(e.target.value)}
+            placeholder="مثلاً: العباية اللي البنت لابساها / التيشيرت / المنتج اللي في الإيد"
+            dir="auto"
+            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+          />
+        </div>
         <div>
           <p className="text-sm font-medium mb-1">المقاس</p>
           <div className="flex flex-wrap gap-2">
