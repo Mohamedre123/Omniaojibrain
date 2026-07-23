@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { ColorField } from "@/components/color-field";
+import { exportElement } from "@/lib/canvas-export";
 import {
   UtensilsCrossed,
   Plus,
@@ -221,25 +223,7 @@ export default function MenuDesignerPage() {
     if (!node) return;
     setExporting(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(node, {
-        scale: 2,
-        backgroundColor: bg,
-        useCORS: true,
-        logging: false,
-      });
-      if (kind === "png") {
-        const link = document.createElement("a");
-        link.download = `menu-${storeName || "oji"}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      } else {
-        const { default: jsPDF } = await import("jspdf");
-        const img = canvas.toDataURL("image/png");
-        const pdf = new jsPDF({ unit: "px", format: [canvas.width, canvas.height] });
-        pdf.addImage(img, "PNG", 0, 0, canvas.width, canvas.height);
-        pdf.save(`menu-${storeName || "oji"}.pdf`);
-      }
+      await exportElement(node, { name: `menu-${storeName || "oji"}`, format: kind, bg });
       toast.success(kind === "png" ? "تمّ تنزيل الصورة 🎉" : "تمّ تنزيل الـ PDF 🎉");
     } catch (e) {
       toast.error("تعذّر التصدير", { description: e instanceof Error ? e.message : undefined });
@@ -556,35 +540,6 @@ export default function MenuDesignerPage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <Label className="text-xs">{label}</Label>
-      <div className="mt-1 flex items-center gap-2 rounded-md border px-2 h-10">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="size-6 rounded cursor-pointer border-0 bg-transparent p-0"
-        />
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full text-xs bg-transparent outline-none uppercase"
-        />
       </div>
     </div>
   );
