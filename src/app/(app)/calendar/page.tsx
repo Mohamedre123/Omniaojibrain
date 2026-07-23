@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Sparkles, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Calendar as CalendarIcon, Sparkles, Loader2, ChevronRight, ChevronLeft, Copy, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Project = { id: string; name: string };
@@ -30,6 +30,10 @@ export default function CalendarPage() {
   const [month, setMonth] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<CalendarEvent | null>(null);
+
+  const storageKey = (pid: string, m: Date) =>
+    `oji_calendar_${pid}_${m.getFullYear()}_${m.getMonth()}`;
 
   useEffect(() => {
     (async () => {
@@ -41,6 +45,26 @@ export default function CalendarPage() {
       setProjects((data as Project[]) || []);
     })();
   }, []);
+
+  // استرجاع تقويم محفوظ لهذا المشروع/الشهر
+  useEffect(() => {
+    if (!projectId) {
+      setEvents([]);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(storageKey(projectId, month));
+      setEvents(raw ? (JSON.parse(raw) as CalendarEvent[]) : []);
+    } catch {
+      setEvents([]);
+    }
+  }, [projectId, month]);
+
+  function copyPost(e: CalendarEvent) {
+    const text = `${e.title}\n\n${e.caption}${e.cta ? `\n\n${e.cta}` : ""}`;
+    navigator.clipboard.writeText(text);
+    toast.success("تمّ نسخ المنشور");
+  }
 
   async function generate() {
     if (!projectId) {
@@ -82,7 +106,12 @@ export default function CalendarPage() {
         try {
           const parsed = JSON.parse(match[0]) as CalendarEvent[];
           setEvents(parsed);
-          toast.success(`تمّ توليد ${parsed.length} منشور`);
+          try {
+            localStorage.setItem(storageKey(projectId, month), JSON.stringify(parsed));
+          } catch {
+            /* تجاوز حدّ التخزين */
+          }
+          toast.success(`تمّ توليد ${parsed.length} منشور — محفوظ تلقائياً`);
         } catch {
           toast.error("لم نستطع تحليل النتيجة");
         }
@@ -152,7 +181,11 @@ export default function CalendarPage() {
               const day = i + 1;
               const event = events.find((e) => e.day === day);
               return (
-                <div key={day} className={`border rounded-md p-1.5 md:p-2 min-h-[80px] md:min-h-[100px] ${event ? "bg-card" : "bg-muted/30"}`}>
+                <div
+                  key={day}
+                  onClick={() => event && setSelected(event)}
+                  className={`border rounded-md p-1.5 md:p-2 min-h-[80px] md:min-h-[100px] ${event ? "bg-card cursor-pointer hover:border-primary hover:shadow-sm transition-all" : "bg-muted/30"}`}
+                >
                   <div className="text-xs font-semibold mb-1">{day}</div>
                   {event && (
                     <div className="space-y-1">
@@ -170,14 +203,72 @@ export default function CalendarPage() {
         </Card>
       )}
 
+      {events.length > 0 && (
+        <p className="text-xs text-muted-foreground mt-3 text-center">
+          اضغط على أي يوم لعرض المنشور كاملاً ونسخه · التقويم محفوظ تلقائياً لهذا المشروع والشهر
+        </p>
+      )}
+
       {!loading && events.length === 0 && (
         <Card className="p-12 text-center">
           <CalendarIcon className="size-12 mx-auto text-muted-foreground mb-3 opacity-50" />
-          <h3 className="font-semibold">اختر مشروعاً ثم اضغط "توليد تقويم"</h3>
+          <h3 className="font-semibold">اختر مشروعاً ثم اضغط &quot;توليد تقويم&quot;</h3>
           <p className="text-sm text-muted-foreground mt-1">
             سيقوم Oji بإنتاج خطّة محتوى شهرية بناءً على بيانات مشروعك
           </p>
         </Card>
+      )}
+
+      {/* تفاصيل المنشور */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4"
+          onClick={() => setSelected(null)}
+        >
+          <Card className="w-full max-w-lg p-5 space-y-4 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold">اليوم {selected.day}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded ${TYPE_COLORS[selected.type] || TYPE_COLORS.educational}`}>
+                  {selected.type}
+                </span>
+                {selected.platform && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">{selected.platform}</span>
+                )}
+              </div>
+              <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-lg">{selected.title}</h3>
+            </div>
+
+            {selected.caption && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">الكابشن</p>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{selected.caption}</p>
+              </div>
+            )}
+
+            {selected.cta && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">دعوة للعمل (CTA)</p>
+                <p className="text-sm font-medium text-primary">{selected.cta}</p>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2 border-t">
+              <Button variant="gradient" size="sm" onClick={() => copyPost(selected)}>
+                <Copy className="size-4" /> نسخ المنشور
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
+                إغلاق
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );
