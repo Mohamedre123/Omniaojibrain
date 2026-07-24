@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon, Share2, Recycle, GalleryHorizontalEnd, Clapperboard, Tag, Quote, PackageOpen, MessagesSquare, Gift, ScanText, Captions, Languages, CalendarDays, UtensilsCrossed, Smartphone, Camera, CreditCard, MessageSquareQuote, LayoutTemplate, Ticket } from "lucide-react";
+import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon, Share2, Recycle, GalleryHorizontalEnd, Clapperboard, Tag, Quote, PackageOpen, MessagesSquare, Gift, ScanText, Captions, Languages, CalendarDays, UtensilsCrossed, Smartphone, Camera, CreditCard, MessageSquareQuote, LayoutTemplate, Ticket, CalendarHeart, ScrollText } from "lucide-react";
 
 const TOOLS = [
+  { href: "/marketing/occasions", icon: CalendarHeart, title: "محرّك المناسبات", description: "اختر مناسبة → حملة كاملة (كابشن + عرض + ريل + هاشتاجات)", color: "from-red-500 to-pink-600", badge: "✨ جديد" },
+  { href: "/marketing/policies", icon: ScrollText, title: "مولّد سياسات المتجر", description: "شحن / استرجاع / خصوصية / شروط — جاهزة للّصق", color: "from-slate-500 to-slate-700", badge: "✨ جديد" },
   { href: "/marketing/repurpose", icon: Recycle, title: "إعادة تدوير المحتوى", description: "فكرة واحدة → بوست + ريلز + ستوري + تغريدة + إيميل + هاشتاجات", color: "from-teal-500 to-emerald-600", badge: "✨ جديد" },
   { href: "/marketing/carousel", icon: GalleryHorizontalEnd, title: "تصميم كاروسيل", description: "موضوع → كاروسيل 5–7 شرائح جاهزة للتصميم", color: "from-fuchsia-500 to-pink-600", badge: "✨ جديد" },
   { href: "/marketing/video-pack", icon: Clapperboard, title: "قوالب فيديو جاهزة", description: "سكربت + برومبتات فيديو + Start/End frame + موسيقى", color: "from-blue-500 to-indigo-600", badge: "✨ جديد" },

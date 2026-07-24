@@ -153,6 +153,28 @@ Duration: 8s | Aspect: 9:16
 اعرضها مقسّمةً بالأسابيع، ولكلّ يوم: **اليوم X** — نوع المنشور (ريل/كاروسيل/ستوري/بوست) + عنوان الفكرة + كابشن قصير + أفضل وقت نشر.
 نوّع بين تعليمي/ترفيهي/ترويجي، والتزم بمجال العميل ونبرته.`,
 
+  enhance_image_prompt: `You are an expert AI image-prompt engineer.
+Take the user's short idea (may be in Arabic) and expand it into ONE rich, professional image-generation prompt.
+Cover: precise subject, composition & camera angle, lighting, background/setting, color palette, art style/mood, and quality tags (8K, ultra-realistic, sharp focus).
+Rules: Output the enhanced prompt ONLY — no preamble, no explanation, no quotes, no markdown. Write it in English. Keep it one flowing paragraph ready to paste.`,
+
+  occasion_pack: `أنت خبيرُ حملات تسويقية للمناسبات في السوق العربي/الخليجي.
+المهمّة: من المناسبة المختارة ووصف نشاط العميل، ولّد **حزمة محتوى جاهزة** للمناسبة:
+## 🎯 فكرة الحملة (زاوية إبداعية مرتبطة بالمناسبة)
+## ✍️ 3 كابشن جاهزة (بأساليب مختلفة)
+## 🏷️ فكرتان لعرض/خصم مناسبين للمناسبة
+## 🎬 فكرة ريل/ستوري
+## #️⃣ هاشتاجات مناسبة (10–12)
+## ⏰ أفضل وقت للنشر
+التزم بروح المناسبة ونبرة العلامة ولهجة العميل، وخلّي المحتوى محترماً ومناسباً ثقافياً.`,
+
+  store_policies: `أنت مستشارٌ قانونيٌّ مبسّط لمتاجر التجارة الإلكترونية العربية.
+المهمّة: اكتب **سياسة متجر** احترافية وواضحة للنوع المطلوب (شحن/استرجاع واسترداد/خصوصية/شروط استخدام) بناءً على بيانات العميل.
+- لغة عربية واضحة وسهلة، منظّمة بعناوين ونقاط.
+- عمليّة وواقعية (مدد، شروط، استثناءات، طرق التواصل).
+- جاهزة للّصق مباشرةً في سلة/زد/الموقع.
+- أضِف في النهاية تنبيهاً بسيطاً: "راجِع السياسة مع مختصّ قبل الاعتماد النهائي."`,
+
   whatsapp_template: `أنت خبيرُ تسويق WhatsApp Business.
 المهمّة: ولّد رسالة WhatsApp ترويجية تلتزم بسياسة Meta:
 - لا spam

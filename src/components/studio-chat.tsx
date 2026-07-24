@@ -108,6 +108,7 @@ export function StudioChat() {
   const [vidQuality, setVidQuality] = useState<"fast" | "quality">("fast");
   const [useBrand, setUseBrand] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [enhancing, setEnhancing] = useState(false);
   const [imgRefs, setImgRefs] = useState<RefImg[]>([]); // صور مرجعية متعددة (حتى 3)
   const [vidStart, setVidStart] = useState<RefImg | null>(null); // صورة البداية
   const [vidEnd, setVidEnd] = useState<RefImg | null>(null); // صورة النهاية
@@ -599,6 +600,42 @@ export function StudioChat() {
     }
   }
 
+  // ✨ حسّن البرومبت — يوسّع فكرتك المختصرة لبرومبت احترافي قبل التوليد (لنتيجة أدقّ)
+  async function enhancePrompt() {
+    const t = input.trim();
+    if (!t) { toast.error("اكتب فكرتك الأول"); return; }
+    setEnhancing(true);
+    try {
+      const res = await fetch("/api/generator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool: "enhance_image_prompt", input: t }),
+      });
+      if (handle401(res)) return;
+      if (!res.ok || !res.body) { toast.error("تعذّر التحسين"); return; }
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let acc = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        acc += dec.decode(value, { stream: true });
+      }
+      const cleaned = acc.trim().replace(/^["'`]|["'`]$/g, "");
+      if (cleaned) {
+        setInput(cleaned);
+        toast.success("اتحسّن البرومبت ✨ — راجعه واضغط إرسال");
+        requestAnimationFrame(() => inputRef.current?.focus());
+      } else {
+        toast.error("مطلعش تحسين — جرّب تاني");
+      }
+    } catch {
+      toast.error("تعذّر الاتصال");
+    } finally {
+      setEnhancing(false);
+    }
+  }
+
   function downloadMedia(src: string, ext: string) {
     const a = document.createElement("a");
     a.href = src;
@@ -862,6 +899,18 @@ export function StudioChat() {
               <input type="file" accept="image/*" multiple className="hidden" disabled={imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />
               <Paperclip className="size-5 text-muted-foreground" />
             </label>
+          )}
+          {mode === "image" && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => void enhancePrompt()}
+              disabled={enhancing || !input.trim()}
+              className="shrink-0 size-11 rounded-xl"
+              title="✨ حسّن البرومبت — يوسّع فكرتك لبرومبت احترافي"
+            >
+              {enhancing ? <Loader2 className="size-5 animate-spin" /> : <Wand2 className="size-5" />}
+            </Button>
           )}
           <Textarea
             ref={inputRef}
