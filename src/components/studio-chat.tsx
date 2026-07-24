@@ -103,7 +103,8 @@ export function StudioChat() {
   const [input, setInput] = useState("");
   const [imgAspect, setImgAspect] = useState("1:1");
   const [imgQuality, setImgQuality] = useState<"fast" | "high">("fast");
-  const [editMode, setEditMode] = useState(false); // تعديل على آخر صورة بدل توليد جديدة
+  // 🎯 هدف التعديل: الصورة اللي أي رسالة جاية هتتطبّق عليها (زي Gemini). null = توليد صورة جديدة.
+  const [editTarget, setEditTarget] = useState<{ src: string; data?: string; mimeType: string; path?: string } | null>(null);
   const [vidAspect, setVidAspect] = useState<"16:9" | "9:16">("16:9");
   const [vidQuality, setVidQuality] = useState<"fast" | "quality">("fast");
   const [useBrand, setUseBrand] = useState(true);
@@ -165,6 +166,7 @@ export function StudioChat() {
       setThreads({ image: img.map(cloudToChat), video: vid.map(cloudToChat) });
       const lastImg = [...img].reverse().find((mm) => mm.mediaPath && mm.imageSrc);
       if (lastImg?.mediaPath) lastImageRef.current = { mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath };
+      if (lastImg?.imageSrc) setEditTarget({ src: lastImg.imageSrc, mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath });
       setLoadingHistory(false);
     })();
   }, []);
@@ -177,6 +179,7 @@ export function StudioChat() {
     if (m === "image") {
       const lastImg = [...msgs].reverse().find((mm) => mm.mediaPath && mm.imageSrc);
       lastImageRef.current = lastImg?.mediaPath ? { mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath } : null;
+      setEditTarget(lastImg?.imageSrc ? { src: lastImg.imageSrc, mimeType: lastImg.mimeType || "image/png", path: lastImg.mediaPath } : null);
     }
   }
 
@@ -188,7 +191,7 @@ export function StudioChat() {
     setSessions((p) => ({ ...p, [mode]: [{ id, title, updatedAt: new Date().toISOString() }, ...p[mode]] }));
     setCurrentSession((p) => ({ ...p, [mode]: id }));
     setThreads((p) => ({ ...p, [mode]: [] }));
-    if (mode === "image") lastImageRef.current = null;
+    if (mode === "image") { lastImageRef.current = null; setEditTarget(null); }
     toast.success("جلسة جديدة ✨");
   }
 
@@ -207,7 +210,7 @@ export function StudioChat() {
       setSessions((p) => ({ ...p, [mode]: rest }));
       await switchSession(mode, rest[0].id);
     }
-    if (mode === "image") lastImageRef.current = null;
+    if (mode === "image") { lastImageRef.current = null; setEditTarget(null); }
     toast.success("اتحذفت الجلسة");
   }
 
@@ -235,6 +238,7 @@ export function StudioChat() {
     if (!files) return;
     const room = 3 - imgRefs.length;
     if (room <= 0) { toast.error("الحدّ الأقصى 3 صور مرجعية"); return; }
+    setEditTarget(null); // إرفاق صور = بناء مشهد جديد، مش تعديل
     Array.from(files).slice(0, room).forEach((f) =>
       readFile(f, (r) => setImgRefs((p) => (p.length < 3 ? [...p, r] : p)))
     );
@@ -366,7 +370,7 @@ export function StudioChat() {
     if (activeMode === "image") {
       const attached = imgRefs;
       setImgRefs([]);
-      void runImage(text, userText, assistantId, attached, sid, editMode);
+      void runImage(text, userText, assistantId, attached, sid, editTarget);
     } else {
       const start = vidStart, end = vidEnd;
       setVidStart(null);
@@ -375,7 +379,21 @@ export function StudioChat() {
     }
   }
 
-  async function runImage(text: string, userText: string, assistantId: string, attachedRefs: RefImg[], sessionId: string, useEdit: boolean) {
+  // يجيب بيانات base64 لهدف التعديل (من الذاكرة أو التخزين أو الرابط)
+  async function resolveTargetData(t: { src: string; data?: string; mimeType: string; path?: string }): Promise<{ data: string; mimeType: string } | null> {
+    if (t.data) return { data: t.data, mimeType: t.mimeType };
+    if (t.path) { const dl = await downloadAsBase64(t.path); if (dl) return dl; }
+    if (t.src) {
+      try {
+        const b = await (await fetch(t.src)).blob();
+        const d = await blobToBase64(b);
+        if (d) return { data: d, mimeType: b.type || t.mimeType };
+      } catch { /* تجاهل */ }
+    }
+    return null;
+  }
+
+  async function runImage(text: string, userText: string, assistantId: string, attachedRefs: RefImg[], sessionId: string, target: { src: string; data?: string; mimeType: string; path?: string } | null) {
     try {
       const brand = await getBrandIdentity();
       const brandContext = brand.text;
@@ -384,18 +402,14 @@ export function StudioChat() {
       let editing = false;
 
       if (attachedRefs.length > 0) {
-        // المستخدم رفق صورة/صور → مرجع للهوية
+        // المستخدم رفق صورة/صور → مرجع للهوية (بناء مشهد جديد)
         for (const r of attachedRefs.slice(0, 3)) {
           refImages.push(await shrinkImage(r.data, r.mimeType));
         }
-      } else if (useEdit && lastImageRef.current) {
-        // وضع «تعديل» مفعّل → عدّل على آخر صورة اتعملت
-        let last = lastImageRef.current.data ? { mimeType: lastImageRef.current.mimeType, data: lastImageRef.current.data } : null;
-        if (!last && lastImageRef.current.path) {
-          const dl = await downloadAsBase64(lastImageRef.current.path);
-          if (dl) { last = dl; lastImageRef.current.data = dl.data; }
-        }
-        if (last) { refImages.push(await shrinkImage(last.data, last.mimeType)); editing = true; }
+      } else if (target) {
+        // فيه هدف تعديل محدّد → عدّل على نفس الصورة دي بالظبط
+        const resolved = await resolveTargetData(target);
+        if (resolved) { refImages.push(await shrinkImage(resolved.data, resolved.mimeType)); editing = true; }
       }
 
       const editNote = editing
@@ -442,17 +456,20 @@ export function StudioChat() {
       }
 
       const img = data.images[0] as { data: string; mimeType: string };
+      const newSrc = `data:${img.mimeType};base64,${img.data}`;
       const replyText = editing
-        ? "عدّلت الصورة ✨ — التعديل مفعّل، فأي طلب جاي هيتعدّل على دي. اقفل «تعديل» عشان صورة جديدة."
-        : "اتفضّل الصورة 🎨 — فعّل زرّ «تعديل» عشان تعدّل عليها، أو اكتب برومبت جديد لصورة تانية.";
+        ? "عدّلت الصورة ✨ — اكتب أي تعديل تاني وهيتطبّق على نفس الصورة، أو اضغط ✕ فوق الكتابة لصورة جديدة."
+        : "اتفضّل الصورة 🎨 — اكتب أي تعديل مباشرة (زي: شيل الكلام / خليها أفتح) وهيتعدّل على نفس الصورة، أو ✕ لصورة جديدة.";
       updateMsg("image", assistantId, {
         status: "done",
-        imageSrc: `data:${img.mimeType};base64,${img.data}`,
+        imageSrc: newSrc,
         imageData: img.data,
         mimeType: img.mimeType,
         text: replyText,
         prompt: text || userText,
       });
+      // 🎯 خلّي أي رسالة جاية تتعدّل على الصورة الجديدة دي (سلوك Gemini)
+      setEditTarget({ src: newSrc, data: img.data, mimeType: img.mimeType });
 
       // حفظ في المكتبة + تزامن سحابي
       const path = await saveImageToLibrary(img.data, img.mimeType);
@@ -561,21 +578,21 @@ export function StudioChat() {
     }
   }
 
-  // ✏️ عدّل على أيّ صورة سابقة (سلوك Gemini: كمّل التعديل على اللي تختاره)
+  // ✏️ عدّل على صورة محدّدة اخترتها (بدقّة — من غير أي تداخل)
   async function editThisImage(m: ChatMsg) {
-    let data = m.imageData;
-    if (!data && m.mediaPath) {
-      const dl = await downloadAsBase64(m.mediaPath);
-      if (dl) data = dl.data;
+    if (!m.imageSrc) { toast.error("مش قادر أجيب الصورة دي"); return; }
+    const t = { src: m.imageSrc, data: m.imageData, mimeType: m.mimeType || "image/png", path: m.mediaPath };
+    // حضّر البيانات مقدّماً عشان التعديل يبقى مضمون على نفس الصورة دي
+    if (!t.data) {
+      const r = await resolveTargetData(t);
+      if (r) t.data = r.data;
     }
-    if (!data && !m.mediaPath) { toast.error("مش قادر أجيب الصورة دي"); return; }
-    lastImageRef.current = { data, mimeType: m.mimeType || "image/png", path: m.mediaPath };
-    setEditMode(true);
-    toast.success("تمام — اكتب التعديل اللي عايزه على الصورة دي ✏️");
+    setEditTarget(t);
+    toast.success("تمام — بتعدّل على الصورة دي ✏️ اكتب التعديل");
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
-  // 🔄 نسخة تانية من نفس البرومبت (variation جديدة)
+  // 🔄 نسخة تانية من نفس البرومبت (صورة جديدة — مش تعديل)
   function regenerateImage(m: ChatMsg) {
     const p = m.prompt?.trim();
     if (!p) { toast.error("مفيش برومبت محفوظ للصورة دي"); return; }
@@ -583,7 +600,7 @@ export function StudioChat() {
     const assistantId = uid();
     const assistantMsg: ChatMsg = { id: assistantId, role: "assistant", kind: "image", status: "loading" };
     setThreads((prev) => ({ ...prev, image: [...prev.image, userMsg, assistantMsg] }));
-    void runImage(p, p, assistantId, [], currentSession.image, false);
+    void runImage(p, p, assistantId, [], currentSession.image, null);
   }
 
   // 📋 انسخ الصورة للحافظة
@@ -721,15 +738,6 @@ export function StudioChat() {
               <button onClick={() => setImgQuality("high")} className={`px-2.5 py-1 ${imgQuality === "high" ? "bg-primary text-primary-foreground" : "bg-card"}`}>جودة عالية</button>
             </div>
           )}
-          {mode === "image" && (
-            <button
-              onClick={() => setEditMode((v) => !v)}
-              title="لما يكون مفعّل، التوليد يعدّل على آخر صورة بدل ما يعمل جديدة"
-              className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors ${editMode ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/50"}`}
-            >
-              ✏️ تعديل {editMode ? "(مفعّل)" : ""}
-            </button>
-          )}
           {mode === "video" && (
             <div className="inline-flex rounded-md border overflow-hidden text-xs">
               <button onClick={() => setVidQuality("fast")} className={`px-2.5 py-1 ${vidQuality === "fast" ? "bg-primary text-primary-foreground" : "bg-card"}`}>سريع ⚡</button>
@@ -847,6 +855,24 @@ export function StudioChat() {
 
       {/* شريط الإدخال */}
       <div className="border-t bg-card/60 backdrop-blur px-3 sm:px-4 py-3 safe-bottom">
+        {/* 🎯 شريط هدف التعديل — واضح إنك بتعدّل على صورة معيّنة */}
+        {mode === "image" && editTarget && imgRefs.length === 0 && (
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/5 p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={editTarget.src} alt="" className="size-10 rounded-md object-cover border shrink-0" />
+            <span className="text-xs text-primary font-medium flex-1 leading-tight">
+              ✏️ بتعدّل على الصورة دي — أي رسالة هتتطبّق عليها
+            </span>
+            <button
+              onClick={() => setEditTarget(null)}
+              className="shrink-0 inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs hover:border-primary"
+              title="ابدأ صورة جديدة بدل التعديل"
+            >
+              <X className="size-3" /> صورة جديدة
+            </button>
+          </div>
+        )}
+
         {/* مرفقات وضع الصور — حتى 3 صور مرجعية */}
         {mode === "image" && imgRefs.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
@@ -935,7 +961,7 @@ export function StudioChat() {
         </div>
         <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
           {mode === "image"
-            ? "💡 تحت كل صورة: «عدّل عليها» لتكملة التعديل، «نسخة تانية» لخيار مختلف، ونسخ/تحميل. ترفق حتى 3 صور مرجعية. الشات محفوظ على كل أجهزتك."
+            ? "💡 بعد أي صورة، أي رسالة بتتعدّل عليها مباشرة (زي: شيل الكلام). اضغط ✕ «صورة جديدة» للبدء من الصفر، أو «عدّل عليها» تحت أي صورة أقدم."
             : "🎬 ارفق صورة بداية و/أو نهاية (Start & End frame). الشات محفوظ ويتزامن على كل أجهزتك."}
         </p>
       </div>
