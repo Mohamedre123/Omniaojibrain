@@ -105,37 +105,94 @@ export default function BrandManagePage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: p } = await supabase.from("profiles").select("brand_name, brand_voice, brand_colors").eq("id", user.id).maybeSingle();
+    const { data: p } = await supabase.from("profiles").select("brand_name, brand_voice, brand_colors, brand_logo_url").eq("id", user.id).maybeSingle();
     const W = 794, H = 1123;
     const c = document.createElement("canvas"); c.width = W; c.height = H;
     const ctx = c.getContext("2d"); if (!ctx) return;
-    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#4f6ef7"; ctx.fillRect(0, 0, W, 130);
-    ctx.direction = "rtl"; ctx.textAlign = "right";
-    ctx.fillStyle = "#fff"; ctx.font = "bold 40px sans-serif";
-    ctx.fillText("هوية العلامة — Brand Kit", W - 50, 82);
-    let y = 220; ctx.fillStyle = "#111827"; ctx.font = "bold 30px sans-serif";
-    ctx.fillText(`الاسم: ${(p?.brand_name as string) || "—"}`, W - 50, y); y += 70;
-    ctx.font = "22px sans-serif"; ctx.fillStyle = "#374151";
-    const voice = ((p?.brand_voice as string) || "—").slice(0, 120);
-    ctx.fillText(`النبرة: ${voice}`, W - 50, y); y += 80;
+
     const colors = (p?.brand_colors as string[]) || [];
+    const primary = colors[0] || "#4f6ef7";
+
+    // خلفية + شريط علوي بلون العلامة
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = primary; ctx.fillRect(0, 0, W, 150);
+    ctx.direction = "rtl"; ctx.textAlign = "right";
+    ctx.fillStyle = "#ffffff"; ctx.font = "bold 38px sans-serif";
+    ctx.fillText("دليل الهوية — Brand Guide", W - 50, 72);
+    ctx.font = "24px sans-serif";
+    ctx.fillText((p?.brand_name as string) || "علامتي", W - 50, 112);
+
+    // الشعار في يسار الهيدر (fetch→dataURL لتفادي تلويث الـ canvas)
+    try {
+      const url = p?.brand_logo_url as string | null;
+      if (url) {
+        const blob = await (await fetch(url)).blob();
+        const durl = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = () => res(""); r.readAsDataURL(blob); });
+        if (durl) {
+          const img = await new Promise<HTMLImageElement | null>((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = durl; });
+          if (img) { ctx.fillStyle = "#fff"; ctx.fillRect(46, 30, 94, 94); ctx.drawImage(img, 50, 34, 86, 86); }
+        }
+      }
+    } catch { /* تجاهل */ }
+
+    let y = 230;
+
+    // 🎨 الألوان — عيّنات مع HEX ودور كل لون
+    ctx.textAlign = "right"; ctx.fillStyle = "#111827"; ctx.font = "bold 28px sans-serif";
+    ctx.fillText("🎨 الألوان", W - 50, y); y += 30;
     if (colors.length) {
-      ctx.fillStyle = "#111827"; ctx.font = "bold 26px sans-serif"; ctx.fillText("الألوان:", W - 50, y); y += 40;
-      colors.slice(0, 6).forEach((col, i) => {
-        ctx.fillStyle = col; ctx.fillRect(W - 50 - (i + 1) * 100, y, 90, 90);
-        ctx.fillStyle = "#111827"; ctx.font = "16px monospace"; ctx.textAlign = "center";
-        ctx.fillText(col, W - 50 - (i * 100) - 45, y + 115); ctx.textAlign = "right";
+      const roles = ["أساسي", "مميّز", "خلفية", "نصّ", "تمييز"];
+      const sw = 120, gap = 20, startX = 50;
+      colors.slice(0, 5).forEach((col, i) => {
+        const x = startX + i * (sw + gap);
+        ctx.fillStyle = col; ctx.fillRect(x, y, sw, sw);
+        ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1; ctx.strokeRect(x, y, sw, sw);
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#111827"; ctx.font = "bold 15px monospace";
+        ctx.fillText((col || "").toUpperCase(), x + sw / 2, y + sw + 22);
+        ctx.fillStyle = "#6b7280"; ctx.font = "13px sans-serif";
+        ctx.fillText(roles[i] || "", x + sw / 2, y + sw + 42);
       });
-      y += 180;
+      y += sw + 80;
+    } else {
+      ctx.fillStyle = "#9ca3af"; ctx.font = "18px sans-serif"; ctx.textAlign = "right";
+      ctx.fillText("لم تُحدَّد ألوان بعد — أضِفها من الإعدادات.", W - 50, y + 10); y += 60;
     }
-    ctx.fillStyle = "#9ca3af"; ctx.font = "18px sans-serif";
+
+    // 🗣️ النبرة (مع لفّ النصّ)
+    ctx.textAlign = "right"; ctx.fillStyle = "#111827"; ctx.font = "bold 28px sans-serif";
+    ctx.fillText("🗣️ نبرة العلامة", W - 50, y); y += 38;
+    ctx.font = "20px sans-serif"; ctx.fillStyle = "#374151";
+    const voice = (p?.brand_voice as string) || "لم تُحدَّد بعد.";
+    const words = voice.split(/\s+/); let line = ""; const maxW = W - 100;
+    for (const w of words) {
+      const test = line ? `${line} ${w}` : w;
+      if (ctx.measureText(test).width > maxW) { ctx.fillText(line, W - 50, y); y += 30; line = w; }
+      else line = test;
+    }
+    if (line) { ctx.fillText(line, W - 50, y); y += 30; }
+    y += 40;
+
+    // 🔤 الخطوط + 🧭 إرشادات (توصيات ثابتة مفيدة)
+    ctx.fillStyle = "#111827"; ctx.font = "bold 28px sans-serif"; ctx.fillText("🔤 الخطوط", W - 50, y); y += 36;
+    ctx.font = "19px sans-serif"; ctx.fillStyle = "#374151";
+    ctx.fillText("العناوين: Tajawal / Cairo (عريض) — النصوص: Tajawal (عادي)، مريح للقراءة.", W - 50, y); y += 60;
+
+    ctx.fillStyle = "#111827"; ctx.font = "bold 28px sans-serif"; ctx.fillText("🧭 إرشادات الاستخدام", W - 50, y); y += 36;
+    ctx.font = "19px sans-serif"; ctx.fillStyle = "#16a34a";
+    ctx.fillText("✓ استخدم الألوان بثبات · اترك مساحات بيضاء · التزم بخطّين كحدّ أقصى.", W - 50, y); y += 30;
+    ctx.fillStyle = "#dc2626";
+    ctx.fillText("✗ لا تشوّه الشعار · لا تخلط ألواناً خارج اللوحة · لا تزحم التصميم.", W - 50, y);
+
+    // تذييل
+    ctx.fillStyle = "#9ca3af"; ctx.font = "18px sans-serif"; ctx.textAlign = "right";
     ctx.fillText("Oji Brain — oji-brain.site", W - 50, H - 50);
+
     try {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF({ unit: "px", format: [W, H] });
       doc.addImage(c.toDataURL("image/png"), "PNG", 0, 0, W, H);
-      doc.save("oji-brand-kit.pdf");
+      doc.save("oji-brand-guide.pdf");
     } catch {
       toast.error("تعذّر التصدير");
     }
@@ -171,7 +228,10 @@ export default function BrandManagePage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">بيحفظ بيانات الهوية الحالية من الإعدادات (الاسم، النبرة، الألوان، الشعار).</p>
-            <Button onClick={exportPDF} variant="outline" className="w-full mt-3">📄 تصدير Brand Kit PDF</Button>
+            <Button onClick={exportPDF} variant="outline" className="w-full mt-3">📄 تصدير دليل الهوية PDF</Button>
+            <Link href="/brand/wizard" className="mt-2 block text-center text-xs text-primary hover:underline">
+              ✨ مش متأكّد من هويتك؟ ولّد كتاب علامة كامل بالـ AI
+            </Link>
           </Card>
 
           {loading ? (
