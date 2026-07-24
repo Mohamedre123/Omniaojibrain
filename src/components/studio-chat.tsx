@@ -28,6 +28,7 @@ import {
   FolderOpen,
   Wand2,
   Layers,
+  Copy,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -47,6 +48,7 @@ type ChatMsg = {
   error?: string;
   refPreviews?: string[];
   elapsedSec?: number; // عدّاد وقت توليد الفيديو لكل رسالة
+  prompt?: string; // البرومبت الأصلي (لـ «نسخة تانية»)
 };
 
 type RefImg = { data: string; mimeType: string; previewUrl: string; name: string };
@@ -118,6 +120,7 @@ export function StudioChat() {
   const lastImageRef = useRef<{ data?: string; mimeType: string; path?: string } | null>(null);
   const brandLogoCache = useRef<{ url: string; logo: { data: string; mimeType: string } | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   // مؤقّتات مستقلّة لكل فيديو جارٍ — يسمح بأكثر من توليد في نفس الوقت بدون توقّف
   const timersRef = useRef<Map<string, { poll?: ReturnType<typeof setInterval>; timer?: ReturnType<typeof setInterval> }>>(new Map());
 
@@ -447,6 +450,7 @@ export function StudioChat() {
         imageData: img.data,
         mimeType: img.mimeType,
         text: replyText,
+        prompt: text || userText,
       });
 
       // حفظ في المكتبة + تزامن سحابي
@@ -553,6 +557,45 @@ export function StudioChat() {
       stopTimersFor(assistantId);
       updateMsg("video", assistantId, { status: "error", error: "تعذّر الاتصال" });
       toast.error("تعذّر الاتصال");
+    }
+  }
+
+  // ✏️ عدّل على أيّ صورة سابقة (سلوك Gemini: كمّل التعديل على اللي تختاره)
+  async function editThisImage(m: ChatMsg) {
+    let data = m.imageData;
+    if (!data && m.mediaPath) {
+      const dl = await downloadAsBase64(m.mediaPath);
+      if (dl) data = dl.data;
+    }
+    if (!data && !m.mediaPath) { toast.error("مش قادر أجيب الصورة دي"); return; }
+    lastImageRef.current = { data, mimeType: m.mimeType || "image/png", path: m.mediaPath };
+    setEditMode(true);
+    toast.success("تمام — اكتب التعديل اللي عايزه على الصورة دي ✏️");
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  // 🔄 نسخة تانية من نفس البرومبت (variation جديدة)
+  function regenerateImage(m: ChatMsg) {
+    const p = m.prompt?.trim();
+    if (!p) { toast.error("مفيش برومبت محفوظ للصورة دي"); return; }
+    const userMsg: ChatMsg = { id: uid(), role: "user", text: p, kind: "image" };
+    const assistantId = uid();
+    const assistantMsg: ChatMsg = { id: assistantId, role: "assistant", kind: "image", status: "loading" };
+    setThreads((prev) => ({ ...prev, image: [...prev.image, userMsg, assistantMsg] }));
+    void runImage(p, p, assistantId, [], currentSession.image, false);
+  }
+
+  // 📋 انسخ الصورة للحافظة
+  async function copyImage(src: string) {
+    try {
+      const blob = await (await fetch(src)).blob();
+      // ClipboardItem قد لا يكون مدعوماً في كل المتصفّحات
+      const CI = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
+      if (!CI || !navigator.clipboard?.write) { toast.error("نسخ الصور مش مدعوم في المتصفّح ده — استخدم تحميل"); return; }
+      await navigator.clipboard.write([new CI({ [blob.type]: blob })]);
+      toast.success("اتنسخت الصورة 📋");
+    } catch {
+      toast.error("تعذّر نسخ الصورة — جرّب تحميلها");
     }
   }
 
@@ -726,10 +769,25 @@ export function StudioChat() {
                   <div className="mt-1.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={m.imageSrc} alt="الصورة المولّدة" className="rounded-xl w-full max-w-md" />
-                    <div className="mt-2 px-1">
+                    <div className="mt-2 px-1 flex flex-wrap gap-1.5">
                       <Button variant="outline" size="sm" onClick={() => m.imageSrc && downloadMedia(m.imageSrc, m.mimeType?.includes("webp") ? "webp" : m.mimeType?.includes("png") ? "png" : "jpg")} className="text-xs">
                         <Download className="size-3.5" /> تحميل
                       </Button>
+                      {m.role === "assistant" && m.kind === "image" && m.status === "done" && (
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => void editThisImage(m)} className="text-xs">
+                            ✏️ عدّل عليها
+                          </Button>
+                          {m.prompt && (
+                            <Button variant="outline" size="sm" onClick={() => regenerateImage(m)} className="text-xs">
+                              🔄 نسخة تانية
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => m.imageSrc && void copyImage(m.imageSrc)} className="text-xs">
+                            <Copy className="size-3.5" /> نسخ
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -806,6 +864,7 @@ export function StudioChat() {
             </label>
           )}
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
@@ -827,7 +886,7 @@ export function StudioChat() {
         </div>
         <p className="mt-1.5 text-[11px] text-muted-foreground text-center">
           {mode === "image"
-            ? "💡 تقدر ترفق حتى 3 صور مرجعية (زي Gemini). الشات محفوظ ويتزامن على كل أجهزتك."
+            ? "💡 تحت كل صورة: «عدّل عليها» لتكملة التعديل، «نسخة تانية» لخيار مختلف، ونسخ/تحميل. ترفق حتى 3 صور مرجعية. الشات محفوظ على كل أجهزتك."
             : "🎬 ارفق صورة بداية و/أو نهاية (Start & End frame). الشات محفوظ ويتزامن على كل أجهزتك."}
         </p>
       </div>
