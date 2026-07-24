@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon, Share2, Recycle, GalleryHorizontalEnd, Clapperboard, Tag, Quote, PackageOpen, MessagesSquare, Gift, ScanText, Captions, Languages, CalendarDays, UtensilsCrossed, Smartphone, Camera, CreditCard, MessageSquareQuote, LayoutTemplate, Ticket, CalendarHeart, ScrollText, Rocket, Video, Swords } from "lucide-react";
+import { Megaphone, Hash, Shuffle, Mail, MessageCircle, Calendar as CalendarIcon, Share2, Recycle, GalleryHorizontalEnd, Clapperboard, Tag, Quote, PackageOpen, MessagesSquare, Gift, ScanText, Captions, Languages, CalendarDays, UtensilsCrossed, Smartphone, Camera, CreditCard, MessageSquareQuote, LayoutTemplate, Ticket, CalendarHeart, ScrollText, Rocket, Video, Swords, Calculator, ImagePlus } from "lucide-react";
 
 const TOOLS = [
   { href: "/marketing/occasions", icon: CalendarHeart, title: "محرّك المناسبات", description: "اختر مناسبة → حملة كاملة (كابشن + عرض + ريل + هاشتاجات)", color: "from-red-500 to-pink-600", badge: "✨ جديد" },
@@ -8,6 +8,8 @@ const TOOLS = [
   { href: "/marketing/launch-plan", icon: Rocket, title: "مخطّط إطلاق منتج", description: "خطة تشويق → إطلاق → متابعة بالمحتوى والتوقيت", color: "from-orange-500 to-amber-600", badge: "✨ جديد" },
   { href: "/marketing/ugc", icon: Video, title: "سكربتات UGC (تيك توك/ريلز)", description: "3 سكربتات جاهزة للتصوير: خطّاف + لقطات + نصّ", color: "from-fuchsia-500 to-pink-600", badge: "✨ جديد" },
   { href: "/marketing/competitor", icon: Swords, title: "محلّل المنافس", description: "الصق محتوى منافس → تحليل وتميّز وأفكار محتوى", color: "from-red-500 to-rose-700", badge: "✨ جديد" },
+  { href: "/marketing/product-ad", icon: ImagePlus, title: "محوّل منتج → إعلان بصري", description: "صورة منتجك + العرض → إعلان جاهز للنشر", color: "from-violet-500 to-purple-600", badge: "✨ جديد" },
+  { href: "/marketing/pricing", icon: Calculator, title: "حاسبة التسعير والعروض", description: "السعر المثالي + ربحك + باقات وأسعار نفسية", color: "from-emerald-500 to-teal-600", badge: "✨ جديد" },
   { href: "/marketing/repurpose", icon: Recycle, title: "إعادة تدوير المحتوى", description: "فكرة واحدة → بوست + ريلز + ستوري + تغريدة + إيميل + هاشتاجات", color: "from-teal-500 to-emerald-600", badge: "✨ جديد" },
   { href: "/marketing/carousel", icon: GalleryHorizontalEnd, title: "تصميم كاروسيل", description: "موضوع → كاروسيل 5–7 شرائح جاهزة للتصميم", color: "from-fuchsia-500 to-pink-600", badge: "✨ جديد" },
   { href: "/marketing/video-pack", icon: Clapperboard, title: "قوالب فيديو جاهزة", description: "سكربت + برومبتات فيديو + Start/End frame + موسيقى", color: "from-blue-500 to-indigo-600", badge: "✨ جديد" },
