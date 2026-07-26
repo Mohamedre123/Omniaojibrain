@@ -12,17 +12,41 @@ type Shot = { label: string; status: "loading" | "done" | "error"; src?: string;
 
 type Angle = { label: string; type: "pose" | "detail" | "product"; instr: string };
 
-// وضعيات مختلفة لنفس الشخص في نفس المكان + لقطتين للطقم لوحده
+// مشاهد سينمائية متنوّعة لنفس الشخص/الطقم في نفس المكان + لقطتين للطقم لوحده
 const ANGLES: Angle[] = [
-  { label: "أمامية", type: "pose", instr: "standing and facing the camera directly with a relaxed, confident posture" },
-  { label: "ثلاثة أرباع يمين", type: "pose", instr: "turned to a three-quarter angle toward the right, same standing spot" },
-  { label: "ثلاثة أرباع يسار", type: "pose", instr: "turned to a three-quarter angle toward the left, same standing spot" },
-  { label: "جانبية", type: "pose", instr: "standing in a full side profile so the outfit is seen clearly from the side" },
-  { label: "من الخلف", type: "pose", instr: "seen from behind to reveal the back of the outfit, head slightly turned" },
-  { label: "يمشي في نفس المكان", type: "pose", instr: "walking naturally to a slightly different spot within the SAME location, candid mid-step motion" },
-  { label: "تفاصيل القماش", type: "detail", instr: "" },
+  { label: "لقطة واسعة", type: "pose", instr: "a WIDE cinematic establishing shot — full body within the environment, natural confident stance, plenty of the scene visible around them" },
+  { label: "لقطة متوسطة", type: "pose", instr: "a MEDIUM shot from roughly the waist up, relaxed candid pose, shallow depth of field" },
+  { label: "بورتريه قريب", type: "pose", instr: "a CLOSE-UP upper-body / portrait shot highlighting the top garment, soft creamy bokeh background" },
+  { label: "زاوية منخفضة", type: "pose", instr: "a dramatic LOW-ANGLE hero shot looking slightly upward, dynamic powerful stance" },
+  { label: "وهو بيمشي", type: "pose", instr: "a candid motion shot of the person walking through a DIFFERENT part of the same location, natural mid-stride, sense of movement" },
+  { label: "لقطة جانبية سينمائية", type: "pose", instr: "a cinematic side / profile composition at another spot in the scene, looking away, film-like off-center framing" },
+  { label: "زوم على تفاصيل الطقم", type: "detail", instr: "" },
   { label: "الطقم لوحده (فلات-لاي)", type: "product", instr: "a clean top-down flat-lay of the full outfit only, neatly arranged" },
   { label: "الطقم معروض", type: "product", instr: "the outfit only, professionally styled and displayed on a clean surface or table" },
+];
+
+const rand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
+// تنويعات عشوائية عشان كل توليد يطلع بشكل مختلف (نفس الفكرة، تنفيذ جديد)
+const PERSON_LOOK = [
+  "warm golden-hour sunlight", "soft overcast diffused light", "dramatic directional side light",
+  "cool cinematic blue-hour tones", "bright airy natural daylight", "moody low-key lighting",
+];
+const PERSON_LENS = [
+  "35mm lens natural perspective", "85mm portrait lens with creamy bokeh", "50mm filmic look",
+  "wide 24mm cinematic perspective", "telephoto compressed background",
+];
+const GRADE = [
+  "teal-and-orange film grade", "natural true-to-life grade", "warm editorial grade",
+  "muted cinematic grade", "high-contrast filmic grade",
+];
+const PRODUCT_SURFACE = [
+  "on a light marble surface", "on warm natural wood", "on smooth concrete",
+  "on soft neutral linen", "on a matte studio backdrop", "on a textured stone slab",
+];
+const PRODUCT_LIGHT = [
+  "soft daylight with gentle shadows", "moody directional studio light",
+  "bright clean e-commerce lighting", "warm cinematic side light", "airy top light",
 ];
 
 function buildShotPrompt(a: Angle, aspect: string, hint: string): string {
@@ -34,22 +58,21 @@ function buildShotPrompt(a: Angle, aspect: string, hint: string): string {
     return `${focus}
 Extract the OUTFIT / PRODUCT ONLY from the reference and remove the person completely. ${a.instr}.
 Keep the garments 100% identical to the reference: exact same colors, fabric, texture, stitching, seams, logo, print and proportions.
-Professional e-commerce product photography, clean styling that matches the color palette and mood of the reference, soft realistic shadows.
+Professional cinematic product photography, clean styling that matches the color palette and mood of the reference, soft realistic shadows.
+For THIS specific shot use a FRESH, UNIQUE composition and arrangement: ${rand(PRODUCT_SURFACE)}, ${rand(PRODUCT_LIGHT)}. Never repeat the same layout.
 Absolutely NO person and no body parts. Photorealistic, ultra-detailed, real photograph, 8K. Aspect ratio ${aspect}.`;
   }
 
   const shot = a.type === "detail"
-    ? "a cinematic macro close-up on the fabric texture, stitching, seams and logo of the exact same outfit worn by the same person"
-    : `the same person ${a.instr}`;
+    ? "a cinematic macro close-up ZOOMING onto the fabric texture, stitching, seams and logo of the exact same outfit worn by the same person"
+    : a.instr;
 
   return `${focus}
-Produce a PHOTOREALISTIC professional photograph of ${shot}.
-KEEP 100% IDENTICAL — do NOT change any of these:
-- the person's face, facial features, skin tone, hair and body shape,
-- the exact outfit: same colors, fabric, texture, stitching, logo, print and design,
-- the SAME location, background, props and lighting as the reference image.
-Only change the pose / body position / framing within that same place — like a real photoshoot of the same model in the same spot.
-Do NOT stylize, illustrate, cartoonify or beautify. It must look like a REAL photograph, not AI-generated. Natural realistic skin and materials. Cinematic editorial lighting, sharp focus, 8K photorealistic. Aspect ratio ${aspect}.`;
+Create a NEW, genuinely DIFFERENT cinematic fashion-photography shot of the SAME real person wearing the SAME exact outfit, in the SAME overall location/environment as the reference — ${shot}.
+KEEP IDENTICAL: the person's face, facial features, skin tone, hair and body; and the exact outfit (same colors, fabric, texture, stitching, logo, print and design). Keep the same general place/setting.
+VARY it like a real cinematic photoshoot: change the camera DISTANCE, focal length, framing, angle, composition and the person's pose — and you MAY place them at ANY spot within that same location (it does NOT have to be the exact same standing position). Each shot must look clearly different, dynamic and film-like — NOT the same framing with a rotated body, NOT a static mannequin.
+For THIS specific shot: ${rand(PERSON_LOOK)}, ${rand(PERSON_LENS)}, ${rand(GRADE)}.
+Cinematic professional photography like a high-end fashion film (think Higgsfield / editorial): shallow depth of field where suitable, natural dynamic posing and real motion, sharp focus. It MUST look like a REAL photograph — do NOT stylize, cartoonify, beautify or make it look AI-generated. 8K photorealistic. Aspect ratio ${aspect}.`;
 }
 
 const ASPECTS = [
@@ -125,7 +148,7 @@ export default function ShotsPage() {
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2"><Aperture className="size-7 text-primary" /> 9 لقطات (Shots)</h1>
-          <p className="text-muted-foreground mt-1 text-sm">ارفع صورة الطقم/المنتج → 9 لقطات احترافية: نفس الشخص والمكان والطقم بالظبط، بس وضعيات وحركات مختلفة + لقطتين للطقم لوحده. واقعية زي التصوير السينمائي.</p>
+          <p className="text-muted-foreground mt-1 text-sm">ارفع صورة الطقم/المنتج → 9 مشاهد سينمائية مختلفة: نفس الشخص والطقم والمكان، بس كاميرا وزوايا ووضعيات متنوّعة (واسعة/متوسطة/زوم) في أي حتة بالمكان + لقطتين للطقم لوحده — بروح سينمائية زي HIGGSFIELD.</p>
         </div>
         <Link href="/studio" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary shrink-0"><ArrowRight className="size-4" /> الاستوديو</Link>
       </div>
