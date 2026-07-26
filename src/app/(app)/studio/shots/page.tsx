@@ -63,9 +63,14 @@ For THIS specific shot use a FRESH, UNIQUE composition and arrangement: ${rand(P
 Absolutely NO person and no body parts. Photorealistic, ultra-detailed, real photograph, 8K. Aspect ratio ${aspect}.`;
   }
 
-  const shot = a.type === "detail"
-    ? "a cinematic macro close-up ZOOMING onto the fabric texture, stitching, seams and logo of the exact same outfit worn by the same person"
-    : a.instr;
+  if (a.type === "detail") {
+    return `${focus}
+Create a clean EDITORIAL DETAIL collage of the exact same outfit/product from the reference — a professional composition of 2 to 4 macro close-up panels arranged together, each ZOOMING onto a key detail: fabric texture and weave, stitching and seams, and the logo/label. If the outfit has multiple pieces (a set), include a close detail of EACH piece; if it is a single item, show several different close-ups of that same item.
+Keep every detail 100% identical to the reference: same colors, fabric, texture, stitching, logo and print.
+Consistent lighting and color grade across all panels, ${rand(PRODUCT_LIGHT)}. Cinematic product-detail photography, sharp focus, realistic materials, 8K photorealistic — it MUST look like a REAL photo, not AI-generated. Aspect ratio ${aspect}.`;
+  }
+
+  const shot = a.instr;
 
   return `${focus}
 Create a NEW, genuinely DIFFERENT cinematic fashion-photography shot of the SAME real person wearing the SAME exact outfit, in the SAME overall location/environment as the reference — ${shot}.
