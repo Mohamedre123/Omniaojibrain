@@ -185,7 +185,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const rl = rateLimit({ key: `imggen:${user.id}`, limit: 10, windowSeconds: 60 });
+  // Shots بيطلب 9 صور دفعة واحدة، فالحدّ لازم يستوعب عدّة تشغيلات في الدقيقة
+  const rl = rateLimit({ key: `imggen:${user.id}`, limit: 40, windowSeconds: 60 });
   if (!rl.allowed) {
     return NextResponse.json({ error: `تجاوزت الحدّ، حاول بعد ${rl.resetIn} ثانية` }, { status: 429 });
   }

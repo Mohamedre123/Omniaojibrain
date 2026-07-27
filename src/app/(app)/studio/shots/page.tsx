@@ -167,7 +167,7 @@ export default function ShotsPage() {
     const refImages = back ? [front, back] : [front];
     const dual = !!back;
 
-    await Promise.all(angles.map((a, i) => (async () => {
+    const runOne = async (a: Angle, i: number, attempt = 1): Promise<boolean> => {
       try {
         const prompt = buildShotPrompt(a, aspect, hint, dual);
         const res = await fetch("/api/image-generate", {
@@ -175,17 +175,40 @@ export default function ShotsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt, quality: "high", provider: "gemini", aspect, refImages }),
         });
-        const data = await res.json();
-        if (!res.ok || !data.images?.length) { setShots((p) => p.map((s, idx) => idx === i ? { ...s, status: "error", error: data.error || "فشل" } : s)); return; }
+        const data = await res.json().catch(() => ({}));
+        // تجاوز الحدّ → استنى وأعد المحاولة
+        if (res.status === 429 && attempt < 3) {
+          await new Promise((r) => setTimeout(r, 5000 * attempt));
+          return runOne(a, i, attempt + 1);
+        }
+        if (!res.ok || !data.images?.length) {
+          setShots((p) => p.map((s, idx) => idx === i ? { ...s, status: "error", error: (data.error as string) || `فشل (${res.status})` } : s));
+          return false;
+        }
         const img = data.images[0] as { data: string; mimeType: string };
         setShots((p) => p.map((s, idx) => idx === i ? { ...s, status: "done", src: `data:${img.mimeType};base64,${img.data}` } : s));
         void saveImageToLibrary(img.data, img.mimeType);
+        return true;
       } catch {
+        if (attempt < 2) { await new Promise((r) => setTimeout(r, 3000)); return runOne(a, i, attempt + 1); }
         setShots((p) => p.map((s, idx) => idx === i ? { ...s, status: "error", error: "تعذّر الاتصال" } : s));
+        return false;
       }
-    })()));
+    };
+
+    // تشغيل على دفعات (3 في المرة) — ألطف على حدود الـ API ويقلّل الفشل
+    let ok = 0;
+    const BATCH = 3;
+    for (let b = 0; b < angles.length; b += BATCH) {
+      const slice = angles.slice(b, b + BATCH);
+      const results = await Promise.all(slice.map((a, j) => runOne(a, b + j)));
+      ok += results.filter(Boolean).length;
+    }
+
     setBusy(false);
-    toast.success("خلص — كل اللقطات اتحفظت في ملفاتي");
+    if (ok === 0) toast.error("مطلعش أي لقطة — غالباً تجاوزت الحدّ. استنّى دقيقة وحاول تاني");
+    else if (ok < angles.length) toast(`اتعمل ${ok} من ${angles.length} لقطة — الباقي فشل، جرّب تاني بعد شوية`);
+    else toast.success("خلص — كل اللقطات اتحفظت في ملفاتي 🎉");
   }
 
   return (
@@ -283,7 +306,7 @@ export default function ShotsPage() {
                 </>
               ) : (
                 <div className="aspect-square rounded-lg grid place-items-center text-center p-2 bg-muted/40">
-                  {s.status === "error" ? <span className="text-[11px] text-destructive">⚠️ {s.label}</span> : <div className="flex flex-col items-center gap-1"><Loader2 className="size-5 animate-spin text-muted-foreground" /><span className="text-[10px] text-muted-foreground">{s.label}</span></div>}
+                  {s.status === "error" ? <span className="text-[10px] text-destructive px-1 leading-tight">⚠️ {s.label}{s.error ? ` — ${s.error}` : ""}</span> : <div className="flex flex-col items-center gap-1"><Loader2 className="size-5 animate-spin text-muted-foreground" /><span className="text-[10px] text-muted-foreground">{s.label}</span></div>}
                 </div>
               )}
             </Card>
