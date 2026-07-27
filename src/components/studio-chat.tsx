@@ -425,7 +425,11 @@ export function StudioChat() {
         logoNote = " A brand LOGO image is also attached ONLY as a color & style reference — match the brand's exact color palette and visual identity from it. Do NOT draw or include the logo itself in the output unless explicitly requested.";
       }
 
-      const fullPrompt = `${text}.${editNote}${logoNote} Aspect ratio: ${imgAspect}.`;
+      // دفعة جودة احترافية للتوليد الجديد فقط (التعديل بيحافظ على الصورة زي ما هي)
+      const qualityBoost = editing
+        ? ""
+        : " Deliver an ultra high-quality, professional, polished and market-ready result: strong composition, balanced lighting, crisp sharp details, clean and premium finish. If the subject is photographic, make it photorealistic and cinematic (editorial, film-like lighting, real textures — not AI-looking); if it is a graphic/design, keep it clean, modern, well-aligned and professional.";
+      const fullPrompt = `${text}.${editNote}${logoNote}${qualityBoost} Aspect ratio: ${imgAspect}.`;
 
       // مهلة من جهة العميل عشان ما يفضلش معلّق على شبكات الموبايل
       const controller = new AbortController();
