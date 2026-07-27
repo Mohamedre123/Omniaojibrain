@@ -62,6 +62,10 @@ const PRODUCT_LIGHT = [
   "bright clean e-commerce lighting", "warm cinematic side light", "airy top light",
 ];
 
+// بند واقعية موحّد — يمنع شكل البلاستيك/AI ويحافظ على جودة عالية
+const REALISM =
+  "It MUST look like a REAL photograph taken on a professional camera: natural realistic textures, true-to-life accurate colors, real fabric/material detail and subtle natural film grain. Absolutely NO plastic or CGI look, NO waxy over-smoothing, NO over-saturation or colors bleeding into each other, NO AI artifacts. High-resolution, clean, crisp and razor-sharp in focus.";
+
 function buildShotPrompt(a: Angle, aspect: string, hint: string, dual = false): string {
   const focus = hint.trim()
     ? `Focus on this exact item from the reference: ${hint.trim()}.`
@@ -86,14 +90,14 @@ Extract the OUTFIT / PRODUCT ONLY from the reference and remove the person compl
 Keep the garments 100% identical to the reference: exact same colors, fabric, texture, stitching, seams, logo, print and proportions.${dual ? " Show it accurately using BOTH the front (image 1) and back (image 2) references." : ""}
 Professional cinematic product photography, clean styling that matches the color palette and mood of the reference, soft realistic shadows.
 For THIS specific shot use a FRESH, UNIQUE composition and arrangement: ${rand(PRODUCT_SURFACE)}, ${rand(PRODUCT_LIGHT)}. Never repeat the same layout.
-Absolutely NO person and no body parts. Photorealistic, ultra-detailed, real photograph, 8K. Aspect ratio ${aspect}.`;
+Absolutely NO person and no body parts. ${REALISM} Aspect ratio ${aspect}.`;
   }
 
   if (a.type === "detail") {
     return `${dualHead}${focus}
-Create a clean EDITORIAL DETAIL collage of the exact same outfit/product from the reference — a professional composition of 2 to 4 macro close-up panels arranged together, each ZOOMING onto a key detail: fabric texture and weave, stitching and seams, and the logo/label. If the outfit has multiple pieces (a set), include a close detail of EACH piece; if it is a single item, show several different close-ups of that same item.${dual ? " Include key details from BOTH the front (image 1) and the back (image 2)." : ""}
-Keep every detail 100% identical to the reference: same colors, fabric, texture, stitching, logo and print.
-Consistent lighting and color grade across all panels, ${rand(PRODUCT_LIGHT)}. Cinematic product-detail photography, sharp focus, realistic materials, 8K photorealistic — it MUST look like a REAL photo, not AI-generated. Aspect ratio ${aspect}.`;
+Create ONE clean, ultra-sharp CINEMATIC MACRO close-up that ZOOMS onto the key detail of the item — the fabric weave and texture, the stitching/seams and the logo/label — filling most of the frame with a single beautiful detail (this is ONE photo, NOT a collage or grid).${dual ? " Focus on the main printed graphic / logo area — if the main graphic is on the back, use the back reference (image 2)." : ""}
+Keep the detail 100% identical to the reference: same colors, fabric, texture, stitching, logo and print.
+Beautiful soft directional product lighting, ${rand(PRODUCT_LIGHT)}, shallow depth of field with the key detail in razor-sharp focus. ${REALISM} Aspect ratio ${aspect}.`;
   }
 
   const shot = a.instr;
@@ -103,7 +107,7 @@ Create a NEW, genuinely DIFFERENT cinematic fashion-photography shot of the SAME
 ${sideNote}KEEP IDENTICAL: the person's face, facial features, skin tone, hair and body; and the exact outfit (same colors, fabric, texture, stitching, logo, print and design). Keep the same general place/setting.
 VARY it like a real cinematic photoshoot: change the camera DISTANCE, focal length, framing, angle, composition and the person's pose — and you MAY place them at ANY spot within that same location (it does NOT have to be the exact same standing position). Each shot must look clearly different, dynamic and film-like — NOT the same framing with a rotated body, NOT a static mannequin.
 For THIS specific shot: ${rand(PERSON_LOOK)}, ${rand(PERSON_LENS)}, ${rand(GRADE)}.
-Cinematic professional photography like a high-end fashion film (think Higgsfield / editorial): shallow depth of field where suitable, natural dynamic posing and real motion, sharp focus. It MUST look like a REAL photograph — do NOT stylize, cartoonify, beautify or make it look AI-generated. 8K photorealistic. Aspect ratio ${aspect}.`;
+Cinematic professional photography like a high-end fashion film (editorial): shallow depth of field where suitable, natural dynamic posing and real motion. Do NOT stylize, cartoonify or beautify. ${REALISM} Aspect ratio ${aspect}.`;
 }
 
 const ASPECTS = [

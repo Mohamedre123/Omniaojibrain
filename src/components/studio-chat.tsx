@@ -428,7 +428,7 @@ export function StudioChat() {
       // دفعة جودة احترافية للتوليد الجديد فقط (التعديل بيحافظ على الصورة زي ما هي)
       const qualityBoost = editing
         ? ""
-        : " Deliver an ultra high-quality, professional, polished and market-ready result: strong composition, balanced lighting, crisp sharp details, clean and premium finish. If the subject is photographic, make it photorealistic and cinematic (editorial, film-like lighting, real textures — not AI-looking); if it is a graphic/design, keep it clean, modern, well-aligned and professional.";
+        : " Make it a professional, high-quality result with a clean strong composition and balanced lighting. If the subject is photographic: photorealistic and cinematic — real natural textures, true-to-life accurate colors, subtle film grain, shot on a real professional camera; absolutely NO plastic/CGI/waxy look, NO over-smoothing, NO over-saturation, NO AI artifacts. If it is a graphic/design: clean, modern, well-aligned, sharp and professional.";
       const fullPrompt = `${text}.${editNote}${logoNote}${qualityBoost} Aspect ratio: ${imgAspect}.`;
 
       // مهلة من جهة العميل عشان ما يفضلش معلّق على شبكات الموبايل
