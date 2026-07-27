@@ -240,6 +240,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // اكتشاف أخطاء الكوتة/الرصيد وإظهار رسالة واضحة بدل الكلام التقني
+  const joined = errors.join(" | ");
+  const isQuota = /RESOURCE_EXHAUSTED|quota|billing|exceeded|insufficient|out of credit|402|429/i.test(joined);
+  if (isQuota) {
+    return NextResponse.json(
+      {
+        error: "انتهى رصيد/كوتة مفتاح Gemini — اشحن الكريديت أو راجِع الفوترة في حساب Google، وبعدها جرّب تاني.",
+        quota: true,
+        detail: errors.slice(0, 2).join(" | ").slice(0, 200),
+      },
+      { status: 402 }
+    );
+  }
+
   return NextResponse.json(
     { error: `تعذّر التوليد. ${errors.slice(0, 3).join(" | ")}` },
     { status: 503 }

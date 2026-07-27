@@ -167,6 +167,7 @@ export default function ShotsPage() {
     const refImages = back ? [front, back] : [front];
     const dual = !!back;
 
+    let quotaHit = false;
     const runOne = async (a: Angle, i: number, attempt = 1): Promise<boolean> => {
       try {
         const prompt = buildShotPrompt(a, aspect, hint, dual);
@@ -181,6 +182,7 @@ export default function ShotsPage() {
           await new Promise((r) => setTimeout(r, 5000 * attempt));
           return runOne(a, i, attempt + 1);
         }
+        if (res.status === 402 || data.quota) quotaHit = true;
         if (!res.ok || !data.images?.length) {
           setShots((p) => p.map((s, idx) => idx === i ? { ...s, status: "error", error: (data.error as string) || `فشل (${res.status})` } : s));
           return false;
@@ -206,8 +208,8 @@ export default function ShotsPage() {
     }
 
     setBusy(false);
-    if (ok === 0) toast.error("مطلعش أي لقطة — غالباً تجاوزت الحدّ. استنّى دقيقة وحاول تاني");
-    else if (ok < angles.length) toast(`اتعمل ${ok} من ${angles.length} لقطة — الباقي فشل، جرّب تاني بعد شوية`);
+    if (ok === 0) toast.error(quotaHit ? "رصيد/كوتة Gemini خلصت — اشحن الكريديت وجرّب تاني" : "مطلعش أي لقطة — غالباً تجاوزت الحدّ. استنّى دقيقة وحاول تاني");
+    else if (ok < angles.length) toast(quotaHit ? `اتعمل ${ok} من ${angles.length} — الباقي وقف على رصيد/كوتة Gemini` : `اتعمل ${ok} من ${angles.length} لقطة — الباقي فشل، جرّب تاني بعد شوية`);
     else toast.success("خلص — كل اللقطات اتحفظت في ملفاتي 🎉");
   }
 
