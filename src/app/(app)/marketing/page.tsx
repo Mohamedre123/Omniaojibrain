@@ -9,7 +9,7 @@ const TOOLS = [
   { href: "/marketing/ugc", icon: Video, title: "سكربتات UGC (تيك توك/ريلز)", description: "3 سكربتات جاهزة للتصوير: خطّاف + لقطات + نصّ", color: "from-fuchsia-500 to-pink-600", badge: "✨ جديد" },
   { href: "/marketing/competitor", icon: Swords, title: "محلّل المنافس", description: "الصق محتوى منافس → تحليل وتميّز وأفكار محتوى", color: "from-red-500 to-rose-700", badge: "✨ جديد" },
   { href: "/marketing/product-ad", icon: ImagePlus, title: "محوّل منتج → إعلان بصري", description: "صورة منتجك + العرض → إعلان جاهز للنشر", color: "from-violet-500 to-purple-600", badge: "✨ جديد" },
-  { href: "/marketing/pricing", icon: Calculator, title: "حاسبة التسعير والعروض", description: "السعر المثالي + ربحك + باقات وأسعار نفسية", color: "from-emerald-500 to-teal-600", badge: "✨ جديد" },
+  { href: "/marketing/pricing", icon: Calculator, title: "حاسبة التسعير الشاملة", description: "تسعير منتج · ربحية متجر و BE ROAS · تسعير خدمة/فريلانس", color: "from-emerald-500 to-teal-600", badge: "✨ جديد" },
   { href: "/marketing/repurpose", icon: Recycle, title: "إعادة تدوير المحتوى", description: "فكرة واحدة → بوست + ريلز + ستوري + تغريدة + إيميل + هاشتاجات", color: "from-teal-500 to-emerald-600", badge: "✨ جديد" },
   { href: "/marketing/carousel", icon: GalleryHorizontalEnd, title: "تصميم كاروسيل", description: "موضوع → كاروسيل 5–7 شرائح جاهزة للتصميم", color: "from-fuchsia-500 to-pink-600", badge: "✨ جديد" },
   { href: "/marketing/video-pack", icon: Clapperboard, title: "قوالب فيديو جاهزة", description: "سكربت + برومبتات فيديو + Start/End frame + موسيقى", color: "from-blue-500 to-indigo-600", badge: "✨ جديد" },
