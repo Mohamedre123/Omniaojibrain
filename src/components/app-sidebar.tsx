@@ -31,6 +31,7 @@ import {
   Tag,
   Gift,
   ShoppingBag,
+  Search,
 } from "lucide-react";
 
 const NAV = [
@@ -137,6 +138,18 @@ export function AppSidebar() {
             aria-label="إغلاق"
           >
             <X className="size-4" />
+          </button>
+        </div>
+
+        {/* بحث سريع عن الأدوات */}
+        <div className="px-3 pt-3">
+          <button
+            onClick={() => { setMobileOpen(false); window.dispatchEvent(new Event("oji-open-palette")); }}
+            className="w-full inline-flex items-center gap-2 h-9 rounded-lg border bg-background/60 px-3 text-sm text-muted-foreground hover:border-primary/50 transition-colors"
+          >
+            <Search className="size-4 shrink-0" />
+            <span className="flex-1 text-right">دوّر على أداة…</span>
+            <kbd className="text-[10px] border rounded px-1 py-0.5">Ctrl K</kbd>
           </button>
         </div>
 

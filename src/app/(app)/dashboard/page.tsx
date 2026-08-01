@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NewProjectDialog } from "./new-project-dialog";
 import { WelcomeBanner } from "./welcome-banner";
 import { DashboardTools } from "@/components/dashboard-tools";
+import { DashboardToday } from "@/components/dashboard-today";
 import { BUSINESS_TEMPLATES } from "@/lib/templates";
 import { Reveal } from "@/components/reveal";
 import { relativeTime } from "@/lib/utils";
@@ -52,6 +53,10 @@ export default async function DashboardPage() {
           </p>
         </div>
         <NewProjectDialog />
+      </div>
+
+      <div className="mb-6">
+        <DashboardToday />
       </div>
 
       <div className="mb-8">
