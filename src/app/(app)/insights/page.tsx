@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, Search, Clock, Flame, Calculator, LineChart, UserSearch, Grid2x2, ScanEye } from "lucide-react";
+import { TrendingUp, Search, Clock, Flame, Calculator, LineChart, UserSearch, Grid2x2, ScanEye, Brain, Newspaper } from "lucide-react";
 
 const TOOLS = [
+  { href: "/insights/today", icon: Brain, title: "أعمل إيه النهارده؟", description: "3–5 مهام محتوى مقترحة لمشروعك مع الأداة المناسبة", color: "from-violet-500 to-fuchsia-600", badge: "✨ جديد" },
+  { href: "/insights/digest", icon: Newspaper, title: "الموجز الأسبوعي", description: "كل اللي أنجزته آخر 7 أيام في مكان واحد", color: "from-slate-500 to-slate-700", badge: "✨ جديد" },
   { href: "/insights/analyze", icon: ScanEye, title: "تحليل الأداء بالصورة", description: "ارفع نتائج/بوست/إعلان → تحليل وتوصيات", color: "from-cyan-500 to-blue-600", badge: "✨ جديد" },
   { href: "/insights/persona", icon: UserSearch, title: "شخصية العميل المثالي", description: "Buyer Persona: أهدافه، ألمه، اعتراضاته، قنواته", color: "from-indigo-500 to-violet-600", badge: "✨ جديد" },
   { href: "/insights/swot", icon: Grid2x2, title: "تحليل SWOT", description: "قوّة وضعف وفرص وتهديدات + توصيات", color: "from-teal-500 to-emerald-600", badge: "✨ جديد" },

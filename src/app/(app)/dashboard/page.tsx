@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NewProjectDialog } from "./new-project-dialog";
 import { WelcomeBanner } from "./welcome-banner";
+import { DashboardTools } from "@/components/dashboard-tools";
 import { BUSINESS_TEMPLATES } from "@/lib/templates";
 import { Reveal } from "@/components/reveal";
 import { relativeTime } from "@/lib/utils";
@@ -51,6 +52,10 @@ export default async function DashboardPage() {
           </p>
         </div>
         <NewProjectDialog />
+      </div>
+
+      <div className="mb-8">
+        <DashboardTools />
       </div>
 
       {list.length === 0 ? (

@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Rocket, Check, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ColorField } from "@/components/color-field";
+import { createClient } from "@/lib/supabase/client";
+import { Rocket, Check, ArrowLeft, Loader2, Search } from "lucide-react";
 
 const STEPS = [
   { id: "brand", title: "اضبط هوية علامتك", desc: "اسم، نبرة، ألوان، ولوجو من الإعدادات", href: "/settings" },
@@ -17,8 +23,47 @@ const KEY = "oji_onboarding";
 
 export default function StartPage() {
   const [done, setDone] = useState<Record<string, boolean>>({});
+  const [brandName, setBrandName] = useState("");
+  const [primary, setPrimary] = useState("#4f6ef7");
+  const [accent, setAccent] = useState("#f59e0b");
+  const [savingBrand, setSavingBrand] = useState(false);
+  const [brandLoaded, setBrandLoaded] = useState(false);
 
   useEffect(() => { try { setDone(JSON.parse(localStorage.getItem(KEY) || "{}")); } catch {} }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: p } = await supabase.from("profiles").select("brand_name, brand_colors").eq("id", user.id).maybeSingle();
+        if (p?.brand_name) setBrandName(p.brand_name as string);
+        const colors = (p?.brand_colors as string[] | null) || [];
+        if (colors[0]) setPrimary(colors[0]);
+        if (colors[1]) setAccent(colors[1]);
+      } catch { /* ignore */ } finally { setBrandLoaded(true); }
+    })();
+  }, []);
+
+  async function saveBrand() {
+    if (!brandName.trim()) { toast.error("اكتب اسم علامتك"); return; }
+    setSavingBrand(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("profiles").update({
+        brand_name: brandName.trim(),
+        brand_colors: [primary, accent],
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) { toast.error("تعذّر الحفظ", { description: error.message }); return; }
+      toast.success("اتحفظت هويتك ✨ — كل الأدوات هتشتغل عليها");
+      const next = { ...done, brand: true };
+      setDone(next); localStorage.setItem(KEY, JSON.stringify(next));
+    } finally { setSavingBrand(false); }
+  }
   function toggle(id: string) {
     const next = { ...done, [id]: !done[id] };
     setDone(next); localStorage.setItem(KEY, JSON.stringify(next));
@@ -36,6 +81,33 @@ export default function StartPage() {
         </div>
         <p className="text-xs text-muted-foreground mt-2">{completed} / {STEPS.length}</p>
       </div>
+
+      {/* إعداد سريع للهوية */}
+      <Card className="p-5 mb-5 space-y-4">
+        <div>
+          <h3 className="font-semibold flex items-center gap-1.5">✨ إعداد سريع لهويتك</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">احفظها هنا وكل الأدوات (صور، تصميمات، محتوى) هتشتغل على مقاسك تلقائياً.</p>
+        </div>
+        <div>
+          <Label htmlFor="bn" className="text-xs">اسم علامتك</Label>
+          <Input id="bn" value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="مثلاً: متجر لمسة" className="mt-1" disabled={!brandLoaded} />
+        </div>
+        <div className="grid grid-cols-2 gap-3 max-w-xs">
+          <ColorField label="لون أساسي" value={primary} onChange={setPrimary} />
+          <ColorField label="لون مميّز" value={accent} onChange={setAccent} />
+        </div>
+        <Button onClick={saveBrand} disabled={savingBrand || !brandName.trim()} variant="gradient" className="w-full sm:w-auto">
+          {savingBrand ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} حفظ الهوية
+        </Button>
+      </Card>
+
+      {/* تلميح البحث السريع */}
+      <button
+        onClick={() => window.dispatchEvent(new Event("oji-open-palette"))}
+        className="w-full mb-5 rounded-lg border bg-card p-3 flex items-center gap-2 text-sm text-muted-foreground hover:border-primary/50 transition-colors"
+      >
+        <Search className="size-4" /> عندك أدوات كتير؟ دوّر على أي أداة بسرعة — <span className="text-primary font-medium">Ctrl+K</span> أو <Link href="/tools" className="text-primary font-medium underline" onClick={(e) => e.stopPropagation()}>دليل الأدوات</Link>
+      </button>
 
       <div className="space-y-3">
         {STEPS.map((s) => (

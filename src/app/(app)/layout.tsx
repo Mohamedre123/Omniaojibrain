@@ -6,6 +6,8 @@ import { FloatingHelp } from "@/components/floating-help";
 import { AppSidebar, SidebarTrigger } from "@/components/app-sidebar";
 import { AnimatedBackground } from "@/components/animated-background";
 import { SiteFooter } from "@/components/site-footer";
+import { CommandPalette } from "@/components/command-palette";
+import { PaletteButton } from "@/components/palette-button";
 
 // 🔒 مهمّ جداً للأمان: كل صفحات الحساب تُرسَم لكل طلبٍ على حدة (لكل مستخدم)،
 // وممنوع تخزينها في أي كاش — يمنع ظهور بيانات مستخدمٍ لمستخدمٍ آخر.
@@ -34,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center justify-between gap-1 h-16 px-4 lg:px-6">
             {/* زر القائمة على الموبايل (مخفي على الديسكتوب) */}
             <SidebarTrigger />
+            <PaletteButton />
             <div className="flex items-center gap-1 lg:mr-auto">
               <ThemeToggle />
               <UserMenu
@@ -48,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SiteFooter />
       </div>
       <FloatingHelp />
+      <CommandPalette />
     </div>
   );
 }
