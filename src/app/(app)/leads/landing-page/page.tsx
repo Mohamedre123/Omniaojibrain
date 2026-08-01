@@ -12,6 +12,7 @@ import {
   Wand2, Code, Pencil, ArrowLeft, MonitorSmartphone, Smartphone, Tablet, RotateCw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ColorField } from "@/components/color-field";
 
 const PAGE_TYPES = [
   { value: "product", label: "🛍️ منتج", desc: "بيع منتج" },
@@ -109,11 +110,18 @@ export default function LandingPageBuilder() {
   const [description, setDescription] = useState("");
   const [features, setFeatures] = useState("");
   const [price, setPrice] = useState("");
+  const [oldPrice, setOldPrice] = useState("");
   const [currency, setCurrency] = useState("SAR");
   const [cta, setCta] = useState("");
   const [contact, setContact] = useState("");
   const [extraNotes, setExtraNotes] = useState("");
   const [images, setImages] = useState<AttachedImage[]>([]);
+  const [logo, setLogo] = useState<AttachedImage | null>(null);
+  const [primaryColor, setPrimaryColor] = useState("#4f6ef7");
+  const [accentColor, setAccentColor] = useState("#f59e0b");
+  const [orderMethod, setOrderMethod] = useState<"whatsapp" | "payment" | "none">("whatsapp");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [paymentLink, setPaymentLink] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [streamText, setStreamText] = useState("");
@@ -196,6 +204,25 @@ export default function LandingPageBuilder() {
         .select("id, name")
         .order("updated_at", { ascending: false });
       setProjects((data as Project[]) || []);
+
+      // تعبئة من ملفّ العلامة (ألوان + لوجو)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: p } = await supabase.from("profiles").select("brand_colors, brand_logo_url").eq("id", user.id).maybeSingle();
+      const colors = (p?.brand_colors as string[] | null) || [];
+      if (colors[0]) setPrimaryColor(colors[0]);
+      if (colors[1]) setAccentColor(colors[1]);
+      if (p?.brand_logo_url) {
+        try {
+          const blob = await (await fetch(p.brand_logo_url as string)).blob();
+          const r = new FileReader();
+          r.onload = () => {
+            const res = r.result as string;
+            setLogo({ id: "logo", name: "brand-logo", type: blob.type || "image/png", base64: res.split(",")[1] || "", previewUrl: res });
+          };
+          r.readAsDataURL(blob);
+        } catch { /* تجاهل */ }
+      }
     })();
   }, []);
 
@@ -230,6 +257,18 @@ export default function LandingPageBuilder() {
     }
   }
 
+  function handleLogoUpload(file: File | null) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("اللوجو أكبر من 5MB"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("لازم صورة"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = reader.result as string;
+      setLogo({ id: "logo", name: file.name, type: file.type, base64: r.split(",")[1] || "", previewUrl: URL.createObjectURL(file) });
+    };
+    reader.readAsDataURL(file);
+  }
+
   // استبدل النصوص النائبة بالصور الفعلية (Data URI) عشان تظهر فعلاً
   function injectImages(html: string): string {
     let out = html;
@@ -237,6 +276,7 @@ export default function LandingPageBuilder() {
       const dataUri = `data:${img.type};base64,${img.base64}`;
       out = out.split(`__IMAGE_${i + 1}__`).join(dataUri);
     });
+    if (logo) out = out.split("__LOGO__").join(`data:${logo.type};base64,${logo.base64}`);
     return out;
   }
 
@@ -276,8 +316,15 @@ export default function LandingPageBuilder() {
       features && `**المميّزات (نقطة لكل سطر)**:\n${features}`,
       price && `**السعر**: ${price} ${CURRENCIES.find(c => c.value === currency)?.label.split(" ")[1] || currency}`,
       price && `**العملة**: ${currency} (استخدم رمز العملة الصحيح بجانب السعر — مثلاً: ${price} ${currency === "SAR" ? "ر.س" : currency === "AED" ? "د.إ" : currency === "EGP" ? "ج.م" : currency})`,
+      oldPrice && `**السعر قبل الخصم**: ${oldPrice} ${currency} — اعرضه مشطوباً بجانب السعر الحالي مع Badge نسبة الخصم.`,
       cta && `**زرّ الإجراء (CTA Text)**: ${cta}`,
       contact && `**معلومات تواصل / لينك زرّ CTA**: ${contact}`,
+      `**ألوان العلامة**: أساسي ${primaryColor}، مميّز ${accentColor}. استخدمها بالضبط في --primary/--secondary وفي الأزرار والروابط والعناوين.`,
+      logo && `**اللوجو**: متاح — ضعه في الهيدر (وربما الفوتر) عبر <img src="__LOGO__" alt="logo" style="height:40px">. لا تستخدم رابطاً خارجياً للوجو.`,
+      orderMethod === "whatsapp" && whatsapp.trim() &&
+        `**طريقة الطلب**: واتساب. رقم الواتساب: ${whatsapp.replace(/[^\d]/g, "")}. اجعل زرّ «اطلب الآن» ونموذج الطلب (بعد التحقق من الحقول) يفتحان https://wa.me/${whatsapp.replace(/[^\d]/g, "")}?text= برسالة URL-encoded فيها تفاصيل الطلب المعبّأة (اسم المنتج، الكمية، السعر، اسم العميل، الجوال، العنوان).`,
+      orderMethod === "payment" && paymentLink.trim() &&
+        `**طريقة الطلب**: رابط دفع/Checkout: ${paymentLink.trim()} — اجعل زرّ «اطلب الآن»/«ادفع الآن» ونموذج الطلب يوجّهان المستخدم إلى هذا الرابط عبر window.location.href بحيث يتمّ الشراء فعلاً.`,
       extraNotes && `**ملاحظات إضافية**: ${extraNotes}`,
       images.length > 0 && `**الصور المرفقة**: ${images.length} صورة. ضع كل صورة فعلياً في الصفحة عبر وسم <img>، مستخدماً النصوص النائبة بالترتيب: ${images.map((_, i) => `__IMAGE_${i + 1}__`).join("، ")} داخل خاصية src — مثال: <img src="__IMAGE_1__" alt="المنتج" style="width:100%;border-radius:12px">. لا تستخدم روابط خارجية للصور المرفقة، واستعملها في الأماكن المناسبة (Hero، المعرض، البطاقات).`,
     ].filter(Boolean).join("\n");
@@ -760,7 +807,7 @@ ${currentHtml}
           Landing Page Builder
         </h1>
         <p className="text-muted-foreground mt-2">
-          صفحة هبوط تفاعلية بأنيميشن — لمنتج، خدمة، CV، بورتفوليو، أو أيّ شيء آخر
+          صفحة بيع/هبوط احترافية بلوجوك وألوانك — معرض صور، سعر وخصم، تقييمات، ونظام طلب (واتساب أو رابط دفع) يشتغل فعلاً. قابلة للتعديل يدوي وبالـ AI.
         </p>
       </div>
 
@@ -820,6 +867,30 @@ ${currentHtml}
           </div>
         </div>
 
+        {/* الهوية: لوجو + ألوان */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <Label className="mb-2 block">لوجو العلامة (اختياري)</Label>
+            <div className="flex items-center gap-3">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo.previewUrl} alt="" className="size-14 rounded-lg object-contain border bg-white p-1" />
+              ) : (
+                <div className="size-14 rounded-lg border grid place-items-center text-muted-foreground"><Globe className="size-5" /></div>
+              )}
+              <label className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer hover:border-primary">
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoUpload(e.target.files?.[0] || null)} />
+                <Paperclip className="size-4" /> {logo ? "تغيير اللوجو" : "رفع لوجو"}
+              </label>
+              {logo && <Button variant="ghost" size="sm" onClick={() => setLogo(null)}><X className="size-4" /></Button>}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <ColorField label="اللون الأساسي" value={primaryColor} onChange={setPrimaryColor} />
+            <ColorField label="اللون المميّز" value={accentColor} onChange={setAccentColor} />
+          </div>
+        </div>
+
         <div>
           <Label htmlFor="ai-model">موديل الذكاء الاصطناعي (البرمجة بـ Claude)</Label>
           <select
@@ -862,9 +933,13 @@ ${currentHtml}
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <Label htmlFor="price">السعر (اختياري)</Label>
+            <Label htmlFor="oldprice">السعر قبل الخصم</Label>
+            <Input id="oldprice" value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} placeholder="399" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="price">السعر الحالي</Label>
             <Input id="price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="299" className="mt-1" />
           </div>
           <div>
@@ -889,6 +964,34 @@ ${currentHtml}
         <div>
           <Label htmlFor="contact">رابط الزرّ أو معلومات تواصل</Label>
           <Input id="contact" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="https://wa.me/201xxxxxxxx" className="mt-1" />
+        </div>
+
+        {/* الطلب والدفع */}
+        <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
+          <Label className="font-semibold">🛒 طريقة الطلب والدفع</Label>
+          <div className="inline-flex rounded-lg border bg-background p-0.5 text-xs">
+            {([
+              { v: "whatsapp", l: "واتساب" },
+              { v: "payment", l: "رابط دفع" },
+              { v: "none", l: "بدون" },
+            ] as const).map((o) => (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => setOrderMethod(o.v)}
+                className={`px-3 py-1.5 rounded-md font-medium transition-all ${orderMethod === o.v ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+              >
+                {o.l}
+              </button>
+            ))}
+          </div>
+          {orderMethod === "whatsapp" && (
+            <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="رقم الواتساب بالكود الدولي، مثلاً: 201000000000" dir="ltr" />
+          )}
+          {orderMethod === "payment" && (
+            <Input value={paymentLink} onChange={(e) => setPaymentLink(e.target.value)} placeholder="رابط الدفع / Checkout (Kashier · Paymob · Stripe...)" dir="ltr" />
+          )}
+          <p className="text-[11px] text-muted-foreground">زرّ «اطلب الآن» ونموذج الطلب هيتوصّلوا بالطريقة دي تلقائياً — بحيث العميل يقدر يشتري فعلاً.</p>
         </div>
 
         <div>
