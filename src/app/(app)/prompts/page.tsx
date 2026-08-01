@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Copy, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Copy, Check, Loader2, Wand2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 type Fmt = "ar" | "en" | "json";
 type P = { cat: string; title: string; ar: string; en: string; json: object };
+type Project = { id: string; name: string };
 
 const CATS = ["الكل", "منتجات", "طعام", "أزياء", "عقارات", "أشخاص", "إعلانات"];
+const USED_KEY = "oji_prompts_used_v1";
 
 const PROMPTS: P[] = [
   {
@@ -54,22 +58,124 @@ const FMT_LABEL: Record<Fmt, string> = { ar: "عربي", en: "English", json: "J
 export default function PromptsPage() {
   const [cat, setCat] = useState("الكل");
   const [fmt, setFmt] = useState<Fmt>("ar");
-  const [copied, setCopied] = useState("");
+  const [justCopied, setJustCopied] = useState("");
+  const [used, setUsed] = useState<Set<string>>(new Set());
+  const [extra, setExtra] = useState<P[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [generating, setGenerating] = useState(false);
 
-  const list = cat === "الكل" ? PROMPTS : PROMPTS.filter((p) => p.cat === cat);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(USED_KEY);
+      if (raw) setUsed(new Set(JSON.parse(raw) as string[]));
+    } catch { /* ignore */ }
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("projects").select("id, name").order("updated_at", { ascending: false });
+      setProjects((data as Project[]) || []);
+    })();
+  }, []);
+
+  const pool = useMemo(() => [...PROMPTS, ...extra], [extra]);
+  const list = useMemo(
+    () => pool.filter((p) => !used.has(p.title)).filter((p) => cat === "الكل" || p.cat === cat),
+    [pool, used, cat]
+  );
+
+  function persistUsed(next: Set<string>) {
+    try { localStorage.setItem(USED_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+  }
 
   function textOf(p: P): string {
     return fmt === "json" ? JSON.stringify(p.json, null, 2) : fmt === "en" ? p.en : p.ar;
   }
+
+  async function generateMore(silent = false, catHint?: string) {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const useCat = catHint || cat;
+      const avoid = [...used].slice(-12).join("، ");
+      const input = `الفئة المطلوبة: ${useCat === "الكل" ? "متنوّعة" : useCat}.${avoid ? ` ولّد أفكاراً جديدة مختلفة تماماً عن هذه العناوين: ${avoid}.` : ""}`;
+      const res = await fetch("/api/generator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool: "smart_image_prompts", input, project_id: projectId || undefined }),
+      });
+      if (!res.ok || !res.body) { if (!silent) toast.error("تعذّر التوليد"); return; }
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let acc = "";
+      while (true) { const { value, done } = await reader.read(); if (done) break; acc += dec.decode(value, { stream: true }); }
+      const m = acc.match(/\[[\s\S]*\]/);
+      if (!m) { if (!silent) toast.error("لم يرجع نتائج صالحة"); return; }
+      const parsed = JSON.parse(m[0]) as P[];
+      const existing = new Set(pool.map((p) => p.title));
+      const clean = parsed.filter((p) => p && p.title && p.ar && p.en && !existing.has(p.title) && !used.has(p.title))
+        .map((p) => ({ cat: p.cat || "متنوّع", title: p.title, ar: p.ar, en: p.en, json: p.json || {} }));
+      if (clean.length === 0) { if (!silent) toast("مفيش أفكار جديدة دلوقتي، جرّب تاني"); return; }
+      setExtra((prev) => [...prev, ...clean]);
+      if (!silent) toast.success(`اتضاف ${clean.length} برومبت على مقاس مشروعك ✨`);
+    } catch {
+      if (!silent) toast.error("تعذّر الاتصال");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function copy(p: P) {
-    navigator.clipboard.writeText(textOf(p)).then(() => { setCopied(p.title); toast.success("اتنسخ البرومبت"); setTimeout(() => setCopied(""), 1400); });
+    navigator.clipboard.writeText(textOf(p)).then(() => {
+      setJustCopied(p.title);
+      toast.success("اتنسخ البرومبت — واتشال عشان ييجي مكانه أحدث");
+      setTimeout(() => setJustCopied(""), 1200);
+      // بعد ثانية: شيله (تدوير) عشان ييجي مكانه غيره
+      setTimeout(() => {
+        setUsed((prev) => {
+          const next = new Set(prev).add(p.title);
+          persistUsed(next);
+          return next;
+        });
+      }, 500);
+      // ييجي مكانه واحد من نفس النوع بفكرة مختلفة — ولّد لو النوع ده قلّ
+      const sameKind = pool.filter((x) => !used.has(x.title) && x.title !== p.title && x.cat === p.cat).length;
+      if (sameKind < 3) void generateMore(true, p.cat);
+    });
+  }
+
+  function resetUsed() {
+    setUsed(new Set());
+    persistUsed(new Set());
+    toast.success("رجّعنا كل البرومبتات");
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-5">
         <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2"><Sparkles className="size-7 text-primary" /> برومبتات احترافية</h1>
-        <p className="text-muted-foreground mt-1 text-sm">برومبتات مفصّلة (إضاءة، عدسة، ألوان، مزاج سينمائي) — انسخها بصيغة عربي أو إنجليزي أو JSON.</p>
+        <p className="text-muted-foreground mt-1 text-sm">برومبتات مفصّلة تتجدّد باستمرار — اختَر مشروعك عشان تطلع على مقاس نشاطك، وأي برومبت تنسخه بييجي مكانه واحد جديد.</p>
+      </div>
+
+      {/* المشروع + توليد */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+        {projects.length > 0 && (
+          <select
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            className="h-10 px-3 rounded-md border border-input bg-background text-sm sm:max-w-[220px]"
+            title="على مقاس أي مشروع؟"
+          >
+            <option value="">— برومبتات عامة —</option>
+            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        )}
+        <Button variant="gradient" size="sm" onClick={() => void generateMore(false)} disabled={generating} className="sm:ml-2">
+          {generating ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
+          {generating ? "بيولّد..." : projectId ? "برومبتات على مقاس مشروعي" : "ولّد برومبتات جديدة"}
+        </Button>
+        {used.size > 0 && (
+          <Button variant="ghost" size="sm" onClick={resetUsed} className="text-xs text-muted-foreground">↺ رجّع المنسوخة ({used.size})</Button>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
@@ -85,17 +191,27 @@ export default function PromptsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {list.map((p) => (
-          <Card key={p.title} className="p-5 flex flex-col">
-            <div className="flex items-center justify-between gap-2">
-              <div><span className="text-xs text-primary font-medium">{p.cat}</span><h3 className="font-semibold">{p.title}</h3></div>
-              <button onClick={() => copy(p)} className="text-primary shrink-0">{copied === p.title ? <Check className="size-5" /> : <Copy className="size-5" />}</button>
-            </div>
-            <pre dir={fmt === "ar" ? "rtl" : "ltr"} className="mt-3 text-xs bg-muted/40 rounded-lg p-3 whitespace-pre-wrap break-words font-sans leading-relaxed max-h-56 overflow-y-auto">{textOf(p)}</pre>
-          </Card>
-        ))}
-      </div>
+      {list.length === 0 ? (
+        <Card className="p-10 text-center">
+          <Sparkles className="size-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+          <p className="text-sm text-muted-foreground">خلصت البرومبتات في الفئة دي — اضغط «ولّد برومبتات جديدة» أو رجّع المنسوخة.</p>
+          <Button variant="gradient" size="sm" onClick={() => void generateMore(false)} disabled={generating} className="mt-4">
+            {generating ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />} توليد المزيد
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {list.map((p) => (
+            <Card key={p.title} className="p-5 flex flex-col transition-all">
+              <div className="flex items-center justify-between gap-2">
+                <div><span className="text-xs text-primary font-medium">{p.cat}</span><h3 className="font-semibold">{p.title}</h3></div>
+                <button onClick={() => copy(p)} className="text-primary shrink-0" title="انسخ (وييجي مكانه واحد جديد)">{justCopied === p.title ? <Check className="size-5" /> : <Copy className="size-5" />}</button>
+              </div>
+              <pre dir={fmt === "ar" ? "rtl" : "ltr"} className="mt-3 text-xs bg-muted/40 rounded-lg p-3 whitespace-pre-wrap break-words font-sans leading-relaxed max-h-56 overflow-y-auto">{textOf(p)}</pre>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

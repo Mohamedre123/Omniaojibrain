@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LayoutTemplate, Copy, Check } from "lucide-react";
+import { LayoutTemplate, Copy, Check, Loader2, Wand2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 type Template = { cat: string; title: string; prompt: string };
+type Project = { id: string; name: string };
+const USED_KEY = "oji_templates_used_v1";
 
 const CATEGORIES = ["الكل", "صور إعلانية", "بوستات", "استراتيجية", "فيديو/ريلز", "عروض ومناسبات"];
 
@@ -86,15 +89,84 @@ const PHOTO_GROUPS: { title: string; items: { ar: string; en: string }[] }[] = [
 export default function TemplatesPage() {
   const [cat, setCat] = useState("الكل");
   const [copied, setCopied] = useState<string | null>(null);
+  const [used, setUsed] = useState<Set<string>>(new Set());
+  const [extra, setExtra] = useState<Template[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [generating, setGenerating] = useState(false);
 
-  const list = cat === "الكل" ? TEMPLATES : TEMPLATES.filter((t) => t.cat === cat);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(USED_KEY);
+      if (raw) setUsed(new Set(JSON.parse(raw) as string[]));
+    } catch { /* ignore */ }
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("projects").select("id, name").order("updated_at", { ascending: false });
+      setProjects((data as Project[]) || []);
+    })();
+  }, []);
+
+  const pool = useMemo(() => [...TEMPLATES, ...extra], [extra]);
+  const list = useMemo(
+    () => pool.filter((t) => !used.has(t.title)).filter((t) => cat === "الكل" || t.cat === cat),
+    [pool, used, cat]
+  );
+
+  function persistUsed(next: Set<string>) {
+    try { localStorage.setItem(USED_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+  }
+
+  async function generateMore(silent = false, catHint?: string) {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const useCat = catHint || cat;
+      const avoid = [...used].slice(-12).join("، ");
+      const input = `الفئة المطلوبة: ${useCat === "الكل" ? "متنوّعة" : useCat}.${avoid ? ` أفكار جديدة مختلفة تماماً عن: ${avoid}.` : ""}`;
+      const res = await fetch("/api/generator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool: "smart_templates", input, project_id: projectId || undefined }),
+      });
+      if (!res.ok || !res.body) { if (!silent) toast.error("تعذّر التوليد"); return; }
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let acc = "";
+      while (true) { const { value, done } = await reader.read(); if (done) break; acc += dec.decode(value, { stream: true }); }
+      const m = acc.match(/\[[\s\S]*\]/);
+      if (!m) { if (!silent) toast.error("لم يرجع نتائج صالحة"); return; }
+      const parsed = JSON.parse(m[0]) as Template[];
+      const existing = new Set(pool.map((t) => t.title));
+      const clean = parsed.filter((t) => t && t.title && t.prompt && !existing.has(t.title) && !used.has(t.title))
+        .map((t) => ({ cat: t.cat || "متنوّع", title: t.title, prompt: t.prompt }));
+      if (clean.length === 0) { if (!silent) toast("مفيش أفكار جديدة دلوقتي"); return; }
+      setExtra((prev) => [...prev, ...clean]);
+      if (!silent) toast.success(`اتضاف ${clean.length} قالب على مقاس مشروعك ✨`);
+    } catch {
+      if (!silent) toast.error("تعذّر الاتصال");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   function copy(t: Template) {
     navigator.clipboard.writeText(t.prompt).then(() => {
       setCopied(t.title);
-      toast.success("اتنسخ! الصقه في المساعد أو الأداة المناسبة");
+      toast.success("اتنسخ! وييجي مكانه قالب أحدث");
       setTimeout(() => setCopied(null), 1500);
+      setTimeout(() => {
+        setUsed((prev) => { const next = new Set(prev).add(t.title); persistUsed(next); return next; });
+      }, 500);
+      const sameKind = pool.filter((x) => !used.has(x.title) && x.title !== t.title && x.cat === t.cat).length;
+      if (sameKind < 3) void generateMore(true, t.cat);
     });
+  }
+
+  function resetUsed() {
+    setUsed(new Set());
+    persistUsed(new Set());
+    toast.success("رجّعنا كل القوالب");
   }
 
   return (
@@ -103,7 +175,29 @@ export default function TemplatesPage() {
         <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
           <LayoutTemplate className="size-7 text-primary" /> مكتبة القوالب
         </h1>
-        <p className="text-muted-foreground mt-1 text-sm">قوالب جاهزة — انسخ القالب، غيّر ما بين [الأقواس]، والصقه في المساعد أو الأداة المناسبة.</p>
+        <p className="text-muted-foreground mt-1 text-sm">قوالب تتجدّد — اختَر مشروعك عشان تطلع على مقاس نشاطك، وأي قالب تنسخه بييجي مكانه واحد جديد بفكرة مختلفة.</p>
+      </div>
+
+      {/* المشروع + توليد */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+        {projects.length > 0 && (
+          <select
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            className="h-10 px-3 rounded-md border border-input bg-background text-sm sm:max-w-[220px]"
+            title="على مقاس أي مشروع؟"
+          >
+            <option value="">— قوالب عامة —</option>
+            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        )}
+        <Button variant="gradient" size="sm" onClick={() => void generateMore(false)} disabled={generating} className="sm:ml-2">
+          {generating ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
+          {generating ? "بيولّد..." : projectId ? "قوالب على مقاس مشروعي" : "ولّد قوالب جديدة"}
+        </Button>
+        {used.size > 0 && (
+          <Button variant="ghost" size="sm" onClick={resetUsed} className="text-xs text-muted-foreground">↺ رجّع المنسوخة ({used.size})</Button>
+        )}
       </div>
 
       {/* فلتر التصنيفات — سحب أفقي على الموبايل */}
@@ -119,6 +213,15 @@ export default function TemplatesPage() {
         ))}
       </div>
 
+      {list.length === 0 ? (
+        <Card className="mt-6 p-10 text-center">
+          <LayoutTemplate className="size-10 mx-auto text-muted-foreground mb-3 opacity-50" />
+          <p className="text-sm text-muted-foreground">خلصت القوالب في الفئة دي — اضغط «ولّد قوالب جديدة» أو رجّع المنسوخة.</p>
+          <Button variant="gradient" size="sm" onClick={() => void generateMore(false)} disabled={generating} className="mt-4">
+            {generating ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />} توليد المزيد
+          </Button>
+        </Card>
+      ) : (
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {list.map((t) => (
           <Card key={t.title} className="p-5 flex flex-col hover-lift">
@@ -131,6 +234,7 @@ export default function TemplatesPage() {
           </Card>
         ))}
       </div>
+      )}
 
       {/* مرجع التصوير — إضاءة/زوايا/لقطات/كاميرا */}
       <div className="mt-12">
