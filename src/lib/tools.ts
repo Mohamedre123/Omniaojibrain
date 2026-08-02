@@ -18,6 +18,7 @@ export const TOOLS: Tool[] = [
   { href: "/assistant", title: "المساعد العام", desc: "اسأل عن استراتيجية وأفكار", cat: "الأساسيات", emoji: "💬", kw: "chat شات" },
   { href: "/calendar", title: "تقويم المحتوى", desc: "خطة شهرية 30 منشور", cat: "الأساسيات", emoji: "🗓️" },
   { href: "/tools", title: "دليل الأدوات", desc: "كل الأدوات في مكان واحد", cat: "الأساسيات", emoji: "🧭" },
+  { href: "/automations", title: "الأتمتة والوكلاء", desc: "صمّم بوت واتساب أو أي أتمتة — والـ AI يجهّزها", cat: "الأساسيات", emoji: "⚙️", kw: "n8n automation agent بوت workflow" },
   { href: "/start", title: "ابدأ من هنا", desc: "إعداد أوّل مرّة", cat: "الأساسيات", emoji: "🚀" },
 
   // الصور والفيديو

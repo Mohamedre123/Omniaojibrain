@@ -51,10 +51,13 @@ const CURRENCIES = [
 ];
 
 const CLAUDE_MODELS = [
-  { id: "claude-opus-4-8", label: "Claude Opus 4.8 (الأقوى)" },
-  { id: "claude-opus-4-7", label: "Claude Opus 4.7" },
-  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (متوازن)" },
+  { id: "claude-opus-5", label: "Claude Opus 5 (الأقوى)" },
+  { id: "claude-sonnet-5", label: "Claude Sonnet 5 (متوازن)" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5 (الأسرع)" },
+  { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { id: "claude-opus-4-7", label: "Claude Opus 4.7" },
+  { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
 ];
 
 // سكربت المحرّر المرئي — يُحقن داخل المعاينة عشان النقر بالماوس + التعديل المباشر

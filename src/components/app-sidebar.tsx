@@ -32,6 +32,7 @@ import {
   Gift,
   ShoppingBag,
   Search,
+  Workflow,
 } from "lucide-react";
 
 const NAV = [
@@ -42,6 +43,7 @@ const NAV = [
   { href: "/prompts", label: "برومبتات احترافية", icon: Sparkles, color: "text-fuchsia-500" },
   { href: "/calendar", label: "التقويم", icon: Calendar, color: "text-emerald-500" },
   { href: "/marketing", label: "التسويق", icon: Megaphone, color: "text-orange-500" },
+  { href: "/automations", label: "الأتمتة والوكلاء", icon: Workflow, color: "text-sky-500" },
   { href: "/insights", label: "الرؤى والتحليلات", icon: TrendingUp, color: "text-cyan-500" },
   { href: "/leads", label: "جذب العملاء", icon: Target, color: "text-amber-500" },
   { href: "/bio", label: "صفحة الروابط", icon: LayoutTemplate, color: "text-cyan-500" },

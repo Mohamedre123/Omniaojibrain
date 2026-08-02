@@ -284,10 +284,13 @@ export function ChatPanel({
             title="اختر موديل الذكاء الاصطناعي"
           >
             <option value="gemini">Gemini (افتراضي)</option>
-            <option value="claude-opus-4-8">Claude Opus 4.8 (الأقوى)</option>
-            <option value="claude-opus-4-7">Claude Opus 4.7</option>
-            <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+            <option value="claude-opus-5">Claude Opus 5 (الأقوى)</option>
+            <option value="claude-sonnet-5">Claude Sonnet 5 (متوازن)</option>
             <option value="claude-haiku-4-5">Claude Haiku 4.5 (الأسرع)</option>
+            <option value="claude-opus-4-8">Claude Opus 4.8</option>
+            <option value="claude-opus-4-7">Claude Opus 4.7</option>
+            <option value="claude-opus-4-6">Claude Opus 4.6</option>
+            <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
           </select>
         </div>
         <FilePreviewList files={files} onRemove={(id) => setFiles((p) => p.filter((f) => f.id !== id))} />

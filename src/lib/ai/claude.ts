@@ -6,12 +6,15 @@ import type { ChatMessage } from "./gemini";
 const API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 
-// موديلات Claude المتاحة للاختيار (الأقوى أولاً)
+// موديلات Claude المتاحة للاختيار (الأحدث أولاً)
 export const CLAUDE_MODELS = [
-  { id: "claude-opus-4-8", label: "Claude Opus 4.8 (الأقوى)" },
-  { id: "claude-opus-4-7", label: "Claude Opus 4.7" },
-  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (متوازن وسريع)" },
+  { id: "claude-opus-5", label: "Claude Opus 5 (الأقوى)" },
+  { id: "claude-sonnet-5", label: "Claude Sonnet 5 (متوازن)" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5 (الأسرع)" },
+  { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { id: "claude-opus-4-7", label: "Claude Opus 4.7" },
+  { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
 ] as const;
 
 export const DEFAULT_CLAUDE_MODEL = "claude-opus-4-8";
