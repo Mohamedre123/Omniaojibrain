@@ -9,7 +9,7 @@ export const metadata = {
   description: "باقات Oji للتسويق الإلكتروني: إدارة المتاجر والسوشيال وزيادة المبيعات.",
 };
 
-const AGENCY_URL = "https://oji.agency/";
+const AGENCY_URL = "https://www.oji-agency.site/";
 
 const PLANS = [
   {
@@ -95,7 +95,7 @@ export default function AgencyPage() {
               <h2 className="text-2xl sm:text-3xl font-bold">جاهز تكبّر مبيعاتك؟</h2>
               <p className="mt-2 text-white/90">تصفّح كل الباقات والخدمات على موقع Oji Agency الرسمي.</p>
               <a href={AGENCY_URL} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center justify-center gap-2 h-12 px-8 rounded-xl bg-white text-primary font-semibold hover:opacity-90 transition-opacity">
-                زوروا oji.agency <ArrowUpRight className="size-5" />
+                زوروا oji-agency.site <ArrowUpRight className="size-5" />
               </a>
               <p className="mt-4 text-xs text-white/80">سيُفتح الموقع الرسمي في تبويبٍ جديد — حسابك في Oji Brain يبقى كما هو.</p>
             </div>

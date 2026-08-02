@@ -106,7 +106,7 @@ async function fetchImageAsBase64(url: string): Promise<{ data: string; mime: st
     const t = setTimeout(() => c.abort(), 8000);
     const r = await fetch(url, {
       signal: c.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; OjiBrain/1.0; +https://oji.agency)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; OjiBrain/1.0; +https://www.oji-agency.site)" },
       redirect: "follow",
     });
     clearTimeout(t);
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch(detected.fetchUrl, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; OjiBrain/1.0; +https://oji.agency)",
+        "User-Agent": "Mozilla/5.0 (compatible; OjiBrain/1.0; +https://www.oji-agency.site)",
         Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",
