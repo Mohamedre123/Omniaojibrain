@@ -137,8 +137,7 @@ export default function AutomationsPage() {
       <Card className="p-4 mt-4 flex items-start gap-3 bg-muted/20">
         <Plug className="size-5 text-primary shrink-0 mt-0.5" />
         <div className="text-xs text-muted-foreground leading-relaxed">
-          <b className="text-foreground">إزاي بيشتغل فعلاً:</b> بعد ما Oji يصمّم الخطة ويقولك محتاج أنهي مفاتيح (توكن واتساب/انستجرام، مفتاح AI للوكيل… إلخ)، تجيبها من حسابك وتبعتها لينا، ونفعّل التنفيذ الحيّ لكل أتمتة على حدة — وكل حاجة تفضل ملك حسابك.
-          {" "}<Link href="/contact" className="text-primary underline">كلّمنا لتفعيل أتمتة</Link>.
+          <b className="text-foreground">جرّب دلوقتي:</b> فيه وكيل <b>تليجرام جاهز للتشغيل فوراً</b> — اربط بوتك من صفحة <Link href="/automations/connect" className="text-primary underline font-medium">ربط الخدمات</Link> وهيردّ على عملائك كموظف حقيقي. باقي الخدمات (واتساب/انستجرام…) بنفعّلها أول ما تبعت مفتاحها — وكل حاجة تفضل ملك حسابك.
         </div>
       </Card>
     </div>
