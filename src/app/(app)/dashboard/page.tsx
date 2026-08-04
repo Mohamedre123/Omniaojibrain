@@ -46,8 +46,8 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-8">
       {showWelcome && <WelcomeBanner fullName={firstName} />}
 
-      {/* رأس تقني: ليبل مونو + عنوان + إجراء */}
-      <div className="relative rounded-md border border-border bg-card/60 p-5 sm:p-6 mb-6 overflow-hidden">
+      {/* رأس: ليبل + عنوان + إجراء */}
+      <div className="relative rounded-2xl border border-border bg-card/70 p-5 sm:p-7 mb-6 overflow-hidden shadow-[0_16px_44px_-30px_rgba(40,10,60,0.55)]">
         <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
@@ -62,8 +62,8 @@ export default async function DashboardPage() {
           <NewProjectDialog />
         </div>
 
-        {/* شريط إحصائيات مونو */}
-        <div className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-md border border-border bg-border">
+        {/* شريط إحصائيات */}
+        <div className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border">
           {[
             { k: "المشاريع", v: String(list.length).padStart(2, "0") },
             { k: "الأدوات", v: "90+" },
@@ -99,11 +99,11 @@ export default async function DashboardPage() {
             return (
               <Reveal key={p.id} delay={(i % 8) * 55}>
               <Link href={`/projects/${p.id}`} className="block h-full">
-                <Card className="ticks group h-full cursor-pointer overflow-hidden">
-                  <div className={`h-1 w-full bg-gradient-to-r ${COVER_COLORS[p.cover_color] ?? COVER_COLORS.violet}`} />
+                <Card className="group h-full cursor-pointer overflow-hidden hover:-translate-y-1">
+                  <div className={`h-1.5 w-full bg-gradient-to-r ${COVER_COLORS[p.cover_color] ?? COVER_COLORS.violet}`} />
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="grid size-10 place-items-center rounded-md border border-border bg-secondary/50 text-xl shrink-0">
+                      <div className="grid size-11 place-items-center rounded-xl border border-border bg-secondary/50 text-xl shrink-0">
                         {tpl?.emoji ?? "✨"}
                       </div>
                       <span className="font-mono text-[10px] text-muted-foreground tabular-nums pt-1">{relativeTime(p.updated_at)}</span>

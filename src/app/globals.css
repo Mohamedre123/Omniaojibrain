@@ -9,51 +9,55 @@
    قاعدة فحمية محايدة + أكسنت نيون (مِنت/إمرالد) واحد
    ============================================================ */
 
-/* الوضع الفاتح — نظيف وجديد (خيار ثانوي) */
+/* الوضع الفاتح — بنفسجي/موڤ + لمسة ذهبية (ألوان اللوجو) */
 :root {
-  --background: oklch(0.985 0.004 170);
-  --foreground: oklch(0.18 0.018 235);
+  --background: oklch(0.985 0.006 315);
+  --foreground: oklch(0.2 0.03 312);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.018 235);
+  --card-foreground: oklch(0.2 0.03 312);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.018 235);
-  --primary: oklch(0.6 0.14 165);
-  --primary-foreground: oklch(0.99 0.01 165);
-  --secondary: oklch(0.965 0.007 175);
-  --secondary-foreground: oklch(0.22 0.02 235);
-  --muted: oklch(0.965 0.006 175);
-  --muted-foreground: oklch(0.48 0.015 235);
-  --accent: oklch(0.94 0.035 170);
-  --accent-foreground: oklch(0.24 0.03 200);
+  --popover-foreground: oklch(0.2 0.03 312);
+  --primary: oklch(0.5 0.19 318);
+  --primary-foreground: oklch(0.99 0.01 320);
+  --secondary: oklch(0.965 0.012 315);
+  --secondary-foreground: oklch(0.24 0.03 312);
+  --muted: oklch(0.965 0.01 315);
+  --muted-foreground: oklch(0.47 0.03 312);
+  --accent: oklch(0.95 0.035 320);
+  --accent-foreground: oklch(0.3 0.06 318);
+  --gold: oklch(0.72 0.13 82);
+  --gold-foreground: oklch(0.25 0.05 78);
   --destructive: oklch(0.6 0.21 22);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0.008 210);
-  --input: oklch(0.9 0.008 210);
-  --ring: oklch(0.6 0.14 165);
-  --radius: 0.3rem;
+  --border: oklch(0.9 0.012 315);
+  --input: oklch(0.9 0.012 315);
+  --ring: oklch(0.5 0.19 318);
+  --radius: 0.9rem;
 }
 
-/* الوضع الداكن — البطل: فحمي شبه أسود + نيون مِنت */
+/* الوضع الداكن — البطل: بنفسجي غامق فاخر + نجمة ذهبية */
 .dark {
-  --background: oklch(0.15 0.011 235);
-  --foreground: oklch(0.96 0.004 220);
-  --card: oklch(0.188 0.013 235);
-  --card-foreground: oklch(0.96 0.004 220);
-  --popover: oklch(0.2 0.014 235);
-  --popover-foreground: oklch(0.96 0.004 220);
-  --primary: oklch(0.84 0.17 162);
-  --primary-foreground: oklch(0.17 0.05 162);
-  --secondary: oklch(0.235 0.013 235);
-  --secondary-foreground: oklch(0.96 0.004 220);
-  --muted: oklch(0.235 0.013 235);
-  --muted-foreground: oklch(0.71 0.015 225);
-  --accent: oklch(0.27 0.03 172);
-  --accent-foreground: oklch(0.94 0.03 172);
-  --destructive: oklch(0.64 0.2 22);
-  --destructive-foreground: oklch(0.98 0.005 255);
-  --border: oklch(0.29 0.012 235);
-  --input: oklch(0.29 0.012 235);
-  --ring: oklch(0.84 0.17 162);
+  --background: oklch(0.155 0.022 310);
+  --foreground: oklch(0.96 0.008 320);
+  --card: oklch(0.195 0.026 312);
+  --card-foreground: oklch(0.96 0.008 320);
+  --popover: oklch(0.21 0.028 312);
+  --popover-foreground: oklch(0.96 0.008 320);
+  --primary: oklch(0.66 0.2 320);
+  --primary-foreground: oklch(0.99 0.008 320);
+  --secondary: oklch(0.25 0.03 312);
+  --secondary-foreground: oklch(0.96 0.008 320);
+  --muted: oklch(0.25 0.03 312);
+  --muted-foreground: oklch(0.73 0.025 318);
+  --accent: oklch(0.3 0.05 318);
+  --accent-foreground: oklch(0.95 0.02 320);
+  --gold: oklch(0.82 0.14 84);
+  --gold-foreground: oklch(0.22 0.05 78);
+  --destructive: oklch(0.65 0.2 22);
+  --destructive-foreground: oklch(0.98 0.005 320);
+  --border: oklch(0.31 0.03 314);
+  --input: oklch(0.31 0.03 314);
+  --ring: oklch(0.66 0.2 320);
 }
 
 @theme inline {
@@ -76,13 +80,15 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  /* مقياس زوايا حاد (Console) — يعمّم الحدة على كل rounded-* في الموقع */
-  --radius-sm: calc(var(--radius) - 1px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 1px);
-  --radius-xl: calc(var(--radius) + 2px);
-  --radius-2xl: calc(var(--radius) + 4px);
-  --radius-3xl: calc(var(--radius) + 7px);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  /* مقياس زوايا ناعم مدوّر */
+  --radius-sm: calc(var(--radius) - 5px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: calc(var(--radius) - 1px);
+  --radius-xl: var(--radius);
+  --radius-2xl: calc(var(--radius) + 5px);
+  --radius-3xl: calc(var(--radius) + 12px);
   --font-sans: var(--font-sans);
   --font-arabic: var(--font-arabic);
   --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -120,12 +126,13 @@
     background: color-mix(in oklab, var(--background) 62%, transparent);
     backdrop-filter: blur(18px) saturate(1.4);
   }
-  /* تدرّج العلامة الجديد: إمرالد → تيل → سيان (آمن مع النص الأبيض) */
+  /* تدرّج العلامة — من اللوجو: بنفسجي غامق → موڤ → ماجنتا فاتح */
   .gradient-brand {
-    background: linear-gradient(135deg, oklch(0.68 0.16 162), oklch(0.6 0.13 192), oklch(0.58 0.12 218));
+    background: linear-gradient(135deg, oklch(0.42 0.17 312), oklch(0.55 0.2 320), oklch(0.66 0.19 332));
   }
+  /* نص متدرّج ينتهي بلمسة ذهبية (بنفسجي → ذهبي — مثل نجمة اللوجو) */
   .text-gradient {
-    background: linear-gradient(135deg, oklch(0.72 0.16 162), oklch(0.68 0.13 192), oklch(0.68 0.14 224));
+    background: linear-gradient(120deg, oklch(0.58 0.2 318), oklch(0.66 0.19 332), oklch(0.8 0.13 84));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -261,35 +268,31 @@
 }
 
 @layer utilities {
-  /* سطح التطبيق — مسطّح تقني بلا توهّج (Console) */
-  .app-surface { background: transparent; }
+  /* سطح التطبيق — توهّج بنفسجي ناعم فاخر */
+  .app-surface {
+    background:
+      radial-gradient(1100px 560px at 100% -8%, color-mix(in oklab, var(--primary) 13%, transparent), transparent 58%),
+      radial-gradient(820px 460px at 0% 4%, color-mix(in oklab, var(--gold) 8%, transparent), transparent 55%);
+  }
 
-  /* خلفية نقطية (dot-grid) — الطابع البصري الأساسي للـ Console */
+  /* خلفية نقطية خفيفة (اختيارية) */
   .dot-grid {
-    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 15%, transparent) 1px, transparent 1px);
-    background-size: 22px 22px;
+    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 9%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
     background-position: -1px -1px;
   }
 
   .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
   .no-scrollbar { scrollbar-width: none; }
 
-  /* ليبل مونو صغير بحروف مباعدة — يستخدم لعناوين الأقسام */
+  /* ليبل صغير لعناوين الأقسام — أنيق وهادئ */
   .label-mono {
-    font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: 0.68rem;
-    font-weight: 600;
+    letter-spacing: 0.12em;
+    font-size: 0.66rem;
+    font-weight: 700;
     color: var(--muted-foreground);
   }
-  /* إطار زاوية علوية (corner ticks) — لمسة تقنية على البطاقات */
-  .ticks::before, .ticks::after {
-    content: ""; position: absolute; width: 8px; height: 8px; pointer-events: none;
-    border-color: color-mix(in oklab, var(--primary) 60%, transparent);
-  }
-  .ticks::before { top: -1px; right: -1px; border-top: 1.5px solid; border-right: 1.5px solid; }
-  .ticks::after { bottom: -1px; left: -1px; border-bottom: 1.5px solid; border-left: 1.5px solid; }
   /* رفعة لطيفة للبطاقات القابلة للنقر */
   .lift { transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease; }
   .lift:hover {

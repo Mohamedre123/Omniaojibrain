@@ -790,7 +790,7 @@ export function StudioChat() {
         ) : (
           messages.map((m) => (
             <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-              <div className={`max-w-[94%] sm:max-w-[88%] w-fit rounded-md text-[15px] leading-relaxed break-words ${m.role === "user" ? "bg-primary text-primary-foreground px-4 py-2.5" : "border border-border border-r-2 border-r-primary/70 bg-card/60 p-2.5"}`}>
+              <div className={`max-w-[94%] sm:max-w-[88%] w-fit text-[15px] leading-relaxed break-words ${m.role === "user" ? "rounded-2xl rounded-tl-md bg-primary text-primary-foreground px-4 py-2.5 shadow-[0_10px_26px_-14px_color-mix(in_oklab,var(--primary)_90%,transparent)]" : "rounded-2xl rounded-tr-md border border-border bg-card p-2.5 shadow-[0_10px_30px_-24px_rgba(40,10,60,0.6)]"}`}>
                 {m.refPreviews && m.refPreviews.length > 0 && (
                   <div className="mb-2 flex flex-wrap gap-1.5">
                     {m.refPreviews.map((u, i) => (
@@ -923,7 +923,7 @@ export function StudioChat() {
           </div>
         )}
 
-        <div className="flex items-end gap-1.5 rounded-md border border-border bg-card p-2 transition-all focus-within:border-primary/60">
+        <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-card p-2 shadow-[0_10px_30px_-20px_color-mix(in_oklab,var(--primary)_55%,transparent)] transition-all focus-within:border-primary/55">
           {mode === "image" && (
             <label className={`shrink-0 size-10 rounded-xl grid place-items-center cursor-pointer text-muted-foreground hover:bg-muted transition-colors relative ${imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
               <input type="file" accept="image/*" multiple className="hidden" disabled={imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />

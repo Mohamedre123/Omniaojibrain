@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingHelp } from "@/components/floating-help";
-import { IconRail, ConsoleMobileNav, RailSearchButton } from "@/components/console-nav";
+import { AppSidebar, SidebarTrigger, TopSearch } from "@/components/main-nav";
 import { AnimatedBackground } from "@/components/animated-background";
 import { SiteFooter } from "@/components/site-footer";
 import { CommandPalette } from "@/components/command-palette";
@@ -29,38 +29,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .single();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex">
       <AnimatedBackground />
-      <IconRail />
 
-      {/* عمود المحتوى — بجانب الريل (الريل على اليمين في RTL) */}
-      <div className="lg:mr-16 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/80 backdrop-blur-2xl safe-top relative">
-          <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
-          <div className="mx-auto max-w-[1400px] flex h-14 items-center gap-2 px-3 sm:px-5">
-            <ConsoleMobileNav />
+      {/* السايدبار القابل للطي (يمين في RTL) */}
+      <AppSidebar />
+
+      {/* عمود المحتوى */}
+      <div className="flex min-h-screen flex-1 flex-col min-w-0">
+        <header className="sticky top-0 z-30 h-16 border-b border-border bg-background/75 backdrop-blur-2xl safe-top relative">
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="flex h-16 items-center gap-2 px-3 sm:px-5">
+            <SidebarTrigger />
             <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
-              <div className="size-8 rounded-md gradient-brand grid place-items-center"><Brain className="size-4 text-white" /></div>
+              <div className="size-9 rounded-xl gradient-brand grid place-items-center"><Brain className="size-5 text-white" /></div>
               <span className="font-extrabold tracking-tight">Oji Brain</span>
             </Link>
-            <span className="hidden lg:flex items-center gap-2 label-mono select-none">
-              <span className="inline-block size-1.5 rounded-full bg-primary shadow-[0_0_8px_color-mix(in_oklab,var(--primary)_80%,transparent)]" />
-              OJI CONSOLE
-            </span>
 
-            <div className="mr-auto flex items-center gap-1.5">
-              <RailSearchButton />
-              <ThemeToggle />
-              <UserMenu
-                email={user.email ?? ""}
-                fullName={profile?.full_name ?? user.email?.split("@")[0] ?? ""}
-                avatarUrl={profile?.avatar_url ?? null}
-              />
-            </div>
+            <div className="flex-1" />
+            <TopSearch />
+            <ThemeToggle />
+            <UserMenu
+              email={user.email ?? ""}
+              fullName={profile?.full_name ?? user.email?.split("@")[0] ?? ""}
+              avatarUrl={profile?.avatar_url ?? null}
+            />
           </div>
         </header>
 
-        <main className="flex-1 app-surface pb-[4.75rem] lg:pb-0">{children}</main>
+        <main className="flex-1 app-surface">{children}</main>
         <SiteFooter />
       </div>
 

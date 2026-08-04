@@ -284,11 +284,13 @@ export function GeneratorTool({
           </div>
         )}
         <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
+          <div className="label-mono mb-1">أداة Oji</div>
+          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-1">{description}</p>
         </div>
       </div>
 
+      <div className="grid gap-5 lg:grid-cols-2 items-start">
       <Card className="p-5 space-y-4">
         {allowProjectContext && projects.length > 0 && (
           <div>
@@ -385,7 +387,8 @@ export function GeneratorTool({
         </Button>
       </Card>
 
-      {(result || loading) && (
+      <div className="lg:sticky lg:top-20">
+      {(result || loading) ? (
         <Card className="p-5 space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2">
@@ -448,7 +451,16 @@ export function GeneratorTool({
             </div>
           )}
         </Card>
+      ) : (
+        <Card className="grid min-h-[260px] place-items-center p-8 text-center">
+          <div className="text-muted-foreground">
+            <Sparkles className="size-9 mx-auto mb-3 text-primary/50" />
+            <p className="text-sm">اكتب مدخلاتك واضغط «توليد» — والنتيجة هتظهر هنا جاهزة للنسخ والحفظ.</p>
+          </div>
+        </Card>
       )}
+      </div>
+      </div>
     </div>
   );
 }

@@ -64,18 +64,17 @@ export function MessageBubble({
   return (
     <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
       {!isUser && (
-        <div className="shrink-0 size-9 rounded-md gradient-brand grid place-items-center">
+        <div className="shrink-0 size-9 rounded-xl gradient-brand grid place-items-center shadow-[0_8px_18px_-8px_color-mix(in_oklab,var(--primary)_85%,transparent)]">
           <Brain className="size-5 text-white" />
         </div>
       )}
       <div className={cn("group max-w-[85%] min-w-0", isUser && "ml-auto")}>
-        {!isUser && <div className="label-mono text-[0.6rem] mb-1 px-1">OJI ▸ RESPONSE</div>}
         <div
           className={cn(
             "text-[15px] leading-relaxed break-words",
             isUser
-              ? "rounded-md bg-primary text-primary-foreground px-4 py-2.5 w-fit ml-auto shadow-[0_8px_22px_-12px_color-mix(in_oklab,var(--primary)_85%,transparent)]"
-              : "rounded-md border border-border border-r-2 border-r-primary/70 bg-card/60 px-4 py-3"
+              ? "rounded-2xl rounded-tl-md bg-primary text-primary-foreground px-4 py-2.5 w-fit ml-auto shadow-[0_10px_26px_-14px_color-mix(in_oklab,var(--primary)_90%,transparent)]"
+              : "rounded-2xl rounded-tr-md border border-border bg-card px-4 py-3 shadow-[0_10px_30px_-24px_rgba(40,10,60,0.6)]"
           )}
         >
           {isUser ? (
