@@ -36,6 +36,11 @@ export default function PublisherPage() {
   const [connected, setConnected] = useState<string[]>([]); // ["facebook", ...]
   const [publishingTo, setPublishingTo] = useState("");
   const [needsTable, setNeedsTable] = useState(false);
+  // الجدولة
+  const [schedulePlatform, setSchedulePlatform] = useState<ApiPlatform>("facebook");
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduled, setScheduled] = useState<{ id: string; platform: string; publish_at: string; status: string }[]>([]);
 
   async function loadConnectors() {
     const supabase = createClient();
@@ -43,7 +48,37 @@ export default function PublisherPage() {
     if (error) { if (/oji_connectors|does not exist/i.test(error.message)) setNeedsTable(true); return; }
     setConnected(((data as { service: string }[]) || []).map((c) => c.service.replace("publish:", "")));
   }
-  useEffect(() => { void loadConnectors(); }, []);
+  async function loadScheduled() {
+    const supabase = createClient();
+    const { data } = await supabase.from("scheduled_posts").select("id, platform, publish_at, status").order("publish_at", { ascending: true }).limit(20);
+    setScheduled((data as { id: string; platform: string; publish_at: string; status: string }[]) || []);
+  }
+  useEffect(() => { void loadConnectors(); void loadScheduled(); }, []);
+
+  async function schedulePost() {
+    if (!scheduleAt) { toast.error("اختر وقت النشر"); return; }
+    if (!connected.includes(schedulePlatform)) { toast.error("اربط المنصّة دي بالـ API الأول"); return; }
+    if (!text.trim() && images.length === 0) { toast.error("اكتب نصّ أو ارفع صورة"); return; }
+    setScheduling(true);
+    try {
+      const res = await fetch("/api/publish/schedule", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: schedulePlatform, text, image_paths: images.map((i) => i.path), publish_at: new Date(scheduleAt).toISOString() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.error === "needs_table") { setNeedsTable(true); return; }
+      if (!res.ok) { toast.error(data.error || "تعذّرت الجدولة"); return; }
+      toast.success("اتجدول المنشور ✅");
+      setScheduleAt("");
+      void loadScheduled();
+    } catch { toast.error("تعذّر الاتصال"); } finally { setScheduling(false); }
+  }
+  async function cancelScheduled(id: string) {
+    const supabase = createClient();
+    await supabase.from("scheduled_posts").delete().eq("id", id);
+    setScheduled((p) => p.filter((x) => x.id !== id));
+    toast.success("اتلغت الجدولة");
+  }
 
   const firstUrl = images[0]?.url || "";
 
@@ -190,14 +225,40 @@ export default function PublisherPage() {
               </Button>
 
               {connected.length > 0 && (
-                <div className="border-t pt-3">
-                  <p className="text-xs font-medium mb-2">منصّاتك المربوطة — انشر عليها الآن:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {API_PLATFORMS.filter((p) => connected.includes(p.id)).map((p) => (
-                      <Button key={p.id} size="sm" variant="gradient" onClick={() => publishTo(p.id)} disabled={publishingTo === p.id}>
-                        {publishingTo === p.id ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} انشر على {p.label}
+                <div className="border-t pt-3 space-y-4">
+                  <div>
+                    <p className="text-xs font-medium mb-2">منصّاتك المربوطة — انشر عليها الآن:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {API_PLATFORMS.filter((p) => connected.includes(p.id)).map((p) => (
+                        <Button key={p.id} size="sm" variant="gradient" onClick={() => publishTo(p.id)} disabled={publishingTo === p.id}>
+                          {publishingTo === p.id ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} انشر على {p.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* الجدولة */}
+                  <div className="rounded-lg border p-3 bg-muted/20 space-y-2">
+                    <p className="text-xs font-medium flex items-center gap-1.5"><Calendar className="size-3.5 text-primary" /> جدولة النشر (ينتشر تلقائياً في الوقت اللي تحدّده)</p>
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <select value={schedulePlatform} onChange={(e) => setSchedulePlatform(e.target.value as ApiPlatform)} className="h-9 px-2 rounded-md border border-input bg-background text-xs">
+                        {API_PLATFORMS.filter((p) => connected.includes(p.id)).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      </select>
+                      <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} className="h-9 px-2 rounded-md border border-input bg-background text-xs" />
+                      <Button size="sm" variant="outline" onClick={schedulePost} disabled={scheduling}>
+                        {scheduling ? <Loader2 className="size-4 animate-spin" /> : <Calendar className="size-4" />} جدولة
                       </Button>
-                    ))}
+                    </div>
+                    {scheduled.filter((s) => s.status === "pending").length > 0 && (
+                      <div className="space-y-1 pt-1">
+                        {scheduled.filter((s) => s.status === "pending").map((s) => (
+                          <div key={s.id} className="flex items-center justify-between text-[11px] rounded border bg-background px-2 py-1">
+                            <span>🕒 {s.platform} — {new Date(s.publish_at).toLocaleString("ar")}</span>
+                            <button onClick={() => cancelScheduled(s.id)} className="text-destructive"><X className="size-3.5" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
