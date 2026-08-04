@@ -27,10 +27,10 @@
   --accent-foreground: oklch(0.24 0.03 200);
   --destructive: oklch(0.6 0.21 22);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.905 0.008 200);
-  --input: oklch(0.905 0.008 200);
+  --border: oklch(0.9 0.008 210);
+  --input: oklch(0.9 0.008 210);
   --ring: oklch(0.6 0.14 165);
-  --radius: 0.85rem;
+  --radius: 0.3rem;
 }
 
 /* الوضع الداكن — البطل: فحمي شبه أسود + نيون مِنت */
@@ -76,12 +76,16 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* مقياس زوايا حاد (Console) — يعمّم الحدة على كل rounded-* في الموقع */
+  --radius-sm: calc(var(--radius) - 1px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 1px);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 4px);
+  --radius-3xl: calc(var(--radius) + 7px);
   --font-sans: var(--font-sans);
   --font-arabic: var(--font-arabic);
+  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 @layer base {
@@ -257,12 +261,35 @@
 }
 
 @layer utilities {
-  /* خلفية سطح التطبيق — توهّج هادئ رزين بلون الأكسنت (Dark Premium) */
-  .app-surface {
-    background:
-      radial-gradient(1100px 560px at 50% -12%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 60%),
-      radial-gradient(760px 420px at 100% 6%, color-mix(in oklab, var(--primary) 6%, transparent), transparent 55%);
+  /* سطح التطبيق — مسطّح تقني بلا توهّج (Console) */
+  .app-surface { background: transparent; }
+
+  /* خلفية نقطية (dot-grid) — الطابع البصري الأساسي للـ Console */
+  .dot-grid {
+    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 15%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: -1px -1px;
   }
+
+  .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+  .no-scrollbar { scrollbar-width: none; }
+
+  /* ليبل مونو صغير بحروف مباعدة — يستخدم لعناوين الأقسام */
+  .label-mono {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+  /* إطار زاوية علوية (corner ticks) — لمسة تقنية على البطاقات */
+  .ticks::before, .ticks::after {
+    content: ""; position: absolute; width: 8px; height: 8px; pointer-events: none;
+    border-color: color-mix(in oklab, var(--primary) 60%, transparent);
+  }
+  .ticks::before { top: -1px; right: -1px; border-top: 1.5px solid; border-right: 1.5px solid; }
+  .ticks::after { bottom: -1px; left: -1px; border-bottom: 1.5px solid; border-left: 1.5px solid; }
   /* رفعة لطيفة للبطاقات القابلة للنقر */
   .lift { transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease; }
   .lift:hover {

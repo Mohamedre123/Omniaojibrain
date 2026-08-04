@@ -1,44 +1,33 @@
 /**
- * خلفية "Dark Premium" موحّدة لكل الموقع (واجهة + داخل الحساب).
- * قاعدة فحمية هادئة + توهّج نيون خفيف + شبكة دقيقة + خطّ ضوئي علوي.
- * CSS فقط — خفيفة وتعمل على كل الأجهزة، ومحايدة تماماً بلا حركة مزعجة.
+ * خلفية "Console" — مسطّحة تقنية: شبكة نقطية دقيقة + خطّ ضوئي علوي رفيع.
+ * بلا كرات أو حركة — الطابع التقني الحاد. تعمل على الوضعين والأجهزة كلها.
  */
 export function AnimatedBackground() {
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {/* طبقة القاعدة — تدرّج عمودي خفيف يعطي عمقاً */}
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background">
+      {/* شبكة نقطية */}
+      <div className="absolute inset-0 dot-grid opacity-70" />
+
+      {/* توهّج علوي خفيف جداً بلون الأكسنت */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-x-0 top-0 h-64"
         style={{
           background:
-            "radial-gradient(1200px 680px at 50% -16%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 62%)",
+            "radial-gradient(900px 260px at 50% -40%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%)",
         }}
       />
 
-      {/* شبكة دقيقة جداً */}
-      <div className="absolute inset-0 bg-grid opacity-[0.22]" />
-
-      {/* خطّ ضوئي علوي رفيع بلون الأكسنت */}
+      {/* خطّ ضوئي علوي */}
       <div
         className="absolute inset-x-0 top-0 h-px"
         style={{
           background:
-            "linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 60%, transparent), transparent)",
+            "linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 55%, transparent), transparent)",
         }}
       />
 
-      {/* توهّجان ناعمان ثابتان — رزانة premium بدل الكرات الملوّنة */}
-      <div
-        className="absolute -top-32 right-[-8rem] size-[34rem] max-w-[80vw] rounded-full blur-3xl"
-        style={{ background: "radial-gradient(circle, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%)" }}
-      />
-      <div
-        className="absolute bottom-[-10rem] left-[-6rem] size-[30rem] max-w-[78vw] rounded-full blur-3xl opacity-70"
-        style={{ background: "radial-gradient(circle, color-mix(in oklab, var(--primary) 10%, transparent), transparent 70%)" }}
-      />
-
-      {/* تعتيم سفلي خفيف يثبّت المحتوى */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/40" />
+      {/* تلاشٍ سفلي خفيف */}
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
     </div>
   );
 }

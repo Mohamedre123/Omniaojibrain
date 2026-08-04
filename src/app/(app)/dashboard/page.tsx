@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NewProjectDialog } from "./new-project-dialog";
 import { WelcomeBanner } from "./welcome-banner";
@@ -43,56 +43,81 @@ export default async function DashboardPage() {
   const firstName = (profile?.full_name ?? user?.email?.split("@")[0] ?? "").split(" ")[0];
 
   return (
-    <div className="container mx-auto px-4 py-10">
+    <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-8">
       {showWelcome && <WelcomeBanner fullName={firstName} />}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">مشاريعي</h1>
-          <p className="text-muted-foreground mt-1">
-            جميعُ مشاريعك في مكانٍ واحد — ابدأ مشروعاً جديداً أو تابع مشروعاً قائماً.
-          </p>
+
+      {/* رأس تقني: ليبل مونو + عنوان + إجراء */}
+      <div className="relative rounded-md border border-border bg-card/60 p-5 sm:p-6 mb-6 overflow-hidden">
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="label-mono mb-2">DASHBOARD / PROJECTS</div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {firstName ? <>أهلاً <span className="text-primary">{firstName}</span> 👋</> : "مشاريعي"}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              جميعُ مشاريعك في مكانٍ واحد — ابدأ مشروعاً جديداً أو تابع مشروعاً قائماً.
+            </p>
+          </div>
+          <NewProjectDialog />
         </div>
-        <NewProjectDialog />
+
+        {/* شريط إحصائيات مونو */}
+        <div className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-md border border-border bg-border">
+          {[
+            { k: "المشاريع", v: String(list.length).padStart(2, "0") },
+            { k: "الأدوات", v: "90+" },
+            { k: "الحالة", v: "ONLINE" },
+          ].map((s) => (
+            <div key={s.k} className="bg-card px-4 py-3">
+              <div className="label-mono text-[0.6rem]">{s.k}</div>
+              <div className="font-mono text-lg font-bold mt-0.5 tabular-nums">{s.v}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="mb-6">
-        <DashboardToday />
+      {/* Bento: مهام اليوم + الأدوات السريعة */}
+      <div className="grid gap-4 lg:grid-cols-3 mb-6">
+        <div className="lg:col-span-2"><DashboardToday /></div>
+        <div className="lg:col-span-1"><DashboardTools /></div>
       </div>
 
-      <div className="mb-8">
-        <DashboardTools />
+      {/* المشاريع */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="label-mono">ALL PROJECTS</div>
+        <div className="flex-1 border-t border-border" />
+        <div className="font-mono text-xs text-muted-foreground tabular-nums">{String(list.length).padStart(2, "0")}</div>
       </div>
 
       {list.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((p, i) => {
             const tpl = BUSINESS_TEMPLATES.find((t) => t.id === p.business_type);
             return (
-              <Reveal key={p.id} delay={(i % 6) * 70}>
+              <Reveal key={p.id} delay={(i % 8) * 55}>
               <Link href={`/projects/${p.id}`} className="block h-full">
-                <Card className="group h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 cursor-pointer">
-                  <div className={`h-24 bg-gradient-to-br ${COVER_COLORS[p.cover_color] ?? COVER_COLORS.violet} relative`}>
-                    <div className="absolute inset-0 grid place-items-center text-5xl">
-                      {tpl?.emoji ?? "✨"}
+                <Card className="ticks group h-full cursor-pointer overflow-hidden">
+                  <div className={`h-1 w-full bg-gradient-to-r ${COVER_COLORS[p.cover_color] ?? COVER_COLORS.violet}`} />
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="grid size-10 place-items-center rounded-md border border-border bg-secondary/50 text-xl shrink-0">
+                        {tpl?.emoji ?? "✨"}
+                      </div>
+                      <span className="font-mono text-[10px] text-muted-foreground tabular-nums pt-1">{relativeTime(p.updated_at)}</span>
                     </div>
-                  </div>
-                  <CardContent className="p-5">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                      <span>{tpl?.name ?? "مشروع"}</span>
-                      <span>•</span>
-                      <span>{relativeTime(p.updated_at)}</span>
-                    </div>
-                    <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+                    <div className="label-mono text-[0.6rem] mt-3">{tpl?.name ?? "مشروع"}</div>
+                    <h3 className="font-semibold text-[15px] line-clamp-1 mt-0.5 group-hover:text-primary transition-colors">
                       {p.name}
                     </h3>
                     {p.brief && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                         {p.brief}
                       </p>
                     )}
-                  </CardContent>
+                  </div>
                 </Card>
               </Link>
               </Reveal>
