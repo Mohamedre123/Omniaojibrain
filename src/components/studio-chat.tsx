@@ -923,7 +923,7 @@ export function StudioChat() {
           </div>
         )}
 
-        <div className="flex items-end gap-1.5 rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md p-1.5 shadow-sm transition-all focus-within:border-primary/40 focus-within:shadow-md">
+        <div className="flex items-end gap-1.5 rounded-3xl border-2 border-primary/15 bg-card/80 backdrop-blur-xl p-2 shadow-xl shadow-primary/10 transition-all focus-within:border-primary/45 focus-within:shadow-2xl">
           {mode === "image" && (
             <label className={`shrink-0 size-10 rounded-xl grid place-items-center cursor-pointer text-muted-foreground hover:bg-muted transition-colors relative ${imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
               <input type="file" accept="image/*" multiple className="hidden" disabled={imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />

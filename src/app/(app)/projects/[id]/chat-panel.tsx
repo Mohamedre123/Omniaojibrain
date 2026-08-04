@@ -294,7 +294,7 @@ export function ChatPanel({
           </select>
         </div>
         <FilePreviewList files={files} onRemove={(id) => setFiles((p) => p.filter((f) => f.id !== id))} />
-        <div className="flex items-end gap-1.5 rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md p-1.5 shadow-lg shadow-black/5 transition-all focus-within:border-primary/40 focus-within:shadow-xl">
+        <div className="flex items-end gap-1.5 rounded-3xl border-2 border-primary/15 bg-card/80 backdrop-blur-xl p-2 shadow-xl shadow-primary/10 transition-all focus-within:border-primary/45 focus-within:shadow-2xl">
           <FileUploadButton files={files} onFilesChange={setFiles} disabled={isStreamingHere} />
           <VoiceInput onTranscript={handleVoice} disabled={isStreamingHere} />
           <Textarea
