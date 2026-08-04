@@ -73,8 +73,8 @@ export function MessageBubble({
           className={cn(
             "rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed break-words",
             isUser
-              ? "bg-primary text-primary-foreground rounded-tr-sm w-fit ml-auto shadow-sm"
-              : "bg-muted rounded-tl-sm"
+              ? "gradient-brand text-white rounded-tr-sm w-fit ml-auto shadow-md shadow-primary/25"
+              : "bg-card/70 border border-border/50 backdrop-blur-sm rounded-tl-sm shadow-sm"
           )}
         >
           {isUser ? (

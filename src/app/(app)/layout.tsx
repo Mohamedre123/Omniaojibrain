@@ -32,7 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AnimatedBackground />
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="glass sticky top-0 z-30 border-b safe-top">
+        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/60 backdrop-blur-2xl safe-top">
           <div className="flex items-center justify-between gap-1 h-16 px-4 lg:px-6">
             {/* زر القائمة على الموبايل (مخفي على الديسكتوب) */}
             <SidebarTrigger />
