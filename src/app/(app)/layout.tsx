@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingHelp } from "@/components/floating-help";
-import { AppSidebar, SidebarTrigger } from "@/components/app-sidebar";
+import { TopNav } from "@/components/top-nav";
 import { AnimatedBackground } from "@/components/animated-background";
 import { SiteFooter } from "@/components/site-footer";
 import { CommandPalette } from "@/components/command-palette";
@@ -28,28 +28,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .single();
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col">
       <AnimatedBackground />
-      <AppSidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/60 backdrop-blur-2xl safe-top">
-          <div className="flex items-center justify-between gap-1 h-16 px-4 lg:px-6">
-            {/* زر القائمة على الموبايل (مخفي على الديسكتوب) */}
-            <SidebarTrigger />
+
+      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/70 backdrop-blur-2xl safe-top">
+        <div className="mx-auto max-w-7xl flex items-center gap-2 h-16 px-3 sm:px-5">
+          <TopNav />
+          <div className="mr-auto flex items-center gap-1">
             <PaletteButton />
-            <div className="flex items-center gap-1 lg:mr-auto">
-              <ThemeToggle />
-              <UserMenu
-                email={user.email ?? ""}
-                fullName={profile?.full_name ?? user.email?.split("@")[0] ?? ""}
-                avatarUrl={profile?.avatar_url ?? null}
-              />
-            </div>
+            <ThemeToggle />
+            <UserMenu
+              email={user.email ?? ""}
+              fullName={profile?.full_name ?? user.email?.split("@")[0] ?? ""}
+              avatarUrl={profile?.avatar_url ?? null}
+            />
           </div>
-        </header>
-        <main className="flex-1 app-surface">{children}</main>
-        <SiteFooter />
-      </div>
+        </div>
+      </header>
+
+      <main className="flex-1 app-surface">{children}</main>
+      <SiteFooter />
+
       <FloatingHelp />
       <CommandPalette />
     </div>
