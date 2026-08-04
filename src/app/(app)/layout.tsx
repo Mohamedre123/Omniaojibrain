@@ -47,7 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         </header>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 app-surface">{children}</main>
         <SiteFooter />
       </div>
       <FloatingHelp />

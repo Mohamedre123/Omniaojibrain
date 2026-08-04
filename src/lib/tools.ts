@@ -52,6 +52,7 @@ export const TOOLS: Tool[] = [
   { href: "/marketing/names", title: "مولّد الأسماء التجارية", desc: "12 اسم + دومين", cat: "التسويق", emoji: "🏷️" },
   { href: "/marketing/slogans", title: "مولّد الشعارات", desc: "10 شعارات جذّابة", cat: "التسويق", emoji: "✨" },
   { href: "/marketing/ugc", title: "سكربتات UGC", desc: "تيك توك/ريلز جاهزة للتصوير", cat: "التسويق", emoji: "🎬" },
+  { href: "/marketing/storyboard", title: "ستوري بورد + تحريك Veo 3", desc: "مشاهد مترابطة + برومبت تحريك بين كل مشهدين", cat: "التسويق", emoji: "🎞️", kw: "storyboard veo motion تحريك" },
   { href: "/marketing/launch-plan", title: "مخطّط إطلاق منتج", desc: "تشويق → إطلاق → متابعة", cat: "التسويق", emoji: "🚀" },
   { href: "/marketing/competitor", title: "محلّل المنافس", desc: "الصق محتوى منافس → تحليل", cat: "التسويق", emoji: "⚔️" },
   { href: "/marketing/month-plan", title: "خطة محتوى 30 يوم", desc: "شهر كامل بوستات", cat: "التسويق", emoji: "📅" },

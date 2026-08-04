@@ -790,7 +790,7 @@ export function StudioChat() {
         ) : (
           messages.map((m) => (
             <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-              <div className={`max-w-[94%] sm:max-w-[88%] w-fit rounded-2xl text-[15px] leading-relaxed break-words ${m.role === "user" ? "bg-primary text-primary-foreground px-4 py-2.5 shadow-sm" : "bg-card border p-2.5"}`}>
+              <div className={`max-w-[94%] sm:max-w-[88%] w-fit rounded-2xl text-[15px] leading-relaxed break-words ${m.role === "user" ? "gradient-brand text-white px-4 py-2.5 shadow-md shadow-primary/20" : "bg-card/80 border border-border/60 backdrop-blur-sm p-2.5 shadow-sm"}`}>
                 {m.refPreviews && m.refPreviews.length > 0 && (
                   <div className="mb-2 flex flex-wrap gap-1.5">
                     {m.refPreviews.map((u, i) => (

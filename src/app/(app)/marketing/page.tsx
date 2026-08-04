@@ -7,6 +7,7 @@ const TOOLS = [
   { href: "/marketing/policies", icon: ScrollText, title: "مولّد سياسات المتجر", description: "شحن / استرجاع / خصوصية / شروط — جاهزة للّصق", color: "from-slate-500 to-slate-700", badge: "✨ جديد" },
   { href: "/marketing/launch-plan", icon: Rocket, title: "مخطّط إطلاق منتج", description: "خطة تشويق → إطلاق → متابعة بالمحتوى والتوقيت", color: "from-orange-500 to-amber-600", badge: "✨ جديد" },
   { href: "/marketing/ugc", icon: Video, title: "سكربتات UGC (تيك توك/ريلز)", description: "3 سكربتات جاهزة للتصوير: خطّاف + لقطات + نصّ", color: "from-fuchsia-500 to-pink-600", badge: "✨ جديد" },
+  { href: "/marketing/storyboard", icon: Clapperboard, title: "ستوري بورد + تحريك Veo 3", description: "فكرة/صورة → مشاهد مترابطة + برومبت تحريك بين كل مشهدين", color: "from-purple-500 to-indigo-600", badge: "✨ جديد" },
   { href: "/marketing/competitor", icon: Swords, title: "محلّل المنافس", description: "الصق محتوى منافس → تحليل وتميّز وأفكار محتوى", color: "from-red-500 to-rose-700", badge: "✨ جديد" },
   { href: "/marketing/product-ad", icon: ImagePlus, title: "محوّل منتج → إعلان بصري", description: "صورة منتجك + العرض → إعلان جاهز للنشر", color: "from-violet-500 to-purple-600", badge: "✨ جديد" },
   { href: "/marketing/pricing", icon: Calculator, title: "حاسبة التسعير الشاملة", description: "تسعير منتج · ربحية متجر و BE ROAS · تسعير خدمة/فريلانس", color: "from-emerald-500 to-teal-600", badge: "✨ جديد" },
