@@ -18,9 +18,10 @@ export function AnimatedBackground() {
       />
 
       {/* كرات لونية تتحرّك ببطء */}
-      <div className="absolute -top-24 -right-16 size-[30rem] max-w-[80vw] rounded-full bg-gradient-to-br from-indigo-600/30 to-blue-500/18 blur-2xl animate-blob" />
-      <div className="absolute top-1/3 -left-20 size-[28rem] max-w-[80vw] rounded-full bg-gradient-to-br from-cyan-500/25 to-sky-400/15 blur-2xl animate-blob delay-300" />
-      <div className="absolute -bottom-12 right-1/4 size-[26rem] max-w-[78vw] rounded-full bg-gradient-to-br from-fuchsia-600/24 to-pink-500/15 blur-2xl animate-blob delay-500" />
+      <div className="absolute -top-24 -right-16 size-[32rem] max-w-[82vw] rounded-full bg-gradient-to-br from-indigo-600/34 to-blue-500/20 blur-3xl animate-blob" />
+      <div className="absolute top-1/3 -left-20 size-[30rem] max-w-[82vw] rounded-full bg-gradient-to-br from-cyan-500/28 to-sky-400/16 blur-3xl animate-blob delay-300" />
+      <div className="absolute -bottom-12 right-1/4 size-[28rem] max-w-[80vw] rounded-full bg-gradient-to-br from-fuchsia-600/26 to-pink-500/16 blur-3xl animate-blob delay-500" />
+      <div className="hidden sm:block absolute top-[60%] left-[35%] size-[22rem] max-w-[70vw] rounded-full bg-gradient-to-br from-violet-500/20 to-primary/10 blur-3xl animate-blob delay-700" />
 
       {/* أشكال عائمة خفيفة */}
       <div className="absolute top-28 left-[8%] size-24 rounded-full border border-primary/20 animate-float" />

@@ -923,20 +923,20 @@ export function StudioChat() {
           </div>
         )}
 
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-1.5 rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md p-1.5 shadow-sm transition-all focus-within:border-primary/40 focus-within:shadow-md">
           {mode === "image" && (
-            <label className={`shrink-0 size-11 rounded-xl border grid place-items-center cursor-pointer hover:border-primary transition-colors relative ${imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
+            <label className={`shrink-0 size-10 rounded-xl grid place-items-center cursor-pointer text-muted-foreground hover:bg-muted transition-colors relative ${imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
               <input type="file" accept="image/*" multiple className="hidden" disabled={imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />
               <Paperclip className="size-5 text-muted-foreground" />
             </label>
           )}
           {mode === "image" && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => void enhancePrompt()}
               disabled={enhancing || !input.trim()}
-              className="shrink-0 size-11 rounded-xl"
+              className="shrink-0 size-10 rounded-xl text-primary"
               title="✨ حسّن البرومبت — يوسّع فكرتك لبرومبت احترافي"
             >
               {enhancing ? <Loader2 className="size-5 animate-spin" /> : <Wand2 className="size-5" />}
@@ -950,14 +950,14 @@ export function StudioChat() {
             placeholder={mode === "image" ? "اكتب وصف الصورة أو طلب تعديل…" : "اكتب وصف الفيديو…"}
             rows={1}
             dir="auto"
-            className="resize-none min-h-11 max-h-32 py-2.5"
+            className="resize-none min-h-10 max-h-32 py-2 border-0 bg-transparent shadow-none backdrop-blur-none focus-visible:ring-0 hover:border-0"
           />
           <Button
             variant="gradient"
             size="icon"
             onClick={() => void send()}
             disabled={mode === "image" ? !input.trim() && imgRefs.length === 0 : !input.trim() && !vidStart && !vidEnd}
-            className="shrink-0 size-11 rounded-xl"
+            className="shrink-0 size-10 rounded-xl"
             title="إرسال"
           >
             <Send className="size-5" />

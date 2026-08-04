@@ -166,13 +166,14 @@ export function AppSidebar() {
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground hover:bg-muted"
+                    ? "bg-gradient-to-l from-primary/15 to-primary/5 text-primary shadow-sm"
+                    : "text-foreground hover:bg-muted/70"
                 )}
               >
-                <Icon className={cn("size-5", active ? "text-primary" : item.color)} />
+                {active && <span aria-hidden className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-full gradient-brand" />}
+                <Icon className={cn("size-5 transition-transform group-hover:scale-110", active ? "text-primary" : item.color)} />
                 <span>{item.label}</span>
               </Link>
             );
