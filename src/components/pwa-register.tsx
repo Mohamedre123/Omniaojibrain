@@ -4,28 +4,40 @@ import { useEffect } from "react";
 
 export function PwaRegister() {
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    if (typeof window === "undefined") return;
 
-    // أزل Service Workers قديمة كانت تسبّب مشاكل cache
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      for (const reg of regs) {
-        reg.unregister().catch(() => {});
+    (async () => {
+      let hadStale = false;
+
+      // 1) أزل أي Service Worker قديم كان بيخزّن نسخة قديمة (cache stale)
+      if ("serviceWorker" in navigator) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          if (regs.length > 0) hadStale = true;
+          await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+        } catch { /* تجاهل */ }
+
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data?.type === "SW_UPDATED_RELOAD") window.location.reload();
+        });
       }
-    }).catch(() => {});
 
-    // امسح أي caches قديمة
-    if ("caches" in window) {
-      caches.keys().then((keys) => {
-        keys.forEach((k) => caches.delete(k));
-      }).catch(() => {});
-    }
+      // 2) امسح كل الـ caches المخزّنة
+      if ("caches" in window) {
+        try {
+          const keys = await caches.keys();
+          if (keys.length > 0) hadStale = true;
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        } catch { /* تجاهل */ }
+      }
 
-    // استمع لرسالة الـ SW عشان نعمل reload لو تحدّث
-    navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data?.type === "SW_UPDATED_RELOAD") {
+      // 3) لو لقينا نسخة قديمة مخزّنة → أعِد التحميل مرّة واحدة لجلب أحدث نسخة
+      //    (محميّ بعلامة في sessionStorage عشان ما يحصلش لوب)
+      if (hadStale && !sessionStorage.getItem("oji-cache-purged")) {
+        sessionStorage.setItem("oji-cache-purged", "1");
         window.location.reload();
       }
-    });
+    })();
   }, []);
 
   return null;
