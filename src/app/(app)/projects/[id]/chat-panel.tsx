@@ -225,7 +225,7 @@ export function ChatPanel({
                   <button
                     key={q}
                     onClick={() => sendMessage(q)}
-                    className="rounded-full border bg-card px-4 py-2 text-sm text-right hover:border-primary hover:bg-accent/50 transition-all"
+                    className="rounded-full border border-border bg-secondary/40 px-4 py-2 text-sm text-right hover:border-primary/60 hover:bg-accent hover:text-accent-foreground transition-all"
                   >
                     {q}
                   </button>
@@ -294,7 +294,7 @@ export function ChatPanel({
           </select>
         </div>
         <FilePreviewList files={files} onRemove={(id) => setFiles((p) => p.filter((f) => f.id !== id))} />
-        <div className="flex items-end gap-1.5 rounded-3xl border-2 border-primary/15 bg-card/80 backdrop-blur-xl p-2 shadow-xl shadow-primary/10 transition-all focus-within:border-primary/45 focus-within:shadow-2xl">
+        <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-card p-2 shadow-[0_8px_30px_-18px_color-mix(in_oklab,var(--primary)_60%,transparent)] transition-all focus-within:border-primary/60 focus-within:shadow-[0_10px_36px_-16px_color-mix(in_oklab,var(--primary)_70%,transparent)]">
           <FileUploadButton files={files} onFilesChange={setFiles} disabled={isStreamingHere} />
           <VoiceInput onTranscript={handleVoice} disabled={isStreamingHere} />
           <Textarea

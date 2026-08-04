@@ -18,7 +18,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
       <div className="flex-1 grid place-items-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border bg-card/85 backdrop-blur-md shadow-xl p-6 animate-fade-up">{children}</div>
+        <div className="relative w-full max-w-md rounded-2xl border border-border bg-card shadow-[0_30px_80px_-40px_rgba(0,0,0,0.6)] p-6 animate-fade-up">
+          <span aria-hidden className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+          {children}
+        </div>
       </div>
       <SiteFooter />
     </div>

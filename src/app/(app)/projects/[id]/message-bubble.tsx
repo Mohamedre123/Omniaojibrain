@@ -64,7 +64,7 @@ export function MessageBubble({
   return (
     <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
       {!isUser && (
-        <div className="shrink-0 size-9 rounded-lg gradient-brand grid place-items-center">
+        <div className="shrink-0 size-9 rounded-xl gradient-brand grid place-items-center shadow-[0_6px_18px_-8px_color-mix(in_oklab,var(--primary)_80%,transparent)]">
           <Brain className="size-5 text-white" />
         </div>
       )}
@@ -73,8 +73,8 @@ export function MessageBubble({
           className={cn(
             "rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed break-words",
             isUser
-              ? "gradient-brand text-white rounded-tr-sm w-fit ml-auto shadow-md shadow-primary/25"
-              : "bg-card/70 border border-border/50 backdrop-blur-sm rounded-tl-sm shadow-sm"
+              ? "gradient-brand text-white rounded-br-md w-fit ml-auto shadow-[0_10px_28px_-12px_color-mix(in_oklab,var(--primary)_85%,transparent)]"
+              : "bg-secondary/60 border border-border rounded-bl-md"
           )}
         >
           {isUser ? (

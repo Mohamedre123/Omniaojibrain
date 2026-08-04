@@ -31,7 +31,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex flex-col">
       <AnimatedBackground />
 
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/70 backdrop-blur-2xl safe-top">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-2xl safe-top relative">
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="mx-auto max-w-7xl flex items-center gap-2 h-16 px-3 sm:px-5">
           <TopNav />
           <div className="mr-auto flex items-center gap-1">

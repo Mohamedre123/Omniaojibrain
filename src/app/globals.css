@@ -4,49 +4,56 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   Oji Brain — هوية "Dark Premium" جديدة بالكامل
+   قاعدة فحمية محايدة + أكسنت نيون (مِنت/إمرالد) واحد
+   ============================================================ */
+
+/* الوضع الفاتح — نظيف وجديد (خيار ثانوي) */
 :root {
-  --background: oklch(0.99 0.005 280);
-  --foreground: oklch(0.15 0.02 280);
+  --background: oklch(0.985 0.004 170);
+  --foreground: oklch(0.18 0.018 235);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 280);
+  --card-foreground: oklch(0.18 0.018 235);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 280);
-  --primary: oklch(0.58 0.19 255);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.012 255);
-  --secondary-foreground: oklch(0.2 0.02 255);
-  --muted: oklch(0.96 0.012 255);
-  --muted-foreground: oklch(0.5 0.02 255);
-  --accent: oklch(0.93 0.05 220);
-  --accent-foreground: oklch(0.2 0.02 255);
-  --destructive: oklch(0.6 0.22 25);
+  --popover-foreground: oklch(0.18 0.018 235);
+  --primary: oklch(0.6 0.14 165);
+  --primary-foreground: oklch(0.99 0.01 165);
+  --secondary: oklch(0.965 0.007 175);
+  --secondary-foreground: oklch(0.22 0.02 235);
+  --muted: oklch(0.965 0.006 175);
+  --muted-foreground: oklch(0.48 0.015 235);
+  --accent: oklch(0.94 0.035 170);
+  --accent-foreground: oklch(0.24 0.03 200);
+  --destructive: oklch(0.6 0.21 22);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.92 0.012 255);
-  --input: oklch(0.92 0.012 255);
-  --ring: oklch(0.58 0.19 255);
-  --radius: 1rem;
+  --border: oklch(0.905 0.008 200);
+  --input: oklch(0.905 0.008 200);
+  --ring: oklch(0.6 0.14 165);
+  --radius: 0.85rem;
 }
 
+/* الوضع الداكن — البطل: فحمي شبه أسود + نيون مِنت */
 .dark {
-  --background: oklch(0.13 0.02 280);
-  --foreground: oklch(0.98 0.005 280);
-  --card: oklch(0.16 0.02 280);
-  --card-foreground: oklch(0.98 0.005 280);
-  --popover: oklch(0.16 0.02 280);
-  --popover-foreground: oklch(0.98 0.005 280);
-  --primary: oklch(0.72 0.16 245);
-  --primary-foreground: oklch(0.12 0.02 255);
-  --secondary: oklch(0.22 0.025 255);
-  --secondary-foreground: oklch(0.98 0.005 255);
-  --muted: oklch(0.22 0.025 255);
-  --muted-foreground: oklch(0.74 0.02 255);
-  --accent: oklch(0.3 0.06 220);
-  --accent-foreground: oklch(0.98 0.005 255);
-  --destructive: oklch(0.6 0.22 25);
+  --background: oklch(0.15 0.011 235);
+  --foreground: oklch(0.96 0.004 220);
+  --card: oklch(0.188 0.013 235);
+  --card-foreground: oklch(0.96 0.004 220);
+  --popover: oklch(0.2 0.014 235);
+  --popover-foreground: oklch(0.96 0.004 220);
+  --primary: oklch(0.84 0.17 162);
+  --primary-foreground: oklch(0.17 0.05 162);
+  --secondary: oklch(0.235 0.013 235);
+  --secondary-foreground: oklch(0.96 0.004 220);
+  --muted: oklch(0.235 0.013 235);
+  --muted-foreground: oklch(0.71 0.015 225);
+  --accent: oklch(0.27 0.03 172);
+  --accent-foreground: oklch(0.94 0.03 172);
+  --destructive: oklch(0.64 0.2 22);
   --destructive-foreground: oklch(0.98 0.005 255);
-  --border: oklch(0.26 0.025 255);
-  --input: oklch(0.26 0.025 255);
-  --ring: oklch(0.72 0.16 245);
+  --border: oklch(0.29 0.012 235);
+  --input: oklch(0.29 0.012 235);
+  --ring: oklch(0.84 0.17 162);
 }
 
 @theme inline {
@@ -106,14 +113,15 @@
 
 @layer utilities {
   .glass {
-    background: color-mix(in oklab, var(--background) 60%, transparent);
-    backdrop-filter: blur(16px);
+    background: color-mix(in oklab, var(--background) 62%, transparent);
+    backdrop-filter: blur(18px) saturate(1.4);
   }
+  /* تدرّج العلامة الجديد: إمرالد → تيل → سيان (آمن مع النص الأبيض) */
   .gradient-brand {
-    background: linear-gradient(135deg, oklch(0.56 0.24 265), oklch(0.62 0.2 300), oklch(0.64 0.26 342));
+    background: linear-gradient(135deg, oklch(0.68 0.16 162), oklch(0.6 0.13 192), oklch(0.58 0.12 218));
   }
   .text-gradient {
-    background: linear-gradient(135deg, oklch(0.6 0.19 255), oklch(0.68 0.15 210), oklch(0.66 0.21 330));
+    background: linear-gradient(135deg, oklch(0.72 0.16 162), oklch(0.68 0.13 192), oklch(0.68 0.14 224));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -176,7 +184,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, oklch(0.6 0.22 285 / 0.6), oklch(0.65 0.2 320 / 0.25), transparent);
+    background: linear-gradient(135deg, color-mix(in oklab, var(--primary) 55%, transparent), color-mix(in oklab, var(--primary) 18%, transparent), transparent);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -249,12 +257,11 @@
 }
 
 @layer utilities {
-  /* خلفية سطح التطبيق — توهّج واضح بلون العلامة */
+  /* خلفية سطح التطبيق — توهّج هادئ رزين بلون الأكسنت (Dark Premium) */
   .app-surface {
     background:
-      radial-gradient(1200px 620px at 100% -10%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 55%),
-      radial-gradient(1000px 540px at 0% 108%, color-mix(in oklab, oklch(0.66 0.21 330) 14%, transparent), transparent 55%),
-      radial-gradient(900px 520px at 50% 125%, color-mix(in oklab, oklch(0.66 0.15 210) 11%, transparent), transparent 60%);
+      radial-gradient(1100px 560px at 50% -12%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 60%),
+      radial-gradient(760px 420px at 100% 6%, color-mix(in oklab, var(--primary) 6%, transparent), transparent 55%);
   }
   /* رفعة لطيفة للبطاقات القابلة للنقر */
   .lift { transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease; }
@@ -263,4 +270,21 @@
     box-shadow: 0 18px 44px -14px color-mix(in oklab, var(--primary) 24%, transparent);
     border-color: color-mix(in oklab, var(--primary) 40%, transparent);
   }
+
+  /* بطاقة بريميم: سطح مسطّح + حدّ شعري + توهّج ناعم عند التمرير */
+  .card-premium {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color .25s ease, box-shadow .25s ease, transform .25s cubic-bezier(.22,1,.36,1);
+  }
+  .card-premium:hover {
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+    box-shadow: 0 1px 0 0 color-mix(in oklab, var(--primary) 20%, transparent) inset,
+                0 18px 50px -22px color-mix(in oklab, var(--primary) 40%, transparent);
+  }
+  /* توهّج نيون خفيف حول أي عنصر */
+  .neon-ring { box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 40%, transparent), 0 0 26px -6px color-mix(in oklab, var(--primary) 45%, transparent); }
+  .neon-text { text-shadow: 0 0 22px color-mix(in oklab, var(--primary) 35%, transparent); }
 }

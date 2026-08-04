@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#3f6fe8",
+  themeColor: "#0d1512",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover" as const, // دعم منطقة الأمان على آيفون (notch)
