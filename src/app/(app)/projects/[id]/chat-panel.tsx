@@ -208,8 +208,8 @@ export function ChatPanel({
   const isStreamingHere = streaming && streamingForConvo === conversation.id;
 
   return (
-    <div className="flex flex-col h-[65vh] min-h-[500px]">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pr-1">
+    <div className="flex flex-col h-[68vh] min-h-[520px]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-6 px-1 [&>*]:max-w-3xl [&>*]:w-full [&>*]:mx-auto">
         {messages.length === 0 && !isStreamingHere && (
           <div className="text-center py-10">
             <div className="mx-auto size-14 rounded-full gradient-brand grid place-items-center mb-3">
@@ -294,7 +294,7 @@ export function ChatPanel({
           </select>
         </div>
         <FilePreviewList files={files} onRemove={(id) => setFiles((p) => p.filter((f) => f.id !== id))} />
-        <div className="flex items-end gap-1.5 rounded-2xl border border-primary/20 bg-card/60 backdrop-blur-xl p-2 shadow-[0_8px_34px_-16px_color-mix(in_oklab,var(--primary)_50%,transparent)] transition-all focus-within:border-primary/55 focus-within:shadow-[0_12px_40px_-14px_color-mix(in_oklab,var(--primary)_60%,transparent)]">
+        <div className="flex items-end gap-1.5 rounded-2xl border border-primary/20 bg-card/60 backdrop-blur-xl p-2.5 w-full max-w-3xl mx-auto shadow-[0_8px_34px_-16px_color-mix(in_oklab,var(--primary)_50%,transparent)] transition-all focus-within:border-primary/55 focus-within:shadow-[0_12px_40px_-14px_color-mix(in_oklab,var(--primary)_60%,transparent)]">
           <FileUploadButton files={files} onFilesChange={setFiles} disabled={isStreamingHere} />
           <VoiceInput onTranscript={handleVoice} disabled={isStreamingHere} />
           <Textarea
@@ -302,8 +302,8 @@ export function ChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`اكتب رسالتك... (${MODE_LABELS[mode].label})`}
-            rows={2}
-            className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 hover:border-0 backdrop-blur-none"
+            rows={3}
+            className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 hover:border-0 backdrop-blur-none min-h-[56px] text-[15px]"
             disabled={isStreamingHere}
             dir="auto"
           />

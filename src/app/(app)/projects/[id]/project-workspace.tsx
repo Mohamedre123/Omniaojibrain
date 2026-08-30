@@ -183,8 +183,8 @@ export function ProjectWorkspace({
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="min-w-0">
-        <Card className="overflow-hidden">
-          <div className="border-b p-4 flex flex-wrap items-center justify-between gap-3">
+        <Card className="overflow-hidden border-0 bg-transparent shadow-none backdrop-blur-none">
+          <div className="border-b border-border/40 p-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="text-3xl">{template.emoji}</div>
               <div className="min-w-0">

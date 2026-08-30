@@ -73,8 +73,8 @@ export function MessageBubble({
           className={cn(
             "text-[15px] leading-relaxed break-words",
             isUser
-              ? "rounded-2xl rounded-tl-md bg-primary text-primary-foreground px-4 py-2.5 w-fit ml-auto shadow-[0_10px_26px_-14px_color-mix(in_oklab,var(--primary)_90%,transparent)]"
-              : "rounded-2xl rounded-tr-md border border-border bg-card px-4 py-3 shadow-[0_10px_30px_-24px_rgba(40,10,60,0.6)]"
+              ? "rounded-2xl rounded-tl-sm border border-primary/25 bg-primary/12 text-foreground px-4 py-2.5 w-fit ml-auto"
+              : "px-1 py-0.5"
           )}
         >
           {isUser ? (
