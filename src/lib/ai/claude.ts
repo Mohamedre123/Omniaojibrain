@@ -33,8 +33,9 @@ export async function* streamClaude(opts: {
   messages: ChatMessage[];
   model?: string;
   maxTokens?: number;
+  apiKey?: string; // مفتاح العميل الخاص (BYOK) — اختياري، وإلا مفتاح المنصّة
 }): AsyncGenerator<string> {
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = opts.apiKey || process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("مفتاح Claude (ANTHROPIC_API_KEY) غير مضبوط في الخادم");
 
   const model = isValidClaudeModel(opts.model) ? opts.model : DEFAULT_CLAUDE_MODEL;

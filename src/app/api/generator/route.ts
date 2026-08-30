@@ -6,6 +6,7 @@ import { streamClaude } from "@/lib/ai/claude";
 import { rateLimit } from "@/lib/rate-limit";
 import { TOOL_PROMPTS, type ToolKey } from "@/lib/ai/tool-prompts";
 import { getTemplate } from "@/lib/templates";
+import { CREDITS_ENABLED, costForTool } from "@/lib/credits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -46,6 +47,28 @@ export async function POST(req: NextRequest) {
   const toolPrompt = TOOL_PROMPTS[body.tool as ToolKey];
   if (!toolPrompt) {
     return NextResponse.json({ error: "أداةٌ غيرُ معروفة" }, { status: 400 });
+  }
+
+  // 🔑 مفاتيح العميل الخاصة (BYOK) — لو موصّل مفتاحه نستخدمه
+  let byokGemini = "", byokClaude = "";
+  {
+    const { data: keys } = await supabase.from("oji_connectors").select("service, config").eq("user_id", user.id).like("service", "byok:%");
+    for (const k of (keys as { service: string; config: { key?: string } }[] | null) || []) {
+      if (k.service === "byok:gemini") byokGemini = k.config?.key || "";
+      else if (k.service === "byok:claude") byokClaude = k.config?.key || "";
+    }
+  }
+
+  // 💳 خصم الكريديت — نايم لحد ما يتفعّل الدفع (ولا يخصم لو العميل بمفتاحه الخاص)
+  const usingOwnKey = !!byokGemini || !!byokClaude;
+  if (CREDITS_ENABLED && !usingOwnKey) {
+    const cost = costForTool(body.tool);
+    const { data: cr } = await supabase.from("user_credits").select("balance").eq("user_id", user.id).maybeSingle();
+    const bal = (cr as { balance: number } | null)?.balance ?? 0;
+    if (bal < cost) {
+      return NextResponse.json({ error: "رصيد الكريديت خلص — رقّي باقتك أو اشحن كريديت", credits: true }, { status: 402 });
+    }
+    await supabase.from("user_credits").update({ balance: bal - cost, updated_at: new Date().toISOString() }).eq("user_id", user.id);
   }
 
   // اجلب Brand Memory
@@ -104,8 +127,8 @@ ${brandColors.length > 0 ? `- **ألوان العلامة (Hex)**: ${brandColors
   const useClaude = wantClaude && !!process.env.ANTHROPIC_API_KEY;
   const claudeModel = typeof rawObj.model === "string" ? rawObj.model : undefined;
   const generator = useClaude
-    ? streamClaude({ systemPrompt, messages, model: claudeModel, maxTokens: 32000 })
-    : streamChat({ systemPrompt, messages });
+    ? streamClaude({ systemPrompt, messages, model: claudeModel, maxTokens: 32000, apiKey: byokClaude || undefined })
+    : streamChat({ systemPrompt, messages, apiKey: byokGemini || undefined });
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

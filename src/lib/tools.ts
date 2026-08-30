@@ -98,6 +98,7 @@ export const TOOLS: Tool[] = [
   { href: "/tasks", title: "المهام", desc: "تتبّع مهامك", cat: "الإدارة", emoji: "✅" },
   { href: "/team", title: "الفريق", desc: "أعضاء الفريق", cat: "الإدارة", emoji: "👥" },
   { href: "/business", title: "أدوات الأعمال", desc: "أدوات إدارية", cat: "الإدارة", emoji: "💼" },
+  { href: "/credits", title: "الرصيد والباقات", desc: "رصيدك، الباقات، ومفتاحك الخاص (BYOK)", cat: "الإدارة", emoji: "🪙", kw: "credit كريديت باقة اشتراك byok" },
   { href: "/settings", title: "الإعدادات", desc: "الهوية والحساب", cat: "الإدارة", emoji: "⚙️" },
 ];
 

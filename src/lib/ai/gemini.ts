@@ -36,7 +36,11 @@ function isRetryable(err: unknown): boolean {
 export async function* streamChat(opts: {
   systemPrompt: string;
   messages: ChatMessage[];
+  apiKey?: string; // مفتاح العميل الخاص (BYOK) — اختياري، وإلا مفتاح المنصّة
 }): AsyncGenerator<string> {
+  // لو العميل موصّل مفتاحه الخاص نستخدمه بدل مفتاح المنصّة
+  const byokClient = opts.apiKey ? new GoogleGenAI({ apiKey: opts.apiKey }) : null;
+  const gen = () => byokClient ?? client();
   const contents = opts.messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [
@@ -53,7 +57,7 @@ export async function* streamChat(opts: {
   for (const model of MODELS) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const response = await client().models.generateContentStream({
+        const response = await gen().models.generateContentStream({
           model,
           contents,
           config: {
