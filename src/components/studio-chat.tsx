@@ -923,7 +923,7 @@ export function StudioChat() {
           </div>
         )}
 
-        <div className="flex items-end gap-1.5 rounded-xl border border-border bg-secondary/40 p-1.5 transition-colors focus-within:border-primary/60 focus-within:bg-secondary/60">
+        <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-card p-2 shadow-[0_10px_30px_-20px_color-mix(in_oklab,var(--primary)_55%,transparent)] transition-all focus-within:border-primary/55">
           {mode === "image" && (
             <label className={`shrink-0 size-10 rounded-xl grid place-items-center cursor-pointer text-muted-foreground hover:bg-muted transition-colors relative ${imgRefs.length >= 3 ? "opacity-50 pointer-events-none" : ""}`} title="أضف صور مرجعية (حتى 3)">
               <input type="file" accept="image/*" multiple className="hidden" disabled={imgRefs.length >= 3} onChange={(e) => addImgRefs(e.target.files)} />
