@@ -268,6 +268,23 @@
 }
 
 @layer utilities {
+  /* نصّ بتدرّج لوني (بنفسجي→وردي→أزرق) للعناوين الكبيرة */
+  .text-gradient {
+    background: linear-gradient(92deg, oklch(0.72 0.2 340), oklch(0.66 0.22 300), oklch(0.7 0.18 250));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  /* دائرة زجاجية متوهّجة (زرّ أيقونة) */
+  .glow-ring {
+    background: color-mix(in oklab, var(--primary) 14%, transparent);
+    border: 1px solid color-mix(in oklab, var(--primary) 45%, transparent);
+    box-shadow: 0 0 26px -4px color-mix(in oklab, var(--primary) 55%, transparent),
+                inset 0 0 18px -8px color-mix(in oklab, var(--primary) 60%, transparent);
+    backdrop-filter: blur(6px);
+  }
+
   /* سطح التطبيق — توهّج بنفسجي ناعم فاخر */
   .app-surface {
     background:
