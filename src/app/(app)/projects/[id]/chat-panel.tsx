@@ -294,7 +294,7 @@ export function ChatPanel({
           </select>
         </div>
         <FilePreviewList files={files} onRemove={(id) => setFiles((p) => p.filter((f) => f.id !== id))} />
-        <div className="flex items-end gap-1.5 rounded-2xl border border-border bg-card p-2 shadow-[0_10px_30px_-20px_color-mix(in_oklab,var(--primary)_55%,transparent)] transition-all focus-within:border-primary/55">
+        <div className="flex items-end gap-1.5 rounded-2xl border border-primary/20 bg-card/60 backdrop-blur-xl p-2 shadow-[0_8px_34px_-16px_color-mix(in_oklab,var(--primary)_50%,transparent)] transition-all focus-within:border-primary/55 focus-within:shadow-[0_12px_40px_-14px_color-mix(in_oklab,var(--primary)_60%,transparent)]">
           <FileUploadButton files={files} onFilesChange={setFiles} disabled={isStreamingHere} />
           <VoiceInput onTranscript={handleVoice} disabled={isStreamingHere} />
           <Textarea
