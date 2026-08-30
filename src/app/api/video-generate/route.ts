@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { CREDITS_ENABLED, TOOL_COST } from "@/lib/credits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -57,6 +58,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
   }
   const body = parsed.data;
+
+  // 💳 خصم كريديت الفيديو — نايم لحد ما يتفعّل الدفع
+  if (CREDITS_ENABLED) {
+    const cost = TOOL_COST.video;
+    const { data: cr } = await supabase.from("user_credits").select("balance").eq("user_id", user.id).maybeSingle();
+    const bal = (cr as { balance: number } | null)?.balance ?? 0;
+    if (bal < cost) return NextResponse.json({ error: "رصيد الكريديت خلص — رقّي باقتك أو اشحن كريديت", credits: true }, { status: 402 });
+    await supabase.from("user_credits").update({ balance: bal - cost, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+  }
 
   const key = getKey();
   if (!key) return NextResponse.json({ error: "مفتاح Gemini غير مضبوط في الخادم" }, { status: 500 });

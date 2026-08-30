@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
+import { CREDITS_ENABLED, TOOL_COST } from "@/lib/credits";
 
 export const runtime = "nodejs";
 // Vercel Fluid Compute يسمح حتى 300 ثانية — Nano Banana Pro بياخد وقت مع الصور المرجعية
@@ -197,6 +198,22 @@ export async function POST(req: NextRequest) {
   }
   const body = parsed.data;
 
+  // 🔑 مفتاح العميل الخاص (BYOK) لـ Gemini
+  let byokGemini = "";
+  {
+    const { data: k } = await supabase.from("oji_connectors").select("config").eq("user_id", user.id).eq("service", "byok:gemini").maybeSingle();
+    byokGemini = (k as { config?: { key?: string } } | null)?.config?.key || "";
+  }
+
+  // 💳 خصم كريديت الصورة — نايم لحد ما يتفعّل الدفع (ولا يخصم لو العميل بمفتاحه)
+  if (CREDITS_ENABLED && !byokGemini) {
+    const cost = TOOL_COST.image;
+    const { data: cr } = await supabase.from("user_credits").select("balance").eq("user_id", user.id).maybeSingle();
+    const bal = (cr as { balance: number } | null)?.balance ?? 0;
+    if (bal < cost) return NextResponse.json({ error: "رصيد الكريديت خلص — رقّي باقتك أو اشحن كريديت", credits: true }, { status: 402 });
+    await supabase.from("user_credits").update({ balance: bal - cost, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+  }
+
   // ===== مسار ChatGPT (GPT Image) =====
   if (body.provider === "openai") {
     const oPrompt = `${body.prompt}\n\n${MASTER_PHOTO_STYLE}${aspectInstruction(body.aspect)}${body.brandContext ? `\n\nBrand: ${body.brandContext}` : ""}`;
@@ -205,7 +222,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: r.error || "تعذّر التوليد" }, { status: 503 });
   }
 
-  const keys = getKeys();
+  const baseKeys = getKeys();
+  const keys = byokGemini ? [byokGemini, ...baseKeys.filter((k) => k !== byokGemini)] : baseKeys;
   if (keys.length === 0) {
     return NextResponse.json({ error: "مفتاح Gemini غير مضبوط في الخادم" }, { status: 500 });
   }
