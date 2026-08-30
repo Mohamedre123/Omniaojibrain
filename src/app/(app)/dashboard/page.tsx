@@ -20,6 +20,15 @@ const COVER_COLORS: Record<string, string> = {
   rose: "from-rose-500 to-fuchsia-600",
 };
 
+const WORLDS = [
+  { href: "/studio", emoji: "🎨", title: "الاستوديو", desc: "صور وفيديو بالـ AI", grad: "from-rose-500 to-pink-600" },
+  { href: "/marketing", emoji: "📣", title: "التسويق", desc: "محتوى وإعلانات وتصميمات", grad: "from-orange-500 to-amber-600" },
+  { href: "/automations", emoji: "⚙️", title: "الأتمتة والوكلاء", desc: "بوتات وأتمتة تشتغل لوحدها", grad: "from-sky-500 to-blue-600" },
+  { href: "/insights", emoji: "📊", title: "الرؤى والتحليلات", desc: "تحليل ومنافسين وترندات", grad: "from-cyan-500 to-teal-600" },
+  { href: "/leads", emoji: "🎯", title: "جذب العملاء", desc: "صفحات هبوط وشات بوت", grad: "from-violet-500 to-purple-600" },
+  { href: "/brand", emoji: "🎭", title: "هوية العلامة", desc: "لوجو وألوان وكتاب علامة", grad: "from-fuchsia-500 to-pink-600" },
+];
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -46,48 +55,61 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-8">
       {showWelcome && <WelcomeBanner fullName={firstName} />}
 
-      {/* رأس: ليبل + عنوان + إجراء */}
-      <div className="relative rounded-2xl border border-border bg-card/70 p-5 sm:p-7 mb-6 overflow-hidden shadow-[0_16px_44px_-30px_rgba(40,10,60,0.55)]">
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      {/* هيرو */}
+      <div className="relative overflow-hidden rounded-[28px] gradient-brand text-white p-6 sm:p-9 mb-6 shadow-2xl shadow-primary/30">
+        <span aria-hidden className="pointer-events-none absolute -top-16 -right-10 size-64 rounded-full bg-white/15 blur-3xl" />
+        <span aria-hidden className="pointer-events-none absolute -bottom-24 left-1/4 size-72 rounded-full bg-black/10 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-5">
           <div className="min-w-0">
-            <div className="label-mono mb-2">DASHBOARD / PROJECTS</div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              {firstName ? <>أهلاً <span className="text-primary">{firstName}</span> 👋</> : "مشاريعي"}
+            <div className="text-white/80 text-sm font-medium mb-1">لوحة التحكّم</div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              {firstName ? <>أهلاً {firstName} 👋</> : "أهلاً بيك 👋"}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              جميعُ مشاريعك في مكانٍ واحد — ابدأ مشروعاً جديداً أو تابع مشروعاً قائماً.
-            </p>
-          </div>
-          <NewProjectDialog />
-        </div>
-
-        {/* شريط إحصائيات */}
-        <div className="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border">
-          {[
-            { k: "المشاريع", v: String(list.length).padStart(2, "0") },
-            { k: "الأدوات", v: "90+" },
-            { k: "الحالة", v: "ONLINE" },
-          ].map((s) => (
-            <div key={s.k} className="bg-card px-4 py-3">
-              <div className="label-mono text-[0.6rem]">{s.k}</div>
-              <div className="font-mono text-lg font-bold mt-0.5 tabular-nums">{s.v}</div>
+            <p className="text-white/85 mt-2 max-w-lg text-sm sm:text-base">كل أدواتك ومشاريعك في مكان واحد — اختار عالمك وابدأ تصنع.</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link href="/tools" className="inline-flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur px-4 h-11 font-semibold transition-colors">🧭 كل الأدوات</Link>
+              <Link href="/assistant" className="inline-flex items-center gap-2 rounded-xl bg-white text-primary hover:bg-white/90 px-4 h-11 font-semibold transition-colors">💬 المساعد</Link>
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-3 gap-3 shrink-0">
+            {[
+              { k: "المشاريع", v: String(list.length) },
+              { k: "الأدوات", v: "90+" },
+              { k: "الحالة", v: "ONLINE" },
+            ].map((s) => (
+              <div key={s.k} className="rounded-2xl bg-white/12 backdrop-blur px-4 py-3 text-center min-w-[82px]">
+                <div className="text-2xl font-extrabold tabular-nums">{s.v}</div>
+                <div className="text-white/75 text-[11px] mt-0.5">{s.k}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Bento: مهام اليوم + الأدوات السريعة */}
+      {/* العوالم */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        {WORLDS.map((w) => (
+          <Link key={w.href} href={w.href} className={`group relative overflow-hidden rounded-3xl p-5 text-white min-h-[130px] flex flex-col justify-between shadow-lg hover:-translate-y-1.5 transition-transform bg-gradient-to-br ${w.grad}`}>
+            <span aria-hidden className="pointer-events-none absolute -top-8 -left-8 size-28 rounded-full bg-white/20 blur-2xl group-hover:scale-125 transition-transform" />
+            <div className="relative text-3xl">{w.emoji}</div>
+            <div className="relative">
+              <div className="font-bold text-lg leading-tight">{w.title}</div>
+              <div className="text-white/85 text-xs mt-1">{w.desc}</div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* مهام اليوم + الأدوات السريعة */}
       <div className="grid gap-4 lg:grid-cols-3 mb-6">
         <div className="lg:col-span-2"><DashboardToday /></div>
         <div className="lg:col-span-1"><DashboardTools /></div>
       </div>
 
       {/* المشاريع */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="label-mono">ALL PROJECTS</div>
-        <div className="flex-1 border-t border-border" />
-        <div className="font-mono text-xs text-muted-foreground tabular-nums">{String(list.length).padStart(2, "0")}</div>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="text-xl font-bold">مشاريعي</h2>
+        <NewProjectDialog />
       </div>
 
       {list.length === 0 ? (
