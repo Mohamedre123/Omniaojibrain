@@ -3,11 +3,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateText } from "@/lib/ai/gemini";
 import { TOOL_PROMPTS } from "@/lib/ai/tool-prompts";
 import { getTemplate } from "@/lib/templates";
+import { publishArticle, type SeoPublishConfig } from "@/lib/seo-publish";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-type Sub = { id: string; user_id: string; config: { project_id?: string; keywords?: string[] } | null };
+type Sub = {
+  id: string;
+  user_id: string;
+  config: { project_id?: string; keywords?: string[]; publish?: SeoPublishConfig } | null;
+};
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -31,7 +36,7 @@ async function handle(req: NextRequest) {
     .limit(20);
 
   const subs = (rows as Sub[]) || [];
-  let generated = 0, failed = 0, skipped = 0;
+  let generated = 0, failed = 0, skipped = 0, published = 0, publishFailed = 0;
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -97,13 +102,27 @@ ${profile?.brand_voice ? `- **نبرة العلامة**: ${profile.brand_voice}`
       const content = await generateText({ systemPrompt, prompt });
       if (!content.trim()) throw new Error("empty");
 
+      // نشر تلقائي على منصّة العميل لو معدّة
+      let publishInfo: { url?: string; error?: string } = {};
+      const pub = cfg.publish;
+      if (pub && pub.platform && pub.platform !== "none") {
+        try {
+          const r = await publishArticle(pub, { title: `${topic}`, markdown: content });
+          publishInfo = { url: r.url };
+          published++;
+        } catch (e) {
+          publishInfo = { error: e instanceof Error ? e.message.slice(0, 300) : "فشل النشر" };
+          publishFailed++;
+        }
+      }
+
       await admin.from("deliverables").insert({
         project_id: projectId,
         user_id: sub.user_id,
         kind: "note",
         title: `📰 مقال SEO — ${topic} — ${new Date().toLocaleDateString("ar-EG")}`,
         content,
-        metadata: { seo_auto: true, topic },
+        metadata: { seo_auto: true, topic, publish: publishInfo },
       });
       generated++;
     } catch {
@@ -111,7 +130,7 @@ ${profile?.brand_voice ? `- **نبرة العلامة**: ${profile.brand_voice}`
     }
   }
 
-  return NextResponse.json({ ok: true, checked: subs.length, generated, skipped, failed });
+  return NextResponse.json({ ok: true, checked: subs.length, generated, skipped, published, publishFailed, failed });
 }
 
 export async function GET(req: NextRequest) { return handle(req); }

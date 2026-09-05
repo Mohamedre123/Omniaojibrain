@@ -4,10 +4,21 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+const publishSchema = z.object({
+  platform: z.enum(["none", "wordpress", "webhook"]).optional().default("none"),
+  siteUrl: z.string().max(300).optional().default(""),
+  username: z.string().max(200).optional().default(""),
+  appPassword: z.string().max(400).optional().default(""),
+  status: z.enum(["publish", "draft"]).optional().default("publish"),
+  webhookUrl: z.string().max(500).optional().default(""),
+  authHeader: z.string().max(500).optional().default(""),
+}).optional();
+
 const schema = z.object({
   project_id: z.string().uuid(),
   enabled: z.boolean(),
   keywords: z.array(z.string().max(120)).max(30).optional().default([]),
+  publish: publishSchema,
 });
 
 // قائمة اشتراكات الأتمتة للمستخدم
@@ -38,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 });
-  const { project_id, enabled, keywords } = parsed.data;
+  const { project_id, enabled, keywords, publish } = parsed.data;
 
   // تأكّد إن المشروع بتاع المستخدم
   const { data: proj } = await supabase
@@ -57,7 +68,11 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     service: "seo:auto",
     secret,
-    config: { project_id, keywords: keywords.filter((k) => k.trim()) },
+    config: {
+      project_id,
+      keywords: keywords.filter((k) => k.trim()),
+      publish: publish && publish.platform !== "none" ? publish : undefined,
+    },
     enabled,
   });
   if (error) {
