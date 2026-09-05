@@ -63,7 +63,15 @@ export default async function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="container mx-auto px-4 pt-12 sm:pt-24 pb-16 text-center">
+      <section className="container mx-auto px-4 pt-10 sm:pt-20 pb-16 text-center">
+        {/* رائد فضاء عائم داخل مدار متوهّج — لمسة فضائية بهويتنا */}
+        <div className="relative mx-auto mb-6 sm:mb-8 size-28 sm:size-36 animate-float-slow">
+          <div className="absolute -inset-5 rounded-full border border-primary/20 animate-[spin_22s_linear_infinite]" />
+          <div className="absolute -inset-5 rounded-full border border-primary/10" />
+          <div className="absolute inset-0 rounded-full glow-ring" />
+          <div className="absolute inset-0 grid place-items-center text-5xl sm:text-6xl select-none">🧑‍🚀</div>
+          <span className="absolute -top-1 right-2 size-1.5 rounded-full bg-primary animate-ping" />
+        </div>
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border bg-accent/50 px-3.5 py-1.5 text-xs sm:text-sm animate-fade-up">
           <span className="relative flex size-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
