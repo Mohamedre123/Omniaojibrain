@@ -1,4 +1,5 @@
 import { GeneratorTool } from "@/components/generator-tool";
+import { SeoAutoPanel } from "@/components/seo-auto-panel";
 import { Newspaper } from "lucide-react";
 
 export default function SeoArticlePage() {
@@ -15,6 +16,7 @@ export default function SeoArticlePage() {
           { name: "about", label: "عن نشاطك (اختياري)", type: "textarea", rows: 2, required: false, placeholder: "نوع النشاط والجمهور المستهدف..." },
         ]}
       />
+      <SeoAutoPanel />
     </div>
   );
 }
